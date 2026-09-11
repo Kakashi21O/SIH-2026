@@ -1,0 +1,16 @@
+﻿[
+  {
+    "id": "inc_901",
+    "user_id": "usr_demo",
+    "lat": 28.6495,
+    "lng": 77.2385,
+    "trigger_source": "auto_high_risk_zone",
+    "severity_score": 85,
+    "severity_level": "HIGH",
+    "guardian_notified": true,
+    "emergency_dispatched": true,
+    "audio_captured": true,
+    "status": "RESOLVED",
+    "created_at": "2026-09-07T22:15:30Z"
+  }
+]

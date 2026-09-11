@@ -1,0 +1,42 @@
+﻿[
+  {
+    "id": "comp_001",
+    "text": "Completely dark stretch near the old bus terminal. Streetlights have been broken for 3 weeks.",
+    "category": "poor_lighting",
+    "lat": 28.6410,
+    "lng": 77.2310,
+    "severity": "HIGH",
+    "upvotes": 12,
+    "created_at": "2026-09-08T20:15:00Z"
+  },
+  {
+    "id": "comp_002",
+    "text": "Groups of men loitering and passing comments at the metro exit gate 3 after 8 PM.",
+    "category": "harassment",
+    "lat": 28.6480,
+    "lng": 77.2380,
+    "severity": "CRITICAL",
+    "upvotes": 27,
+    "created_at": "2026-09-09T21:40:00Z"
+  },
+  {
+    "id": "comp_003",
+    "text": "No police PCR van stationed near the railway underpass despite multiple complaints.",
+    "category": "no_police_patrol",
+    "lat": 28.6390,
+    "lng": 77.2290,
+    "severity": "HIGH",
+    "upvotes": 9,
+    "created_at": "2026-09-10T19:05:00Z"
+  },
+  {
+    "id": "comp_004",
+    "text": "Isolated road with high bushes along the industrial canal. Needs emergency call box.",
+    "category": "isolated_area",
+    "lat": 28.6510,
+    "lng": 77.2390,
+    "severity": "CRITICAL",
+    "upvotes": 18,
+    "created_at": "2026-09-10T22:30:00Z"
+  }
+]

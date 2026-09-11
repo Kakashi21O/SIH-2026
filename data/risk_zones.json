@@ -1,0 +1,142 @@
+﻿{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "zone_1",
+      "properties": {
+        "name": "Connaught Place Central Hub",
+        "risk_level": "LOW",
+        "safety_score": 92,
+        "color": "#10B981",
+        "fillOpacity": 0.25,
+        "description": "High police presence, well-lit pedestrian corridors, active commercial surveillance.",
+        "lighting_rating": "Excellent",
+        "police_patrol_freq": "High",
+        "complaint_count": 2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.2140, 28.6350],
+            [77.2240, 28.6350],
+            [77.2240, 28.6270],
+            [77.2140, 28.6270],
+            [77.2140, 28.6350]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone_2",
+      "properties": {
+        "name": "Paharganj Commercial Alleyway",
+        "risk_level": "MODERATE",
+        "safety_score": 68,
+        "color": "#F59E0B",
+        "fillOpacity": 0.3,
+        "description": "Dense market traffic, medium illumination, occasional pickpocketing reports.",
+        "lighting_rating": "Moderate",
+        "police_patrol_freq": "Medium",
+        "complaint_count": 8
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.2050, 28.6460],
+            [77.2160, 28.6460],
+            [77.2160, 28.6380],
+            [77.2050, 28.6380],
+            [77.2050, 28.6460]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone_3",
+      "properties": {
+        "name": "Railway Underpass Corridor",
+        "risk_level": "HIGH",
+        "safety_score": 45,
+        "color": "#F97316",
+        "fillOpacity": 0.35,
+        "description": "Broken streetlights, blind curve, isolated after 9 PM. Auto-Safety Mode advisory active.",
+        "lighting_rating": "Poor",
+        "police_patrol_freq": "Low",
+        "complaint_count": 19
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.2260, 28.6430],
+            [77.2370, 28.6430],
+            [77.2370, 28.6360],
+            [77.2260, 28.6360],
+            [77.2260, 28.6430]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone_4",
+      "properties": {
+        "name": "Old Industrial Bypass & Canal",
+        "risk_level": "CRITICAL",
+        "safety_score": 28,
+        "color": "#EF4444",
+        "fillOpacity": 0.45,
+        "description": "Zero functional streetlights, unpaved terrain, multiple reported stalking incidents. Immediate Safety Mode trigger.",
+        "lighting_rating": "Dark/Non-functional",
+        "police_patrol_freq": "Very Low",
+        "complaint_count": 34
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.2320, 28.6550],
+            [77.2450, 28.6550],
+            [77.2450, 28.6460],
+            [77.2320, 28.6460],
+            [77.2320, 28.6550]
+          ]
+        ]
+      }
+    }
+  ],
+  "pois": [
+    {
+      "id": "poi_1",
+      "name": "Connaught Place Police Station",
+      "type": "POLICE",
+      "lat": 28.6315,
+      "lng": 77.2190,
+      "phone": "011-23340000",
+      "eta_mins": 3
+    },
+    {
+      "id": "poi_2",
+      "name": "Dr. RML Emergency Hospital",
+      "type": "HOSPITAL",
+      "lat": 28.6250,
+      "lng": 77.2010,
+      "phone": "011-23365525",
+      "eta_mins": 6
+    },
+    {
+      "id": "poi_3",
+      "name": "Safe Haven 24/7 Metro Booth",
+      "type": "SAFE_HUB",
+      "lat": 28.6328,
+      "lng": 77.2197,
+      "phone": "112",
+      "eta_mins": 2
+    }
+  ]
+}

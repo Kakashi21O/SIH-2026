@@ -1,7 +1,17 @@
-/context/
-CLAUDE.md
-gitworkflow.md
-
+﻿# Environment variables & secrets
 .env
+.env.local
 
-githubworkflow.md
+# SQLite Database files (keep seed JSONs tracked)
+data/*.db
+*.db
+*.sqlite3
+
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# SafeSteps Docs / Presentation (if excluded)
+SAFE-STEPS.pptx
