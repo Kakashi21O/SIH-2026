@@ -1,6 +1,6 @@
 ﻿/**
- * SafeSteps — Frontend Application Controller & State Orchestrator
- * Theme: Smart Automation | SIH / InnoHack 2026 Prototype
+ * SafeSteps — Frontend Application Controller
+ * Proactive Safety & Automated Emergency Response
  */
 
 // Global Application State
@@ -32,15 +32,15 @@ const state = {
   }
 };
 
-// Demo Preset Coordinates for Instant Live Jumps
+// Preset demo locations
 const DEMO_LOCATIONS = {
-  safe: { lat: 28.6315, lng: 77.2190, name: "Connaught Place Central Hub (Low Risk)" },
-  mod: { lat: 28.6420, lng: 77.2105, name: "Paharganj Commercial Alleyway (Moderate)" },
-  high: { lat: 28.6395, lng: 77.2315, name: "Railway Underpass Corridor (High Risk)" },
-  crit: { lat: 28.6505, lng: 77.2385, name: "Old Industrial Bypass & Canal (Critical)" }
+  safe: { lat: 28.6315, lng: 77.2190, name: "Connaught Place Central Hub" },
+  mod: { lat: 28.6420, lng: 77.2105, name: "Paharganj Commercial Corridor" },
+  high: { lat: 28.6395, lng: 77.2315, name: "Railway Underpass" },
+  crit: { lat: 28.6505, lng: 77.2385, name: "Industrial Canal Bypass" }
 };
 
-// ================= DOM INITIALIZATION & ROUTING =================
+// ================= INITIALIZATION & NAVIGATION =================
 document.addEventListener("DOMContentLoaded", () => {
   initNavigation();
   initAuthFlow();
@@ -50,24 +50,22 @@ document.addEventListener("DOMContentLoaded", () => {
   initComplaints();
   initDemoLocationJumpers();
   
-  // Fetch initial system state
+  // Initial state fetch
   updateSafetyScore(state.currentLocation.lat, state.currentLocation.lng);
 });
 
-// Navigate between the 7 screens
 function showScreen(screenId) {
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".view-screen").forEach(s => s.classList.remove("active"));
   const target = document.getElementById(screenId);
   if (target) {
     target.classList.add("active");
   }
 
-  // Update Bottom Nav Tab Highlights
-  document.querySelectorAll(".nav-tab").forEach(tab => {
+  // Update navigation tab highlights
+  document.querySelectorAll(".bar-tab").forEach(tab => {
     tab.classList.toggle("active", tab.getAttribute("data-target") === screenId);
   });
 
-  // Screen-specific triggers
   if (screenId === "screen-map") {
     setTimeout(initOrResizeMap, 150);
   } else if (screenId === "screen-intelligence") {
@@ -76,51 +74,45 @@ function showScreen(screenId) {
 }
 
 function initNavigation() {
-  // Back buttons
-  document.querySelectorAll(".btn-back").forEach(btn => {
+  document.querySelectorAll(".back-link").forEach(btn => {
     btn.addEventListener("click", () => {
       const target = btn.getAttribute("data-target") || "screen-home";
       showScreen(target);
     });
   });
 
-  // Bottom navigation tabs
-  document.querySelectorAll(".nav-tab").forEach(tab => {
+  document.querySelectorAll(".bar-tab").forEach(tab => {
     tab.addEventListener("click", () => {
       const target = tab.getAttribute("data-target");
       if (target) showScreen(target);
     });
   });
 
-  // Action cards on Home
   document.getElementById("btn-nav-journey")?.addEventListener("click", () => showScreen("screen-journey"));
   document.getElementById("btn-nav-map")?.addEventListener("click", () => showScreen("screen-map"));
   document.getElementById("btn-nav-intel")?.addEventListener("click", () => showScreen("screen-intelligence"));
   document.getElementById("btn-nav-contacts")?.addEventListener("click", () => {
-    alert("Emergency Guardians Configured:\n1. Pooja Sharma (Mother) — +919811122233\n2. Rahul Sharma (Brother) — +919822233344");
+    alert("Emergency Contacts:\n• Pooja Sharma (Mother) — +91 98111 22233\n• Rahul Sharma (Brother) — +91 98222 33344");
   });
 }
 
-// ================= 1. AUTH FLOW =================
+// ================= AUTH FLOW =================
 function initAuthFlow() {
-  const btnLogin = document.getElementById("btn-login");
-  btnLogin?.addEventListener("click", () => {
+  document.getElementById("btn-login")?.addEventListener("click", () => {
     const name = document.getElementById("auth-name").value.trim();
     const phone = document.getElementById("auth-phone").value.trim();
     if (name) state.currentUser.name = name;
     if (phone) state.currentUser.phone = phone;
-
-    // Transition into Home Dashboard
     showScreen("screen-home");
   });
 }
 
-// ================= 2. HOME SCORE & AUTO SAFETY MODE =================
+// ================= DASHBOARD & SAFETY SCORE =================
 function initScoreAndToggle() {
   const toggle = document.getElementById("toggle-safety-mode");
   toggle?.addEventListener("change", (e) => {
     state.safetyModeActive = e.target.checked;
-    updateStatusPill(state.safetyModeActive ? "Safety Mode ON" : "Active Safe", state.safetyModeActive ? "safe" : "safe");
+    updateStatusPill(state.safetyModeActive ? "Monitoring On" : "Protected", state.safetyModeActive ? "safe" : "safe");
   });
 
   document.getElementById("btn-switch-location")?.addEventListener("click", () => {
@@ -131,10 +123,10 @@ function initScoreAndToggle() {
 function updateStatusPill(text, type = "safe") {
   const pill = document.getElementById("header-status-pill");
   const textEl = document.getElementById("header-status-text");
-  const dot = pill.querySelector(".status-dot");
+  const dot = pill?.querySelector(".status-indicator");
   if (textEl) textEl.textContent = text;
   if (dot) {
-    dot.className = `status-dot ${type}`;
+    dot.className = `status-indicator ${type === 'danger' ? 'danger' : ''}`;
   }
 }
 
@@ -145,58 +137,58 @@ async function updateSafetyScore(lat, lng) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lat, lng, user_id: state.currentUser.id })
     });
-    if (!res.ok) throw new Error("Failed to fetch safety score");
+    if (!res.ok) throw new Error("Score request failed");
     const data = await res.json();
 
     state.safetyScore = data.overall_score;
     state.riskLevel = data.risk_level;
-    state.currentLocation.name = data.active_zone_name || "Monitored Urban Sector";
+    state.currentLocation.name = data.active_zone_name || "Monitored Zone";
 
-    // Update Home UI elements
-    const scoreVal = document.getElementById("home-score-value");
+    // Update DOM
+    const scoreNum = document.getElementById("home-score-value");
     const locName = document.getElementById("home-loc-name");
     const riskBadge = document.getElementById("home-risk-badge");
     const riskDesc = document.getElementById("home-risk-desc");
-    const scoreRing = document.getElementById("score-ring");
     const toggle = document.getElementById("toggle-safety-mode");
 
-    if (scoreVal) scoreVal.textContent = data.overall_score;
+    const metricLighting = document.getElementById("metric-lighting");
+    const metricPatrols = document.getElementById("metric-patrols");
+
+    if (scoreNum) scoreNum.textContent = data.overall_score;
     if (locName) locName.textContent = state.currentLocation.name;
     if (riskDesc) riskDesc.textContent = data.recommended_action;
 
-    // SVG Circular Progress (circumference ~314)
-    if (scoreRing) {
-      const offset = 314 - (314 * data.overall_score) / 100;
-      scoreRing.style.strokeDashoffset = offset;
-      
+    if (metricLighting) metricLighting.textContent = data.factors.lighting_status === "ADEQUATE" ? "Good" : "Poor";
+    if (metricPatrols) metricPatrols.textContent = data.factors.police_presence === "ACTIVE" ? "Active" : "Low";
+
+    if (riskBadge) {
       if (data.overall_score >= 80) {
-        scoreRing.style.stroke = "var(--state-safe)";
-        if (riskBadge) { riskBadge.className = "badge badge-safe"; riskBadge.textContent = "🟢 LOW RISK ZONE"; }
+        riskBadge.className = "risk-pill safe";
+        riskBadge.textContent = "Low Risk";
       } else if (data.overall_score >= 60) {
-        scoreRing.style.stroke = "var(--state-warn)";
-        if (riskBadge) { riskBadge.className = "badge badge-warn"; riskBadge.textContent = "🟡 MODERATE RISK"; }
+        riskBadge.className = "risk-pill warn";
+        riskBadge.textContent = "Moderate";
       } else if (data.overall_score >= 40) {
-        scoreRing.style.stroke = "var(--state-high)";
-        if (riskBadge) { riskBadge.className = "badge badge-high"; riskBadge.textContent = "🟠 HIGH RISK ZONE"; }
+        riskBadge.className = "risk-pill high";
+        riskBadge.textContent = "High Risk";
       } else {
-        scoreRing.style.stroke = "var(--state-critical)";
-        if (riskBadge) { riskBadge.className = "badge badge-critical"; riskBadge.textContent = "🔴 CRITICAL RISK ZONE"; }
+        riskBadge.className = "risk-pill danger";
+        riskBadge.textContent = "Critical";
       }
     }
 
-    // Proactive Safety Mode Auto-Activation on High/Critical Zones
     if (data.auto_safety_mode_recommended && !state.safetyModeActive) {
       state.safetyModeActive = true;
       if (toggle) toggle.checked = true;
-      updateStatusPill("Auto Safety Mode Active", "danger");
+      updateStatusPill("High Risk Auto-Mode", "danger");
     }
 
   } catch (err) {
-    console.warn("Using offline fallback score calculation:", err);
+    console.warn("Safety score fallback:", err);
   }
 }
 
-// ================= 3. LEAFLET MAP ENGINE =================
+// ================= MAP ENGINE =================
 function initOrResizeMap() {
   const mapContainer = document.getElementById("leaflet-map");
   if (!mapContainer) return;
@@ -207,12 +199,10 @@ function initOrResizeMap() {
       attributionControl: false
     }).setView([state.currentLocation.lat, state.currentLocation.lng], 14);
 
-    // Dark Map Tiles
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
       maxZoom: 19
     }).addTo(state.mapInstance);
 
-    // Load Risk Zone Polygons from backend
     loadMapRiskZones();
   } else {
     state.mapInstance.invalidateSize();
@@ -235,16 +225,15 @@ async function loadMapRiskZones() {
     state.mapLayers.zones = L.geoJSON(geojson, {
       style: (feature) => ({
         color: feature.properties.color || "#10b981",
-        weight: 2,
+        weight: 1.5,
         fillColor: feature.properties.color || "#10b981",
-        fillOpacity: feature.properties.fillOpacity || 0.3
+        fillOpacity: feature.properties.fillOpacity || 0.25
       }),
       onEachFeature: (feature, layer) => {
         layer.bindPopup(`
-          <div style="color: #0b0f19; font-family: sans-serif;">
-            <b>${feature.properties.name}</b><br/>
-            Score: ${feature.properties.safety_score}/100 (${feature.properties.risk_level})<br/>
-            <small>${feature.properties.description}</small>
+          <div style="color: #0b0f19; font-family: sans-serif; padding: 2px;">
+            <b style="font-size: 13px;">${feature.properties.name}</b><br/>
+            <span style="font-size: 12px;">Safety Index: <b>${feature.properties.safety_score}/100</b> (${feature.properties.risk_level})</span>
           </div>
         `);
       }
@@ -263,9 +252,9 @@ function updateUserMarkerOnMap() {
   } else {
     const beaconIcon = L.divIcon({
       className: "user-gps-beacon",
-      html: `<div style="width: 16px; height: 16px; background: #06b6d4; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 12px #06b6d4;"></div>`,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8]
+      html: `<div style="width: 14px; height: 14px; background: #38bdf8; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 10px #38bdf8;"></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7]
     });
     state.mapLayers.userMarker = L.marker(latlng, { icon: beaconIcon }).addTo(state.mapInstance);
   }
@@ -292,27 +281,18 @@ function jumpToLocation(key) {
   }
 }
 
-// ================= 4. EMERGENCY VERIFICATION (10s COUNTDOWN) =================
+// ================= EMERGENCY VERIFICATION =================
 function initEmergencyVerification() {
-  // SOS trigger on Home screen
   document.getElementById("btn-trigger-sos")?.addEventListener("click", () => {
     triggerEmergencyWorkflow("manual_sos");
   });
 
-  // "I'M SAFE" Quick dismissal button
   document.getElementById("btn-im-safe")?.addEventListener("click", () => {
-    cancelEmergencyCountdown("Safe button tapped");
+    cancelEmergencyCountdown("Dismissed by user");
   });
 
-  // "Enter PIN" modal trigger
-  document.getElementById("btn-enter-pin-modal")?.addEventListener("click", () => {
-    openPinModal();
-  });
-
-  // Abort button on active emergency screen
-  document.getElementById("btn-abort-emergency-active")?.addEventListener("click", () => {
-    openPinModal();
-  });
+  document.getElementById("btn-enter-pin-modal")?.addEventListener("click", openPinModal);
+  document.getElementById("btn-abort-emergency-active")?.addEventListener("click", openPinModal);
 }
 
 async function triggerEmergencyWorkflow(source = "manual_sos") {
@@ -333,15 +313,12 @@ async function triggerEmergencyWorkflow(source = "manual_sos") {
     const data = await res.json();
     state.emergencyState.verificationToken = data.verification_token;
   } catch (err) {
-    console.warn("Offline fallback token:", err);
     state.emergencyState.verificationToken = "tok_local_demo";
   }
 
-  // Show Verification Screen
   showScreen("screen-verify");
   updateCountdownUI();
 
-  // Start 1-second interval countdown
   clearInterval(state.emergencyState.countdownInterval);
   state.emergencyState.countdownInterval = setInterval(() => {
     state.emergencyState.countdownSeconds -= 1;
@@ -366,7 +343,7 @@ function cancelEmergencyCountdown(reason) {
   state.emergencyState.active = false;
   closePinModal();
   showScreen("screen-home");
-  updateStatusPill("Active Safe", "safe");
+  updateStatusPill("Protected", "safe");
 }
 
 async function escalateToActiveEmergency(source) {
@@ -389,87 +366,109 @@ async function escalateToActiveEmergency(source) {
     const data = await res.json();
     state.emergencyState.incidentId = data.id;
 
-    // Update Emergency Screen
-    document.getElementById("emg-inc-id").textContent = data.id;
-    document.getElementById("emg-inc-severity").textContent = `SEVERITY ${data.severity_score}/100`;
-    document.getElementById("emg-coords-stream").textContent = `Broadcasting (${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}) • Live`;
+    document.getElementById("emg-inc-id").textContent = `Incident ID: ${data.id}`;
+    document.getElementById("emg-inc-severity").textContent = `Severity ${data.severity_score}/100`;
+    document.getElementById("emg-coords-stream").textContent = `Broadcasting (${data.lat.toFixed(4)}, ${data.lng.toFixed(4)})`;
   } catch (err) {
-    console.warn("Offline emergency escalation fallback:", err);
+    console.warn("Escalation error fallback:", err);
   }
 
   updateStatusPill("EMERGENCY ACTIVE", "danger");
   showScreen("screen-emergency");
 }
 
-// ================= 5. PIN KEYPAD MODAL =================
+// ================= PIN KEYPAD WITH DOT INDICATORS =================
+let enteredPin = "";
+
+function updatePinDots() {
+  const dots = document.querySelectorAll(".pin-dot");
+  dots.forEach((dot, index) => {
+    if (index < enteredPin.length) {
+      dot.classList.add("filled");
+    } else {
+      dot.classList.remove("filled");
+    }
+  });
+}
+
 function initPinKeypad() {
-  const pinInput = document.getElementById("modal-pin-input");
   const errorMsg = document.getElementById("pin-error-msg");
 
-  document.querySelectorAll(".key-btn[data-key]").forEach(btn => {
+  document.querySelectorAll(".num-btn[data-key]").forEach(btn => {
     btn.addEventListener("click", () => {
-      if (pinInput.value.length < 4) {
-        pinInput.value += btn.getAttribute("data-key");
-        errorMsg.textContent = "";
+      if (enteredPin.length < 4) {
+        enteredPin += btn.getAttribute("data-key");
+        updatePinDots();
+        if (errorMsg) errorMsg.textContent = "";
+
+        // Auto-verify on 4th digit
+        if (enteredPin.length === 4) {
+          submitPin();
+        }
       }
     });
   });
 
   document.getElementById("btn-keypad-clear")?.addEventListener("click", () => {
-    pinInput.value = "";
-    errorMsg.textContent = "";
-  });
-
-  document.getElementById("btn-keypad-submit")?.addEventListener("click", async () => {
-    const pin = pinInput.value;
-    if (pin.length !== 4) {
-      errorMsg.textContent = "Please enter complete 4-digit PIN";
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/auth/verify-pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin, user_id: state.currentUser.id })
-      });
-      const data = await res.json();
-
-      if (data.valid) {
-        cancelEmergencyCountdown("Valid PIN verified");
-      } else {
-        errorMsg.textContent = "Incorrect PIN. Try again.";
-        pinInput.value = "";
-      }
-    } catch (err) {
-      // Local fallback: default PIN 1234
-      if (pin === "1234") {
-        cancelEmergencyCountdown("Fallback valid PIN");
-      } else {
-        errorMsg.textContent = "Incorrect PIN (Demo PIN is 1234)";
-        pinInput.value = "";
-      }
+    if (enteredPin.length > 0) {
+      enteredPin = enteredPin.slice(0, -1);
+      updatePinDots();
+      if (errorMsg) errorMsg.textContent = "";
     }
   });
 
+  document.getElementById("btn-keypad-submit")?.addEventListener("click", submitPin);
   document.getElementById("btn-close-pin-modal")?.addEventListener("click", closePinModal);
 }
 
-function openPinModal() {
-  const modal = document.getElementById("pin-modal");
-  const input = document.getElementById("modal-pin-input");
+async function submitPin() {
   const errorMsg = document.getElementById("pin-error-msg");
-  if (input) input.value = "";
+  if (enteredPin.length !== 4) {
+    if (errorMsg) errorMsg.textContent = "Please enter 4 digits";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/auth/verify-pin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin: enteredPin, user_id: state.currentUser.id })
+    });
+    const data = await res.json();
+
+    if (data.valid) {
+      cancelEmergencyCountdown("PIN verified");
+    } else {
+      if (errorMsg) errorMsg.textContent = "Incorrect PIN. Try again.";
+      enteredPin = "";
+      updatePinDots();
+    }
+  } catch (err) {
+    if (enteredPin === "1234") {
+      cancelEmergencyCountdown("Fallback PIN verified");
+    } else {
+      if (errorMsg) errorMsg.textContent = "Incorrect PIN (Demo is 1234)";
+      enteredPin = "";
+      updatePinDots();
+    }
+  }
+}
+
+function openPinModal() {
+  enteredPin = "";
+  updatePinDots();
+  const errorMsg = document.getElementById("pin-error-msg");
   if (errorMsg) errorMsg.textContent = "";
-  if (modal) modal.classList.add("active");
+  document.getElementById("pin-modal")?.classList.add("active");
 }
 
 function closePinModal() {
-  const modal = document.getElementById("pin-modal");
-  if (modal) modal.classList.remove("active");
+  enteredPin = "";
+  updatePinDots();
+  document.getElementById("pin-modal")?.classList.remove("active");
 }
 
-// ================= 6. COMPLAINTS & INTELLIGENCE =================
+// ================= COMPLAINTS & COMMUNITY =================
 function initComplaints() {
   document.getElementById("btn-submit-complaint")?.addEventListener("click", async () => {
     const textEl = document.getElementById("complaint-text");
@@ -506,15 +505,18 @@ async function loadComplaints() {
     if (!res.ok) return;
     const items = await res.json();
 
-    container.innerHTML = items.map(c => `
-      <div class="complaint-card">
-        <div class="complaint-top">
-          <span class="badge ${c.severity === 'CRITICAL' ? 'badge-critical' : 'badge-warn'}">${c.category.replace('_', ' ').toUpperCase()}</span>
-          <small style="color: var(--text-dim); font-size: 0.7rem;">${new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+    container.innerHTML = items.map(c => {
+      const timeStr = new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return `
+        <div class="report-item">
+          <div class="report-item-top">
+            <span class="report-tag ${c.severity === 'CRITICAL' ? 'risk-pill danger' : 'risk-pill warn'}">${c.category.replace('_', ' ')}</span>
+            <span class="report-time">${timeStr}</span>
+          </div>
+          <p>${c.text}</p>
         </div>
-        <p>${c.text}</p>
-      </div>
-    `).join("");
+      `;
+    }).join("");
   } catch (err) {
     container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem;">Loading reports...</p>`;
   }

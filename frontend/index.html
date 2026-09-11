@@ -3,405 +3,485 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>SafeSteps — Smart Women Safety & Emergency Response</title>
+  <title>SafeSteps — Automated Safety & Emergency Response</title>
   
   <!-- Inter & JetBrains Mono Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
   
-  <!-- Leaflet CSS CDN -->
+  <!-- Leaflet Map CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   
-  <!-- SafeSteps Dark Design System -->
+  <!-- Custom Application Stylesheet -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app-container">
+  <div class="app-frame">
     
-    <!-- Top Global Header (Visible on most screens) -->
-    <header class="top-bar" id="global-header">
-      <div class="brand">
-        <span class="brand-shield">🛡️</span>
-        <div class="brand-text">
-          <h1>SafeSteps</h1>
-          <span class="brand-tag">Smart Automation</span>
+    <!-- Top App Bar -->
+    <header class="top-nav" id="global-header">
+      <div class="nav-brand">
+        <div class="brand-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <div class="brand-info">
+          <span class="brand-title">SafeSteps</span>
+          <span class="brand-subtitle">Proactive Safety</span>
         </div>
       </div>
-      <div class="status-pill" id="header-status-pill">
-        <span class="status-dot safe"></span>
-        <span id="header-status-text">Active Safe</span>
+
+      <div class="nav-status-pill" id="header-status-pill">
+        <span class="status-indicator"></span>
+        <span class="status-text" id="header-status-text">Protected</span>
       </div>
     </header>
 
-    <!-- Main Screens Container (SPA) -->
-    <main class="screens-viewport">
+    <!-- App Viewport -->
+    <main class="viewport">
 
-      <!-- ================= 1. AUTH / ONBOARDING SCREEN ================= -->
-      <section id="screen-auth" class="screen active">
-        <div class="auth-hero">
-          <div class="hero-logo">🛡️</div>
-          <h2>SafeSteps</h2>
-          <p class="hero-sub">AI-Powered Smart Safety & Automated Emergency Response</p>
+      <!-- ================= 1. AUTH / SETUP SCREEN ================= -->
+      <section id="screen-auth" class="view-screen active">
+        <div class="auth-header">
+          <div class="auth-icon-badge">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h2>Welcome to SafeSteps</h2>
+          <p>Continuous environmental risk monitoring and instant automated emergency response.</p>
         </div>
 
-        <div class="card auth-card">
-          <div class="input-group">
-            <label for="auth-name">Your Full Name</label>
-            <input type="text" id="auth-name" value="Ananya Sharma" placeholder="Enter your name" />
+        <div class="panel auth-panel">
+          <div class="form-group">
+            <label for="auth-name">Full Name</label>
+            <input type="text" id="auth-name" value="Ananya Sharma" spellcheck="false" />
           </div>
 
-          <div class="input-group">
+          <div class="form-group">
             <label for="auth-phone">Mobile Number</label>
-            <input type="tel" id="auth-phone" value="+919876543210" placeholder="+91 98765 43210" />
+            <input type="tel" id="auth-phone" value="+91 98765 43210" />
           </div>
 
-          <div class="input-group">
-            <label for="auth-pin">Emergency Abort PIN (4 Digits)</label>
-            <input type="password" id="auth-pin" maxlength="4" value="1234" placeholder="••••" class="pin-input-field" />
-            <span class="input-hint">Used to cancel emergency verification false alarms</span>
+          <div class="form-group">
+            <label for="auth-pin">4-Digit Security PIN</label>
+            <input type="password" id="auth-pin" maxlength="4" value="1234" class="pin-field" />
+            <span class="helper-text">Required to disarm false alarm countdowns</span>
           </div>
 
-          <button class="btn btn-primary" id="btn-login">
-            <span>Launch SafeSteps</span> ➔
+          <button class="action-btn btn-primary" id="btn-login">
+            <span>Get Started</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
         </div>
       </section>
 
-      <!-- ================= 2. HOME DASHBOARD SCREEN ================= -->
-      <section id="screen-home" class="screen">
-        <div class="location-strip">
-          <span class="loc-icon">📍</span>
-          <div class="loc-details">
-            <span class="loc-label">CURRENT SIMULATED LOCATION</span>
-            <span class="loc-name" id="home-loc-name">Connaught Place Central Hub</span>
+      <!-- ================= 2. DASHBOARD SCREEN ================= -->
+      <section id="screen-home" class="view-screen">
+        
+        <!-- Live Location Bar -->
+        <div class="location-bar">
+          <div class="loc-marker">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           </div>
-          <button class="btn-icon" id="btn-switch-location" title="Switch Demo Zone">🔄</button>
+          <div class="loc-text">
+            <span class="loc-tag">CURRENT ZONE</span>
+            <span class="loc-title" id="home-loc-name">Connaught Place Central Hub</span>
+          </div>
+          <button class="icon-btn" id="btn-switch-location" title="View Map">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+          </button>
         </div>
 
-        <!-- Safety Score Hero Circular Card -->
-        <div class="card score-hero-card">
-          <div class="score-circle-wrapper">
-            <svg class="score-svg" viewBox="0 0 120 120">
-              <circle class="score-bg" cx="60" cy="60" r="50" />
-              <circle class="score-bar" id="score-ring" cx="60" cy="60" r="50" />
-            </svg>
-            <div class="score-metric">
-              <span class="score-value" id="home-score-value">92</span>
-              <span class="score-total">/ 100</span>
+        <!-- Safety Index Card -->
+        <div class="panel safety-card">
+          <div class="safety-card-header">
+            <div>
+              <span class="eyebrow">ENVIRONMENT SAFETY SCORE</span>
+              <div class="score-display">
+                <span class="score-num" id="home-score-value">92</span>
+                <span class="score-base">/100</span>
+              </div>
+            </div>
+            <div class="risk-pill safe" id="home-risk-badge">Low Risk</div>
+          </div>
+
+          <!-- Micro Factors -->
+          <div class="metric-row">
+            <div class="metric-item">
+              <span class="metric-label">Lighting</span>
+              <span class="metric-val" id="metric-lighting">Adequate</span>
+            </div>
+            <div class="metric-divider"></div>
+            <div class="metric-item">
+              <span class="metric-label">Patrols</span>
+              <span class="metric-val" id="metric-patrols">Active</span>
+            </div>
+            <div class="metric-divider"></div>
+            <div class="metric-item">
+              <span class="metric-label">Safe Havens</span>
+              <span class="metric-val" id="metric-havens">3 Nearby</span>
             </div>
           </div>
-          <div class="score-meta">
-            <span class="badge badge-safe" id="home-risk-badge">🟢 LOW RISK ZONE</span>
-            <p class="score-desc" id="home-risk-desc">High police presence, well-lit pedestrian corridors.</p>
-          </div>
+
+          <p class="zone-recommendation" id="home-risk-desc">Area is well lit with active commercial surveillance. Safe for pedestrian travel.</p>
         </div>
 
-        <!-- Proactive Safety Mode Auto-Toggle -->
-        <div class="card toggle-card">
-          <div class="toggle-info">
-            <div class="toggle-title">
-              <span class="toggle-icon">⚡</span>
+        <!-- Safety Mode Control Panel -->
+        <div class="panel toggle-panel">
+          <div class="toggle-details">
+            <div class="toggle-heading">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               <h3>Safety Mode</h3>
             </div>
-            <p class="toggle-desc">Distress listening & auto-verification active</p>
+            <p>Background distress listening & auto-escalation triggers</p>
           </div>
-          <label class="switch">
+          <label class="switch-toggle">
             <input type="checkbox" id="toggle-safety-mode" />
-            <span class="slider round"></span>
+            <span class="switch-slider"></span>
           </label>
         </div>
 
-        <!-- Quick Action Nav Grid -->
-        <div class="action-grid">
-          <button class="action-card" id="btn-nav-journey">
-            <span class="action-icon">🚶</span>
-            <span class="action-label">Safe Journey</span>
-            <span class="action-sub">Smart Route Selection</span>
+        <!-- Action Grid -->
+        <div class="menu-grid">
+          <button class="menu-tile" id="btn-nav-journey">
+            <div class="tile-icon-wrap">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 12l-4-4-4 4M12 16V8"/></svg>
+            </div>
+            <div class="tile-content">
+              <span class="tile-title">Safe Journey</span>
+              <span class="tile-desc">Route Safety Comparison</span>
+            </div>
           </button>
 
-          <button class="action-card" id="btn-nav-map">
-            <span class="action-icon">🗺️</span>
-            <span class="action-label">Safety Map</span>
-            <span class="action-sub">Live Risk Zones & POIs</span>
+          <button class="menu-tile" id="btn-nav-map">
+            <div class="tile-icon-wrap">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+            </div>
+            <div class="tile-content">
+              <span class="tile-title">Safety Map</span>
+              <span class="tile-desc">Risk Polygons & Havens</span>
+            </div>
           </button>
 
-          <button class="action-card" id="btn-nav-intel">
-            <span class="action-icon">📢</span>
-            <span class="action-label">Report Issue</span>
-            <span class="action-sub">AI Hotspot Intelligence</span>
+          <button class="menu-tile" id="btn-nav-intel">
+            <div class="tile-icon-wrap">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="tile-content">
+              <span class="tile-title">Report Hazard</span>
+              <span class="tile-desc">Community Risk Intel</span>
+            </div>
           </button>
 
-          <button class="action-card" id="btn-nav-contacts">
-            <span class="action-icon">👥</span>
-            <span class="action-label">Guardians</span>
-            <span class="action-sub">2 Contacts Configured</span>
+          <button class="menu-tile" id="btn-nav-contacts">
+            <div class="tile-icon-wrap">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="tile-content">
+              <span class="tile-title">Guardians</span>
+              <span class="tile-desc">2 Emergency Contacts</span>
+            </div>
           </button>
         </div>
 
-        <!-- Giant Emergency Trigger SOS -->
-        <div class="sos-container">
-          <button class="btn-sos" id="btn-trigger-sos">
-            <span class="sos-icon">🚨</span>
-            <span class="sos-text">EMERGENCY SOS</span>
-            <span class="sos-sub">Tap to initiate 10s verification</span>
+        <!-- Emergency Trigger Button -->
+        <div class="panic-wrapper">
+          <button class="panic-btn" id="btn-trigger-sos">
+            <div class="panic-inner">
+              <div class="panic-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <span class="panic-text">EMERGENCY SOS</span>
+            </div>
           </button>
+          <span class="panic-caption">Press to initiate 10s verification check</span>
         </div>
       </section>
 
       <!-- ================= 3. SAFETY MAP SCREEN ================= -->
-      <section id="screen-map" class="screen">
-        <div class="screen-header">
-          <button class="btn-back" data-target="screen-home">‹ Back</button>
+      <section id="screen-map" class="view-screen">
+        <div class="view-header">
+          <button class="back-link" data-target="screen-home">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Back</span>
+          </button>
           <h2>Live Risk Map</h2>
-          <span class="badge badge-outline">Delhi Hub</span>
+          <div class="header-badge">Delhi NCR</div>
         </div>
 
-        <div class="map-wrapper">
+        <div class="map-viewport-frame">
           <div id="leaflet-map"></div>
           
-          <!-- Map Legend Overlay -->
-          <div class="map-legend">
-            <div class="legend-item"><span class="dot safe"></span> Safe (80-100)</div>
-            <div class="legend-item"><span class="dot moderate"></span> Moderate (60-79)</div>
-            <div class="legend-item"><span class="dot high"></span> High (40-59)</div>
-            <div class="legend-item"><span class="dot critical"></span> Critical (&lt;40)</div>
+          <div class="map-overlay-legend">
+            <div class="legend-row"><span class="legend-dot safe"></span> Low Risk</div>
+            <div class="legend-row"><span class="legend-dot warn"></span> Moderate</div>
+            <div class="legend-row"><span class="legend-dot high"></span> High Risk</div>
+            <div class="legend-row"><span class="legend-dot critical"></span> Critical</div>
           </div>
         </div>
 
-        <!-- Quick Demo Zone Simulator -->
-        <div class="card sim-bar">
-          <span class="sim-label">⚡ Simulate GPS Jumps:</span>
-          <div class="sim-btn-row">
-            <button class="btn-chip" id="sim-safe">🟢 CP Hub (92)</button>
-            <button class="btn-chip" id="sim-mod">🟡 Market (68)</button>
-            <button class="btn-chip" id="sim-high">🟠 Underpass (45)</button>
-            <button class="btn-chip" id="sim-crit">🔴 Industrial (28)</button>
+        <div class="panel sim-panel">
+          <span class="sim-title">Test Location Scenarios</span>
+          <div class="sim-chip-grid">
+            <button class="sim-chip" id="sim-safe">Connaught Place (92)</button>
+            <button class="sim-chip" id="sim-mod">Paharganj (68)</button>
+            <button class="sim-chip" id="sim-high">Underpass (45)</button>
+            <button class="sim-chip" id="sim-crit">Industrial Canal (28)</button>
           </div>
         </div>
       </section>
 
       <!-- ================= 4. SAFE JOURNEY SCREEN ================= -->
-      <section id="screen-journey" class="screen">
-        <div class="screen-header">
-          <button class="btn-back" data-target="screen-home">‹ Back</button>
+      <section id="screen-journey" class="view-screen">
+        <div class="view-header">
+          <button class="back-link" data-target="screen-home">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Back</span>
+          </button>
           <h2>Safe Journey</h2>
-          <span class="badge badge-brand">AI Route Score</span>
+          <div class="header-badge">Route Engine</div>
         </div>
 
-        <div class="card route-inputs">
-          <div class="input-group">
-            <label>Origin</label>
-            <input type="text" id="journey-origin" value="College Campus / Work Hub" />
+        <div class="panel form-panel">
+          <div class="route-field">
+            <span class="route-dot origin"></span>
+            <input type="text" id="journey-origin" value="University Campus / Metro" />
           </div>
-          <div class="input-group">
-            <label>Destination</label>
+          <div class="route-line-connector"></div>
+          <div class="route-field">
+            <span class="route-dot dest"></span>
             <input type="text" id="journey-dest" value="Home Residence (Sector 12)" />
           </div>
         </div>
 
-        <div class="routes-comparison">
-          <!-- Route A: Fastest -->
-          <div class="card route-card" id="card-fastest-route">
-            <div class="route-badge-row">
-              <span class="badge badge-dim">FASTEST ROUTE</span>
-              <span class="route-metric-score badge-critical">42/100 🔴</span>
+        <div class="route-cards-list">
+          <!-- Recommended Safer Route -->
+          <div class="panel route-card selected-route" id="card-safer-route">
+            <div class="route-top">
+              <span class="route-tag safe-tag">Recommended Route</span>
+              <span class="route-score-pill safe">Score 88</span>
             </div>
-            <div class="route-details">
-              <h4>Via Old Railway Underpass</h4>
-              <p>2.1 km • 10 mins • Poorly lit stretch after 8:30 PM</p>
+            <div class="route-body">
+              <h4>Via Main Boulevard & Police Post</h4>
+              <p>2.6 km • 14 mins • 100% lit with CCTV & 24/7 stores</p>
             </div>
-            <button class="btn btn-outline" id="btn-select-fastest">Select Route</button>
+            <button class="action-btn btn-primary" id="btn-select-safer">
+              <span>Start Navigation</span>
+            </button>
           </div>
 
-          <!-- Route B: Safer Route ⭐ -->
-          <div class="card route-card featured-safer-route" id="card-safer-route">
-            <div class="route-badge-row">
-              <span class="badge badge-safe">RECOMMENDED ⭐ SAFER ROUTE</span>
-              <span class="route-metric-score badge-safe">88/100 🟢</span>
+          <!-- Fastest Route -->
+          <div class="panel route-card secondary-route" id="card-fastest-route">
+            <div class="route-top">
+              <span class="route-tag muted-tag">Fastest Route</span>
+              <span class="route-score-pill danger">Score 42</span>
             </div>
-            <div class="route-details">
-              <h4>Via Main Boulevard & Police Booth</h4>
-              <p>2.6 km • 14 mins • 100% lit with CCTV & 24/7 commercial stores</p>
+            <div class="route-body">
+              <h4>Via Railway Underpass</h4>
+              <p>2.1 km • 10 mins • Dimly lit after 8:30 PM</p>
             </div>
-            <button class="btn btn-primary" id="btn-select-safer">Start Safer Journey 🛡️</button>
+            <button class="action-btn btn-secondary" id="btn-select-fastest">
+              <span>Choose Route</span>
+            </button>
           </div>
         </div>
       </section>
 
-      <!-- ================= 5. EMERGENCY VERIFICATION MODAL SCREEN ================= -->
-      <section id="screen-verify" class="screen modal-screen">
-        <div class="verify-beacon-pulse"></div>
-        
-        <div class="verify-content">
-          <div class="urgent-icon">⚠️</div>
-          <h2>Distress Signal Detected!</h2>
-          <p class="urgent-sub">Are you safe? System will auto-escalate in:</p>
+      <!-- ================= 5. VERIFICATION MODAL SCREEN ================= -->
+      <section id="screen-verify" class="view-screen modal-overlay">
+        <div class="verify-box">
+          <div class="verify-beacon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
           
-          <div class="countdown-hero">
-            <span class="timer-number" id="verify-countdown">10</span>
-            <span class="timer-unit">SECONDS</span>
+          <h2>Safety Check</h2>
+          <p class="verify-lead">Distress signal detected. Are you safe?</p>
+          
+          <div class="countdown-circle">
+            <span class="countdown-val" id="verify-countdown">10</span>
+            <span class="countdown-unit">sec</span>
           </div>
 
-          <div class="verify-actions">
-            <button class="btn btn-safe-lg" id="btn-im-safe">
-              <span>🟢 I'M SAFE (False Alarm)</span>
+          <div class="verify-controls">
+            <button class="action-btn btn-success" id="btn-im-safe">
+              <span>I am Safe (Dismiss)</span>
             </button>
 
-            <button class="btn btn-outline-lg" id="btn-enter-pin-modal">
-              <span>🔐 Enter Safety PIN</span>
+            <button class="action-btn btn-secondary" id="btn-enter-pin-modal">
+              <span>Enter Security PIN</span>
             </button>
           </div>
         </div>
       </section>
 
       <!-- ================= 6. EMERGENCY ACTIVE SCREEN ================= -->
-      <section id="screen-emergency" class="screen emergency-active-view">
-        <div class="emergency-banner">
-          <span class="pulse-dot-red"></span>
-          <h2>EMERGENCY MODE ACTIVE</h2>
-          <p>Automated Escalation & Protection Protocol Engaged</p>
+      <section id="screen-emergency" class="view-screen emergency-view">
+        <div class="emergency-alert-card">
+          <div class="alert-top">
+            <span class="live-dot"></span>
+            <h3>Emergency Mode Active</h3>
+          </div>
+          <p>Automated protection protocol engaged. Location broadcasting.</p>
         </div>
 
-        <div class="card emergency-checklist">
-          <div class="check-item active">
-            <span class="check-icon">✓</span>
-            <div class="check-info">
-              <h4>Guardian Alert Dispatched</h4>
-              <p id="emg-guardian-status">Live location SMS link sent to Pooja Sharma (+919811122233)</p>
+        <div class="panel status-checklist">
+          <div class="status-item done">
+            <div class="status-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="status-info">
+              <span class="status-title">Guardians Notified</span>
+              <span class="status-meta" id="emg-guardian-status">Alert sent to Pooja Sharma (+91 98111 22233)</span>
             </div>
           </div>
 
-          <div class="check-item active">
-            <span class="check-icon">✓</span>
-            <div class="check-info">
-              <h4>Live GPS Broadcast Streaming</h4>
-              <p id="emg-coords-stream">Broadcasting (28.6495, 77.2385) • Update every 3s</p>
+          <div class="status-item done">
+            <div class="status-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="status-info">
+              <span class="status-title">Live GPS Streaming</span>
+              <span class="status-meta" id="emg-coords-stream">Broadcasting coordinates • Updating</span>
             </div>
           </div>
 
-          <div class="check-item active">
-            <span class="check-icon">✓</span>
-            <div class="check-info">
-              <h4>112 Emergency Dispatch Simulated</h4>
-              <p>Nearest PCR Van Alerted (ETA ~4 mins)</p>
+          <div class="status-item done">
+            <div class="status-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="status-info">
+              <span class="status-title">112 Emergency Dispatch</span>
+              <span class="status-meta">Nearest PCR patrol van notified</span>
             </div>
           </div>
 
-          <div class="check-item recording active">
-            <span class="record-indicator">● REC</span>
-            <div class="check-info">
-              <h4>Emergency Audio Evidence</h4>
-              <p>Recording active ambient sound buffer</p>
+          <div class="status-item recording">
+            <div class="status-icon rec">
+              <span class="rec-dot"></span>
+            </div>
+            <div class="status-info">
+              <span class="status-title">Audio Evidence Active</span>
+              <span class="status-meta">Secure ambient audio recording</span>
             </div>
           </div>
         </div>
 
-        <div class="card incident-summary-card">
-          <div class="inc-header">
-            <span>Incident ID: <b id="emg-inc-id">inc_auto_902</b></span>
-            <span class="badge badge-critical" id="emg-inc-severity">SEVERITY 90/100</span>
-          </div>
+        <div class="panel incident-badge-panel">
+          <span class="inc-id" id="emg-inc-id">Incident: #902</span>
+          <span class="risk-pill danger" id="emg-inc-severity">Critical</span>
         </div>
 
-        <button class="btn btn-abort-emergency" id="btn-abort-emergency-active">
-          <span>🔐 Resolve & Cancel Emergency</span>
+        <button class="action-btn btn-secondary disarm-btn" id="btn-abort-emergency-active">
+          <span>Cancel Emergency (Requires PIN)</span>
         </button>
       </section>
 
       <!-- ================= 7. SAFETY INTELLIGENCE SCREEN ================= -->
-      <section id="screen-intelligence" class="screen">
-        <div class="screen-header">
-          <button class="btn-back" data-target="screen-home">‹ Back</button>
-          <h2>Safety Intelligence</h2>
-          <span class="badge badge-brand">NLP Crowd Engine</span>
+      <section id="screen-intelligence" class="view-screen">
+        <div class="view-header">
+          <button class="back-link" data-target="screen-home">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Back</span>
+          </button>
+          <h2>Community Reports</h2>
+          <div class="header-badge">Crowdsource</div>
         </div>
 
-        <!-- Submit Complaint Card -->
-        <div class="card complaint-box">
-          <h3>Report Safety Concern</h3>
-          <p class="box-sub">Your reports train our real-time area risk model</p>
-          <textarea id="complaint-text" rows="3" placeholder="Describe the hazard (e.g. 'Streetlights broken near metro gate, completely dark and isolated')"></textarea>
+        <div class="panel report-panel">
+          <span class="panel-heading">Submit Safety Hazard</span>
+          <textarea id="complaint-text" rows="3" placeholder="Describe the hazard (e.g. broken streetlight, dark stretch, lack of patrols)..."></textarea>
           
-          <div class="form-row">
+          <div class="report-actions">
             <select id="complaint-category">
-              <option value="poor_lighting">💡 Poor / Broken Lighting</option>
-              <option value="harassment">⚠️ Loitering / Harassment</option>
-              <option value="isolated_area">🌲 Deserted / Isolated Road</option>
-              <option value="no_police_patrol">🚔 No Police Patrols</option>
+              <option value="poor_lighting">Poor / Broken Lighting</option>
+              <option value="harassment">Loitering / Harassment</option>
+              <option value="isolated_area">Deserted / Isolated Stretch</option>
+              <option value="no_police_patrol">No Police Presence</option>
             </select>
-            <button class="btn btn-primary" id="btn-submit-complaint">Submit Report</button>
+            <button class="action-btn btn-primary btn-sm" id="btn-submit-complaint">Post Report</button>
           </div>
         </div>
 
-        <!-- Hotspot & Recent Reports List -->
-        <div class="intel-feed">
-          <h3>Emerging Safety Hotspots</h3>
-          <div id="complaints-list" class="complaints-container">
-            <!-- Dynamically Populated -->
-          </div>
+        <div class="intel-section">
+          <span class="section-title">Recent Area Reports</span>
+          <div id="complaints-list" class="reports-feed"></div>
         </div>
       </section>
 
     </main>
 
-    <!-- Global 4-Digit PIN Modal Overlay -->
-    <div class="modal-backdrop" id="pin-modal">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3>Enter Safety PIN</h3>
-          <button class="btn-close-modal" id="btn-close-pin-modal">✕</button>
+    <!-- Native-Style 4-Digit PIN Keypad Overlay -->
+    <div class="keypad-modal" id="pin-modal">
+      <div class="keypad-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+          <h3>Security PIN</h3>
+          <button class="close-sheet-btn" id="btn-close-pin-modal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
-        <p class="modal-sub">Enter your 4-digit code to verify your safety:</p>
+        <p class="sheet-desc">Enter your 4-digit code to disarm the alarm:</p>
         
-        <div class="pin-display">
-          <input type="password" id="modal-pin-input" maxlength="4" placeholder="••••" />
+        <!-- 4 PIN Dots Indicator -->
+        <div class="pin-dots-row" id="pin-dots-container">
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
         </div>
-        <p class="error-msg" id="pin-error-msg"></p>
+        <input type="hidden" id="modal-pin-input" value="" />
+        <p class="pin-feedback" id="pin-error-msg"></p>
 
-        <div class="pin-keypad">
-          <button class="key-btn" data-key="1">1</button>
-          <button class="key-btn" data-key="2">2</button>
-          <button class="key-btn" data-key="3">3</button>
-          <button class="key-btn" data-key="4">4</button>
-          <button class="key-btn" data-key="5">5</button>
-          <button class="key-btn" data-key="6">6</button>
-          <button class="key-btn" data-key="7">7</button>
-          <button class="key-btn" data-key="8">8</button>
-          <button class="key-btn" data-key="9">9</button>
-          <button class="key-btn key-clear" id="btn-keypad-clear">C</button>
-          <button class="key-btn" data-key="0">0</button>
-          <button class="key-btn key-submit" id="btn-keypad-submit">✓</button>
+        <!-- Numeric Keypad Grid -->
+        <div class="numpad">
+          <button class="num-btn" data-key="1"><span class="digit">1</span></button>
+          <button class="num-btn" data-key="2"><span class="digit">2</span><span class="letters">ABC</span></button>
+          <button class="num-btn" data-key="3"><span class="digit">3</span><span class="letters">DEF</span></button>
+          <button class="num-btn" data-key="4"><span class="digit">4</span><span class="letters">GHI</span></button>
+          <button class="num-btn" data-key="5"><span class="digit">5</span><span class="letters">JKL</span></button>
+          <button class="num-btn" data-key="6"><span class="digit">6</span><span class="letters">MNO</span></button>
+          <button class="num-btn" data-key="7"><span class="digit">7</span><span class="letters">PQRS</span></button>
+          <button class="num-btn" data-key="8"><span class="digit">8</span><span class="letters">TUV</span></button>
+          <button class="num-btn" data-key="9"><span class="digit">9</span><span class="letters">WXYZ</span></button>
+          <button class="num-btn alt-btn" id="btn-keypad-clear"><span>DEL</span></button>
+          <button class="num-btn" data-key="0"><span class="digit">0</span></button>
+          <button class="num-btn submit-btn" id="btn-keypad-submit">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Bottom Navigation Bar (Visible on main screens) -->
-    <nav class="bottom-nav" id="global-bottom-nav">
-      <button class="nav-tab active" data-target="screen-home">
-        <span class="nav-icon">🏠</span>
-        <span class="nav-text">Home</span>
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-bar" id="global-bottom-nav">
+      <button class="bar-tab active" data-target="screen-home">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Home</span>
       </button>
-      <button class="nav-tab" data-target="screen-map">
-        <span class="nav-icon">🗺️</span>
-        <span class="nav-text">Map</span>
+      <button class="bar-tab" data-target="screen-map">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        <span>Map</span>
       </button>
-      <button class="nav-tab" data-target="screen-journey">
-        <span class="nav-icon">🚶</span>
-        <span class="nav-text">Journey</span>
+      <button class="bar-tab" data-target="screen-journey">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 12l-4-4-4 4M12 16V8"/></svg>
+        <span>Journey</span>
       </button>
-      <button class="nav-tab" data-target="screen-intelligence">
-        <span class="nav-icon">📢</span>
-        <span class="nav-text">Community</span>
+      <button class="bar-tab" data-target="screen-intelligence">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Reports</span>
       </button>
     </nav>
 
   </div>
 
-  <!-- Leaflet JS CDN -->
+  <!-- Leaflet Map JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
-  <!-- SafeSteps Frontend Application Script -->
+  <!-- SafeSteps Controller -->
   <script src="app.js"></script>
 </body>
 </html>
