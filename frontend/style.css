@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    SafeSteps — Clean Native-Feel Dark Design System
    ========================================================================== */
 
@@ -918,6 +918,31 @@ input:checked + .switch-slider:before {
   width: 100%;
 }
 
+.verify-hint {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: -2px;
+}
+
+.sheet-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sheet-timer-badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  animation: pulse-dot 1s infinite alternate;
+}
+
 /* ================= 6. EMERGENCY ACTIVE SCREEN ================= */
 .emergency-alert-card {
   background: #7f1d1d;
@@ -1300,3 +1325,51 @@ input:checked + .switch-slider:before {
 .bar-tab.active {
   color: var(--accent-primary);
 }
+
+/* ================= TOAST NOTIFICATIONS & ANIMATIONS ================= */
+.app-toast {
+  position: absolute;
+  top: 70px;
+  left: 16px;
+  right: 16px;
+  background: rgba(18, 21, 31, 0.95);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-main);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+  backdrop-filter: blur(12px);
+  transform: translateY(-20px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
+
+.app-toast.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-toast.danger {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(35, 12, 16, 0.95);
+  color: #fca5a5;
+}
+
+.app-toast.safe {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(6, 30, 20, 0.95);
+  color: #86efac;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+

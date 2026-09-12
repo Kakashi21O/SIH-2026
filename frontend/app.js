@@ -1,4 +1,4 @@
-﻿/**
+/**
  * SafeSteps — Frontend Application Controller
  * Proactive Safety & Automated Emergency Response
  */
@@ -181,11 +181,30 @@ async function updateSafetyScore(lat, lng) {
       state.safetyModeActive = true;
       if (toggle) toggle.checked = true;
       updateStatusPill("High Risk Auto-Mode", "danger");
+      showToastAlert(`⚠️ High Risk Zone: ${state.currentLocation.name}. Safety Mode Auto-Engaged!`, "danger");
+    } else if (!data.auto_safety_mode_recommended && state.safetyModeActive) {
+      updateStatusPill("Monitoring Active", "safe");
     }
 
   } catch (err) {
     console.warn("Safety score fallback:", err);
   }
+}
+
+function showToastAlert(msg, type = "info") {
+  let toast = document.getElementById("app-toast-alert");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "app-toast-alert";
+    toast.className = "app-toast";
+    document.querySelector(".app-frame")?.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.className = `app-toast visible ${type}`;
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => {
+    toast.classList.remove("visible");
+  }, 3500);
 }
 
 // ================= MAP ENGINE =================
@@ -195,7 +214,7 @@ function initOrResizeMap() {
 
   if (!state.mapInstance) {
     state.mapInstance = L.map("leaflet-map", {
-      zoomControl: false,
+      zoomControl: true,
       attributionControl: false
     }).setView([state.currentLocation.lat, state.currentLocation.lng], 14);
 
@@ -203,7 +222,16 @@ function initOrResizeMap() {
       maxZoom: 19
     }).addTo(state.mapInstance);
 
+    // Click anywhere on the map to inspect risk & move GPS beacon
+    state.mapInstance.on("click", (e) => {
+      state.currentLocation.lat = e.latlng.lat;
+      state.currentLocation.lng = e.latlng.lng;
+      updateSafetyScore(e.latlng.lat, e.latlng.lng);
+      updateUserMarkerOnMap();
+    });
+
     loadMapRiskZones();
+    loadMapPois();
   } else {
     state.mapInstance.invalidateSize();
     state.mapInstance.setView([state.currentLocation.lat, state.currentLocation.lng], 14);
@@ -225,21 +253,60 @@ async function loadMapRiskZones() {
     state.mapLayers.zones = L.geoJSON(geojson, {
       style: (feature) => ({
         color: feature.properties.color || "#10b981",
-        weight: 1.5,
+        weight: 2,
         fillColor: feature.properties.color || "#10b981",
         fillOpacity: feature.properties.fillOpacity || 0.25
       }),
       onEachFeature: (feature, layer) => {
         layer.bindPopup(`
-          <div style="color: #0b0f19; font-family: sans-serif; padding: 2px;">
-            <b style="font-size: 13px;">${feature.properties.name}</b><br/>
-            <span style="font-size: 12px;">Safety Index: <b>${feature.properties.safety_score}/100</b> (${feature.properties.risk_level})</span>
+          <div style="color: #0b0f19; font-family: sans-serif; padding: 4px; min-width: 160px;">
+            <b style="font-size: 13px; color: #0b0f19;">${feature.properties.name}</b><br/>
+            <div style="margin: 4px 0; font-size: 12px; color: #334155;">
+              Safety Index: <b>${feature.properties.safety_score}/100</b><br/>
+              Risk Level: <b style="color: ${feature.properties.color};">${feature.properties.risk_level}</b><br/>
+              Reported Issues: <b>${feature.properties.complaint_count}</b>
+            </div>
+            <p style="font-size: 11px; margin: 4px 0 0 0; color: #64748b; line-height: 1.2;">${feature.properties.description}</p>
           </div>
         `);
       }
     }).addTo(state.mapInstance);
   } catch (err) {
     console.warn("Could not load map zones:", err);
+  }
+}
+
+async function loadMapPois() {
+  try {
+    const res = await fetch("/api/safety/pois");
+    if (!res.ok) return;
+    const pois = await res.json();
+
+    pois.forEach(poi => {
+      const isPolice = poi.type === "POLICE";
+      const isHospital = poi.type === "HOSPITAL";
+      const iconColor = isPolice ? "#38bdf8" : (isHospital ? "#ec4899" : "#10b981");
+      const iconSymbol = isPolice ? "🛡️" : (isHospital ? "🏥" : "🟢");
+
+      const poiIcon = L.divIcon({
+        className: "safe-poi-icon",
+        html: `<div style="background: rgba(18,21,31,0.85); border: 1.5px solid ${iconColor}; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; box-shadow: 0 0 8px ${iconColor}44;">${iconSymbol}</div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+
+      L.marker([poi.lat, poi.lng], { icon: poiIcon })
+        .bindPopup(`
+          <div style="color: #0b0f19; font-family: sans-serif; padding: 2px;">
+            <b style="font-size: 13px;">${poi.name}</b><br/>
+            <span style="font-size: 12px; color: #475569;">Type: <b>${poi.type}</b> • ETA: <b>${poi.eta_mins} mins</b></span><br/>
+            <span style="font-size: 11px; color: #0284c7;">Emergency: ${poi.phone}</span>
+          </div>
+        `)
+        .addTo(state.mapInstance);
+    });
+  } catch (err) {
+    console.warn("Could not load POIs:", err);
   }
 }
 
@@ -252,9 +319,12 @@ function updateUserMarkerOnMap() {
   } else {
     const beaconIcon = L.divIcon({
       className: "user-gps-beacon",
-      html: `<div style="width: 14px; height: 14px; background: #38bdf8; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 10px #38bdf8;"></div>`,
-      iconSize: [14, 14],
-      iconAnchor: [7, 7]
+      html: `<div style="position: relative; width: 18px; height: 18px;">
+               <div style="position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #38bdf8; opacity: 0.4; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+               <div style="position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; background: #38bdf8; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 10px #38bdf8;"></div>
+             </div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
     });
     state.mapLayers.userMarker = L.marker(latlng, { icon: beaconIcon }).addTo(state.mapInstance);
   }
@@ -287,11 +357,11 @@ function initEmergencyVerification() {
     triggerEmergencyWorkflow("manual_sos");
   });
 
+  // Clicking 'I Am Safe' now strictly opens the 4-digit PIN keypad
   document.getElementById("btn-im-safe")?.addEventListener("click", () => {
-    cancelEmergencyCountdown("Dismissed by user");
+    openPinModal();
   });
 
-  document.getElementById("btn-enter-pin-modal")?.addEventListener("click", openPinModal);
   document.getElementById("btn-abort-emergency-active")?.addEventListener("click", openPinModal);
 }
 
@@ -333,8 +403,12 @@ async function triggerEmergencyWorkflow(source = "manual_sos") {
 
 function updateCountdownUI() {
   const timerEl = document.getElementById("verify-countdown");
+  const sheetTimerEl = document.getElementById("pin-sheet-timer");
   if (timerEl) {
     timerEl.textContent = state.emergencyState.countdownSeconds;
+  }
+  if (sheetTimerEl) {
+    sheetTimerEl.textContent = `${state.emergencyState.countdownSeconds}s`;
   }
 }
 
@@ -344,6 +418,7 @@ function cancelEmergencyCountdown(reason) {
   closePinModal();
   showScreen("screen-home");
   updateStatusPill("Protected", "safe");
+  showToastAlert("✅ Emergency Cancelled: PIN Verified Successfully", "safe");
 }
 
 async function escalateToActiveEmergency(source) {

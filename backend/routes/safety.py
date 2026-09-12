@@ -1,4 +1,4 @@
-﻿import json
+import json
 from fastapi import APIRouter
 from backend.models.schemas import LocationRiskCheckRequest, SafetyScoreResponse
 from backend.services.risk_engine import evaluate_location_risk
@@ -46,3 +46,17 @@ def get_all_risk_zones():
         "type": "FeatureCollection",
         "features": features
     }
+
+@router.get("/pois")
+def get_safe_pois():
+    """
+    Return list of Safe Havens, Police Stations, and Emergency Hospitals for map rendering.
+    """
+    import os
+    from backend.config import settings
+    if os.path.exists(settings.RISK_ZONES_SEED):
+        with open(settings.RISK_ZONES_SEED, "r", encoding="utf-8-sig") as f:
+            data = json.load(f)
+            return data.get("pois", [])
+    return []
+
