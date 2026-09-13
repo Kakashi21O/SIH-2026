@@ -25,10 +25,18 @@ const state = {
     verificationToken: null,
     incidentId: null
   },
+  journeyState: {
+    active: false,
+    data: null,
+    activeRouteType: "SAFER",
+    navInterval: null,
+    currentWaypointIndex: 0
+  },
   mapInstance: null,
   mapLayers: {
     zones: null,
-    userMarker: null
+    userMarker: null,
+    routePolylines: []
   }
 };
 
@@ -49,6 +57,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initPinKeypad();
   initComplaints();
   initDemoLocationJumpers();
+  initJourneyFlow();
+  initGuardianManagement();
   
   // Initial state fetch
   updateSafetyScore(state.currentLocation.lat, state.currentLocation.lng);
@@ -91,9 +101,7 @@ function initNavigation() {
   document.getElementById("btn-nav-journey")?.addEventListener("click", () => showScreen("screen-journey"));
   document.getElementById("btn-nav-map")?.addEventListener("click", () => showScreen("screen-map"));
   document.getElementById("btn-nav-intel")?.addEventListener("click", () => showScreen("screen-intelligence"));
-  document.getElementById("btn-nav-contacts")?.addEventListener("click", () => {
-    alert("Emergency Contacts:\n• Pooja Sharma (Mother) — +91 98111 22233\n• Rahul Sharma (Brother) — +91 98222 33344");
-  });
+  document.getElementById("btn-nav-contacts")?.addEventListener("click", openGuardiansModal);
 }
 
 // ================= AUTH FLOW =================
@@ -596,3 +604,398 @@ async function loadComplaints() {
     container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem;">Loading reports...</p>`;
   }
 }
+
+// ================= SAFE JOURNEY ROUTE ENGINE =================
+function initJourneyFlow() {
+  document.getElementById("preset-trip-1")?.addEventListener("click", () => selectTripPreset("cp_to_karolbagh", "preset-trip-1"));
+  document.getElementById("preset-trip-2")?.addEventListener("click", () => selectTripPreset("campus_to_hostel", "preset-trip-2"));
+
+  document.getElementById("btn-start-safer")?.addEventListener("click", () => startLiveNavigation("SAFER"));
+  document.getElementById("btn-preview-safer")?.addEventListener("click", () => previewRouteOnMap("SAFER"));
+
+  document.getElementById("btn-start-fastest")?.addEventListener("click", () => startLiveNavigation("FASTEST"));
+  document.getElementById("btn-preview-fastest")?.addEventListener("click", () => previewRouteOnMap("FASTEST"));
+
+  document.getElementById("btn-end-navigation")?.addEventListener("click", endLiveNavigation);
+
+  // Initial fetch for default trip
+  fetchRouteComparison("Connaught Place Metro", "Karol Bagh Residence");
+}
+
+function selectTripPreset(presetKey, activeBtnId) {
+  document.querySelectorAll(".preset-pill").forEach(b => b.classList.remove("active"));
+  document.getElementById(activeBtnId)?.classList.add("active");
+
+  const originInput = document.getElementById("journey-origin");
+  const destInput = document.getElementById("journey-dest");
+
+  if (presetKey === "cp_to_karolbagh") {
+    if (originInput) originInput.value = "Connaught Place Metro";
+    if (destInput) destInput.value = "Karol Bagh Residence";
+    fetchRouteComparison("Connaught Place Metro", "Karol Bagh Residence");
+  } else {
+    if (originInput) originInput.value = "North Campus Library";
+    if (destInput) destInput.value = "Civil Lines Hostel";
+    fetchRouteComparison("North Campus Library", "Civil Lines Hostel");
+  }
+}
+
+async function fetchRouteComparison(origin, destination) {
+  try {
+    const res = await fetch("/api/location/routes/compare", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ origin, destination, user_id: state.currentUser.id })
+    });
+    if (!res.ok) throw new Error("Route compare request failed");
+    const data = await res.json();
+    state.journeyState.data = data;
+    renderRouteCards(data);
+  } catch (err) {
+    console.warn("Route comparison error:", err);
+  }
+}
+
+function renderRouteCards(data) {
+  if (!data) return;
+  const safer = data.safer_route;
+  const fastest = data.fastest_route;
+
+  const saferScore = document.getElementById("safer-score-pill");
+  const saferTitle = document.getElementById("safer-route-title");
+  const saferDesc = document.getElementById("safer-route-desc");
+  if (saferScore) saferScore.textContent = `Score ${safer.safety_score}`;
+  if (saferTitle) saferTitle.textContent = safer.name;
+  if (saferDesc) saferDesc.textContent = `${safer.distance_km} km • ${safer.duration_mins} mins • ${safer.lighting_rating}`;
+
+  const fastScore = document.getElementById("fastest-score-pill");
+  const fastTitle = document.getElementById("fastest-route-title");
+  const fastDesc = document.getElementById("fastest-route-desc");
+  if (fastScore) fastScore.textContent = `Score ${fastest.safety_score}`;
+  if (fastTitle) fastTitle.textContent = fastest.name;
+  if (fastDesc) fastDesc.textContent = `${fastest.distance_km} km • ${fastest.duration_mins} mins • ${fastest.lighting_rating}`;
+}
+
+function clearRoutePolylines() {
+  if (!state.mapInstance) return;
+  state.mapLayers.routePolylines.forEach(layer => state.mapInstance.removeLayer(layer));
+  state.mapLayers.routePolylines = [];
+}
+
+function previewRouteOnMap(routeType) {
+  if (!state.journeyState.data) return;
+  const route = routeType === "SAFER" ? state.journeyState.data.safer_route : state.journeyState.data.fastest_route;
+
+  showScreen("screen-map");
+  setTimeout(() => {
+    initOrResizeMap();
+    clearRoutePolylines();
+
+    const polyline = L.polyline(route.waypoints, {
+      color: route.color || (routeType === "SAFER" ? "#10B981" : "#F97316"),
+      weight: 5,
+      opacity: 0.9,
+      lineCap: "round",
+      dashArray: routeType === "SAFER" ? null : "8, 8"
+    }).addTo(state.mapInstance);
+
+    state.mapLayers.routePolylines.push(polyline);
+    state.mapInstance.fitBounds(polyline.getBounds(), { padding: [30, 30] });
+
+    showToastAlert(`Showing ${routeType === "SAFER" ? "Recommended Safe" : "Fastest"} Route Preview`, "info");
+  }, 200);
+}
+
+async function startLiveNavigation(routeType) {
+  if (!state.journeyState.data) return;
+  const route = routeType === "SAFER" ? state.journeyState.data.safer_route : state.journeyState.data.fastest_route;
+
+  state.journeyState.active = true;
+  state.journeyState.activeRouteType = routeType;
+  state.journeyState.currentWaypointIndex = 0;
+
+  try {
+    await fetch("/api/location/journey/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: state.currentUser.id,
+        origin_name: state.journeyState.data.origin.name,
+        dest_name: state.journeyState.data.destination.name,
+        selected_route_type: routeType,
+        safety_score: route.safety_score
+      })
+    });
+  } catch (err) {
+    console.warn("Journey start API error:", err);
+  }
+
+  showScreen("screen-map");
+  setTimeout(() => {
+    initOrResizeMap();
+    clearRoutePolylines();
+
+    const polyline = L.polyline(route.waypoints, {
+      color: route.color || (routeType === "SAFER" ? "#10B981" : "#F97316"),
+      weight: 5,
+      opacity: 0.9
+    }).addTo(state.mapInstance);
+    state.mapLayers.routePolylines.push(polyline);
+    state.mapInstance.fitBounds(polyline.getBounds(), { padding: [30, 30] });
+
+    const hud = document.getElementById("map-nav-hud");
+    const hudTag = document.getElementById("hud-route-type");
+    const hudDest = document.getElementById("hud-dest-name");
+    const hudScore = document.getElementById("hud-score-badge");
+    const hudEta = document.getElementById("hud-eta-text");
+    const hudFill = document.getElementById("hud-progress-fill");
+
+    if (hud) hud.style.display = "flex";
+    if (hudTag) hudTag.textContent = routeType === "SAFER" ? "⭐ SAFE JOURNEY ACTIVE" : "⚡ FASTEST ROUTE (MONITORED)";
+    if (hudDest) hudDest.textContent = state.journeyState.data.destination.name;
+    if (hudScore) {
+      hudScore.textContent = `Score ${route.safety_score}`;
+      hudScore.className = `hud-score-pill ${route.safety_score >= 80 ? 'safe' : 'danger'}`;
+    }
+    if (hudEta) hudEta.textContent = `${route.duration_mins} mins remaining`;
+    if (hudFill) hudFill.style.width = "5%";
+
+    updateStatusPill(routeType === "SAFER" ? "Safe Journey Active" : "Route Monitored", "safe");
+    showToastAlert(`🚀 Navigation Started via ${route.name}`, "safe");
+
+    clearInterval(state.journeyState.navInterval);
+    const waypoints = route.waypoints;
+    state.journeyState.navInterval = setInterval(() => {
+      state.journeyState.currentWaypointIndex++;
+      if (state.journeyState.currentWaypointIndex < waypoints.length) {
+        const pt = waypoints[state.journeyState.currentWaypointIndex];
+        state.currentLocation.lat = pt[0];
+        state.currentLocation.lng = pt[1];
+        updateUserMarkerOnMap();
+        updateSafetyScore(pt[0], pt[1]);
+
+        const pct = Math.round(((state.journeyState.currentWaypointIndex + 1) / waypoints.length) * 100);
+        if (hudFill) hudFill.style.width = `${pct}%`;
+        const minsLeft = Math.max(1, Math.round(route.duration_mins * (1 - pct / 100)));
+        if (hudEta) hudEta.textContent = `${minsLeft} mins remaining (${pct}% completed)`;
+      } else {
+        clearInterval(state.journeyState.navInterval);
+        if (hudEta) hudEta.textContent = "Arrived safely at destination!";
+        showToastAlert("🎉 Safe Arrival: You have reached your destination!", "safe");
+      }
+    }, 2500);
+
+  }, 200);
+}
+
+function endLiveNavigation() {
+  clearInterval(state.journeyState.navInterval);
+  state.journeyState.active = false;
+  const hud = document.getElementById("map-nav-hud");
+  if (hud) hud.style.display = "none";
+  clearRoutePolylines();
+  updateStatusPill("Protected", "safe");
+  showToastAlert("Safe Journey navigation ended.", "info");
+}
+
+// ================= GUARDIAN MANAGEMENT =================
+function initGuardianManagement() {
+  document.getElementById("btn-close-guardians-modal")?.addEventListener("click", closeGuardiansModal);
+
+  const toggleBtn = document.getElementById("btn-toggle-add-guardian");
+  const form = document.getElementById("form-add-guardian");
+
+  toggleBtn?.addEventListener("click", () => {
+    if (form.style.display === "none" || !form.style.display) {
+      form.style.display = "flex";
+      toggleBtn.innerHTML = `<span>✕ Cancel</span>`;
+    } else {
+      resetGuardianForm();
+    }
+  });
+
+  // Relationship chips selection
+  document.querySelectorAll(".rel-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll(".rel-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+
+      const rel = chip.getAttribute("data-rel");
+      const hiddenInput = document.getElementById("g-input-rel");
+      if (hiddenInput) hiddenInput.value = rel;
+
+      const customContainer = document.getElementById("g-custom-rel-container");
+      const customInput = document.getElementById("g-input-custom-rel");
+
+      if (rel === "Other") {
+        if (customContainer) customContainer.style.display = "block";
+        if (customInput) customInput.focus();
+      } else {
+        if (customContainer) customContainer.style.display = "none";
+        if (customInput) customInput.value = "";
+      }
+    });
+  });
+
+  form?.addEventListener("submit", handleCreateGuardian);
+}
+
+function resetGuardianForm() {
+  const form = document.getElementById("form-add-guardian");
+  if (form) {
+    form.reset();
+    form.style.display = "none";
+  }
+
+  // Reset chips to Mother
+  document.querySelectorAll(".rel-chip").forEach(c => {
+    c.classList.toggle("active", c.getAttribute("data-rel") === "Mother");
+  });
+  const hiddenInput = document.getElementById("g-input-rel");
+  if (hiddenInput) hiddenInput.value = "Mother";
+
+  const customContainer = document.getElementById("g-custom-rel-container");
+  const customInput = document.getElementById("g-input-custom-rel");
+  if (customContainer) customContainer.style.display = "none";
+  if (customInput) customInput.value = "";
+
+  const toggleBtn = document.getElementById("btn-toggle-add-guardian");
+  if (toggleBtn) {
+    toggleBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Add New Contact</span>
+    `;
+  }
+}
+
+function openGuardiansModal() {
+  loadGuardiansList();
+  document.getElementById("modal-guardians")?.classList.add("active");
+}
+
+function closeGuardiansModal() {
+  document.getElementById("modal-guardians")?.classList.remove("active");
+  resetGuardianForm();
+}
+
+async function loadGuardiansList() {
+  const container = document.getElementById("guardians-list-container");
+  const countBadge = document.getElementById("guardian-count-badge");
+  if (!container) return;
+
+  try {
+    const res = await fetch(`/api/guardians?user_id=${state.currentUser.id}`);
+    if (!res.ok) throw new Error("Failed to fetch guardians");
+    const guardians = await res.json();
+
+    if (countBadge) countBadge.textContent = `${guardians.length} Active`;
+
+    if (guardians.length === 0) {
+      container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem; text-align: center; padding: 12px;">No guardians added yet. Add your trusted contacts below.</p>`;
+      return;
+    }
+
+    container.innerHTML = guardians.map(g => `
+      <div class="guardian-item ${g.is_primary ? 'primary-card' : ''}" id="guardian-card-${g.id}">
+        <div class="g-info">
+          <div class="g-header-row">
+            <span class="g-name">${g.name}</span>
+            ${g.is_primary ? '<span class="primary-pill">⭐ Primary</span>' : ''}
+          </div>
+          <div class="g-meta-row">
+            <span class="g-phone">${g.phone}</span>
+            <span class="g-rel-tag">${g.relationship}</span>
+          </div>
+        </div>
+        <div class="g-actions">
+          <button class="g-action-btn test" onclick="handleSendTestAlert('${g.id}', '${g.name.replace(/'/g, "\\'")}')">
+            <span>Test Alert</span>
+          </button>
+          ${!g.is_primary ? `<button class="g-action-btn set-primary" onclick="handleSetPrimaryGuardian('${g.id}')">Make Primary</button>` : ''}
+          <button class="g-action-btn delete" onclick="handleDeleteGuardian('${g.id}')">✕</button>
+        </div>
+      </div>
+    `).join("");
+
+  } catch (err) {
+    console.warn("Could not load guardians:", err);
+    container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem;">Could not load emergency contacts.</p>`;
+  }
+}
+
+async function handleCreateGuardian(e) {
+  e.preventDefault();
+  const name = document.getElementById("g-input-name").value.trim();
+  const phone = document.getElementById("g-input-phone").value.trim();
+  let relationship = document.getElementById("g-input-rel")?.value || "Mother";
+  const customRel = document.getElementById("g-input-custom-rel")?.value.trim();
+  const is_primary = document.getElementById("g-input-primary").checked;
+
+  if (relationship === "Other") {
+    relationship = customRel ? customRel : "Other";
+  }
+
+  if (!name || !phone) return;
+
+  try {
+    const res = await fetch("/api/guardians", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: state.currentUser.id,
+        name,
+        phone,
+        relationship,
+        is_primary
+      })
+    });
+
+    if (!res.ok) throw new Error("Failed to create guardian");
+    
+    resetGuardianForm();
+    loadGuardiansList();
+    showToastAlert(`✅ Added ${name} (${relationship}) as Emergency Guardian`, "safe");
+  } catch (err) {
+    console.warn("Error adding guardian:", err);
+    showToastAlert("Failed to add contact", "danger");
+  }
+}
+
+async function handleDeleteGuardian(id) {
+  try {
+    const res = await fetch(`/api/guardians/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Delete failed");
+    loadGuardiansList();
+    showToastAlert("Guardian removed from emergency list", "info");
+  } catch (err) {
+    console.warn("Error deleting guardian:", err);
+  }
+}
+
+async function handleSetPrimaryGuardian(id) {
+  try {
+    const res = await fetch(`/api/guardians/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_primary: true })
+    });
+    if (!res.ok) throw new Error("Update failed");
+    loadGuardiansList();
+    showToastAlert("⭐ Primary guardian updated", "safe");
+  } catch (err) {
+    console.warn("Error updating primary guardian:", err);
+  }
+}
+
+async function handleSendTestAlert(id, name) {
+  try {
+    const res = await fetch(`/api/guardians/${id}/test-alert`, { method: "POST" });
+    if (!res.ok) throw new Error("Test alert failed");
+    const data = await res.json();
+    showToastAlert(`🔔 Test SOS Alert sent to ${data.recipient} (${data.phone})`, "safe");
+  } catch (err) {
+    console.warn("Error sending test alert:", err);
+    showToastAlert("Test alert dispatch failed", "danger");
+  }
+}
+

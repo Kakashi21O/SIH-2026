@@ -1,4 +1,4 @@
-﻿from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 
 # ================= AUTH & USER SCHEMAS =================
@@ -107,3 +107,39 @@ class ComplaintResponse(BaseModel):
     severity: str
     upvotes: int
     created_at: str
+
+# ================= JOURNEY SCHEMAS =================
+class RouteCompareRequest(BaseModel):
+    origin: Optional[str] = "Connaught Place Metro"
+    destination: Optional[str] = "Karol Bagh Residence"
+    user_id: Optional[str] = "usr_demo"
+
+class JourneyStartRequest(BaseModel):
+    user_id: Optional[str] = "usr_demo"
+    origin_name: str
+    dest_name: str
+    selected_route_type: str  # SAFER or FASTEST
+    safety_score: int
+
+# ================= GUARDIAN SCHEMAS =================
+class GuardianCreateRequest(BaseModel):
+    user_id: Optional[str] = "usr_demo"
+    name: str = Field(..., min_length=2, example="Pooja Sharma")
+    phone: str = Field(..., min_length=10, example="+919811122233")
+    relationship: str = Field(..., example="Mother")
+    is_primary: Optional[bool] = False
+
+class GuardianUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    relationship: Optional[str] = None
+    is_primary: Optional[bool] = None
+
+class GuardianResponse(BaseModel):
+    id: str
+    name: str
+    phone: str
+    relationship: str
+    is_primary: bool
+
+

@@ -216,6 +216,24 @@
         <div class="map-viewport-frame">
           <div id="leaflet-map"></div>
           
+          <!-- Live Navigation HUD (Shown during active journey) -->
+          <div class="nav-hud-card" id="map-nav-hud" style="display: none;">
+            <div class="hud-top">
+              <div class="hud-route-info">
+                <span class="hud-tag" id="hud-route-type">SAFER ROUTE ACTIVE</span>
+                <h4 id="hud-dest-name">Karol Bagh Residence</h4>
+              </div>
+              <span class="hud-score-pill safe" id="hud-score-badge">Score 89</span>
+            </div>
+            <div class="hud-progress-bar">
+              <div class="hud-progress-fill" id="hud-progress-fill" style="width: 20%;"></div>
+            </div>
+            <div class="hud-bottom">
+              <span class="hud-eta" id="hud-eta-text">14 mins remaining</span>
+              <button class="hud-end-btn" id="btn-end-navigation">End Trip</button>
+            </div>
+          </div>
+
           <div class="map-overlay-legend">
             <div class="legend-row"><span class="legend-dot safe"></span> Low Risk</div>
             <div class="legend-row"><span class="legend-dot warn"></span> Moderate</div>
@@ -247,14 +265,20 @@
         </div>
 
         <div class="panel form-panel">
+          <!-- Preset Selector Chips -->
+          <div class="journey-presets">
+            <button class="preset-pill active" id="preset-trip-1">CP ➔ Karol Bagh</button>
+            <button class="preset-pill" id="preset-trip-2">Campus ➔ Hostel</button>
+          </div>
+
           <div class="route-field">
             <span class="route-dot origin"></span>
-            <input type="text" id="journey-origin" value="University Campus / Metro" />
+            <input type="text" id="journey-origin" value="Connaught Place Metro" />
           </div>
           <div class="route-line-connector"></div>
           <div class="route-field">
             <span class="route-dot dest"></span>
-            <input type="text" id="journey-dest" value="Home Residence (Sector 12)" />
+            <input type="text" id="journey-dest" value="Karol Bagh Residence" />
           </div>
         </div>
 
@@ -262,31 +286,51 @@
           <!-- Recommended Safer Route -->
           <div class="panel route-card selected-route" id="card-safer-route">
             <div class="route-top">
-              <span class="route-tag safe-tag">Recommended Route</span>
-              <span class="route-score-pill safe">Score 88</span>
+              <span class="route-tag safe-tag">⭐ Recommended Safe Route</span>
+              <span class="route-score-pill safe" id="safer-score-pill">Score 89</span>
             </div>
             <div class="route-body">
-              <h4>Via Main Boulevard & Police Post</h4>
-              <p>2.6 km • 14 mins • 100% lit with CCTV & 24/7 stores</p>
+              <h4 id="safer-route-title">Via Pusa Road & Police Assistance Booth</h4>
+              <p id="safer-route-desc">3.4 km • 16 mins • 95% lit with CCTV & continuous patrols</p>
+              <div class="route-perks">
+                <span class="perk-chip">🛡️ 2 Police Posts</span>
+                <span class="perk-chip">💡 95% Illuminated</span>
+                <span class="perk-chip">👥 42 Active Users</span>
+              </div>
             </div>
-            <button class="action-btn btn-primary" id="btn-select-safer">
-              <span>Start Navigation</span>
-            </button>
+            <div class="route-btn-row">
+              <button class="action-btn btn-primary" id="btn-start-safer">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Start Safe Navigation</span>
+              </button>
+              <button class="action-btn btn-secondary btn-icon-only" id="btn-preview-safer" title="Preview on Map">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+              </button>
+            </div>
           </div>
 
           <!-- Fastest Route -->
           <div class="panel route-card secondary-route" id="card-fastest-route">
             <div class="route-top">
-              <span class="route-tag muted-tag">Fastest Route</span>
-              <span class="route-score-pill danger">Score 42</span>
+              <span class="route-tag muted-tag">⚡ Fastest Route</span>
+              <span class="route-score-pill high" id="fastest-score-pill">Score 44</span>
             </div>
             <div class="route-body">
-              <h4>Via Railway Underpass</h4>
-              <p>2.1 km • 10 mins • Dimly lit after 8:30 PM</p>
+              <h4 id="fastest-route-title">Via Railway Underpass Cut</h4>
+              <p id="fastest-route-desc">2.7 km • 11 mins • 40% Dimly Lit after 8:00 PM</p>
+              <div class="route-perks">
+                <span class="perk-chip warn">⚠️ 3 Dark Stretches</span>
+                <span class="perk-chip warn">🚫 No Police Posts</span>
+              </div>
             </div>
-            <button class="action-btn btn-secondary" id="btn-select-fastest">
-              <span>Choose Route</span>
-            </button>
+            <div class="route-btn-row">
+              <button class="action-btn btn-secondary" id="btn-start-fastest">
+                <span>Navigate Anyway (High Risk)</span>
+              </button>
+              <button class="action-btn btn-secondary btn-icon-only" id="btn-preview-fastest" title="Preview on Map">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -453,6 +497,81 @@
           <button class="num-btn submit-btn" id="btn-keypad-submit">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Guardian Management Modal -->
+    <div class="guardian-modal" id="modal-guardians">
+      <div class="guardian-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+          <div class="sheet-title-row">
+            <h3>Emergency Guardians</h3>
+            <span class="guardian-count-pill" id="guardian-count-badge">2 Active</span>
+          </div>
+          <button class="close-sheet-btn" id="btn-close-guardians-modal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <p class="sheet-desc">These trusted contacts receive immediate SMS and live GPS coordinates during emergencies:</p>
+
+        <!-- Guardians List Container -->
+        <div class="guardians-list" id="guardians-list-container">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Add Guardian Section -->
+        <div class="add-guardian-box">
+          <button class="toggle-add-btn" id="btn-toggle-add-guardian">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Add New Contact</span>
+          </button>
+
+          <form class="add-guardian-form" id="form-add-guardian" style="display: none;">
+            <div class="form-group">
+              <label for="g-input-name">Contact Full Name</label>
+              <input type="text" id="g-input-name" placeholder="e.g. Rahul Sharma" required />
+            </div>
+            <div class="form-group">
+              <label for="g-input-phone">Mobile Number</label>
+              <input type="tel" id="g-input-phone" placeholder="e.g. +91 98222 33344" required />
+            </div>
+            
+            <div class="form-group">
+              <label>Select Relationship</label>
+              <div class="rel-chips-grid" id="rel-chips-container">
+                <button type="button" class="rel-chip active" data-rel="Mother">👩 Mother</button>
+                <button type="button" class="rel-chip" data-rel="Father">👨 Father</button>
+                <button type="button" class="rel-chip" data-rel="Brother">👦 Brother</button>
+                <button type="button" class="rel-chip" data-rel="Sister">👧 Sister</button>
+                <button type="button" class="rel-chip" data-rel="Spouse">💍 Spouse</button>
+                <button type="button" class="rel-chip" data-rel="Friend">🤝 Friend</button>
+                <button type="button" class="rel-chip" data-rel="Other">✏️ Other</button>
+              </div>
+              <input type="hidden" id="g-input-rel" value="Mother" />
+            </div>
+
+            <!-- Optional Custom Relationship Input (Appears when 'Other' is selected) -->
+            <div class="form-group custom-rel-group" id="g-custom-rel-container" style="display: none;">
+              <label for="g-input-custom-rel">Specify Relationship <span class="opt-tag">(Custom)</span></label>
+              <input type="text" id="g-input-custom-rel" placeholder="e.g. Roommate, Colleague, Neighbor, Mentor..." />
+            </div>
+
+            <div class="form-group checkbox-card">
+              <label class="checkbox-label">
+                <input type="checkbox" id="g-input-primary" />
+                <div class="chk-text">
+                  <span class="chk-title">Set as Primary Guardian</span>
+                  <span class="chk-sub">Receives priority alert during initial SOS countdown</span>
+                </div>
+              </label>
+            </div>
+
+            <button type="submit" class="action-btn btn-primary" id="btn-submit-guardian">
+              <span>Save Emergency Contact</span>
+            </button>
+          </form>
         </div>
       </div>
     </div>

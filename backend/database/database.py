@@ -1,4 +1,4 @@
-﻿import sqlite3
+import sqlite3
 import json
 import os
 import hashlib
@@ -92,6 +92,20 @@ def init_db():
         guardian_notified INTEGER DEFAULT 0,
         emergency_dispatched INTEGER DEFAULT 0,
         audio_captured INTEGER DEFAULT 0,
+        status TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    # 6. Journeys table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS journeys (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        origin_name TEXT NOT NULL,
+        dest_name TEXT NOT NULL,
+        selected_route_type TEXT NOT NULL,
+        safety_score INTEGER NOT NULL,
         status TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
