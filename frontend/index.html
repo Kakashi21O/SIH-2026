@@ -34,15 +34,9 @@
         </div>
       </div>
 
-      <div class="nav-right-actions">
-        <button class="nav-guardian-btn" id="btn-header-guardians" title="Emergency Guardians">
-          <span class="shield-mini">🛡️</span>
-          <span class="guardian-nav-badge" id="header-guardian-badge">2</span>
-        </button>
-        <div class="nav-status-pill" id="header-status-pill">
-          <span class="status-indicator"></span>
-          <span class="status-text" id="header-status-text">Protected</span>
-        </div>
+      <div class="nav-status-pill" id="header-status-pill">
+        <span class="status-indicator"></span>
+        <span class="status-text" id="header-status-text">Protected</span>
       </div>
     </header>
 
@@ -513,20 +507,14 @@
         <div class="sheet-handle"></div>
         <div class="sheet-head">
           <div class="sheet-title-row">
-            <div class="sheet-icon-wrap">🛡️</div>
-            <div>
-              <h3>Emergency Guardians</h3>
-              <span class="sheet-subhead">Priority Alert Network</span>
-            </div>
-          </div>
-          <div class="sheet-actions-right">
+            <h3>Emergency Guardians</h3>
             <span class="guardian-count-pill" id="guardian-count-badge">2 Active</span>
-            <button class="close-sheet-btn" id="btn-close-guardians-modal" aria-label="Close modal">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
           </div>
+          <button class="close-sheet-btn" id="btn-close-guardians-modal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
-        <p class="sheet-desc">These trusted contacts receive immediate automated SOS SMS & live GPS coordinates when distress is detected:</p>
+        <p class="sheet-desc">These trusted contacts receive immediate SMS and live GPS coordinates during emergencies:</p>
 
         <!-- Guardians List Container -->
         <div class="guardians-list" id="guardians-list-container">
@@ -537,92 +525,39 @@
         <div class="add-guardian-box">
           <button class="toggle-add-btn" id="btn-toggle-add-guardian">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>Add Emergency Contact</span>
+            <span>Add New Contact</span>
           </button>
 
           <form class="add-guardian-form" id="form-add-guardian" style="display: none;">
-            <div class="form-section-title">New Contact Details</div>
-
             <div class="form-group">
               <label for="g-input-name">Contact Full Name</label>
-              <div class="input-with-icon">
-                <span class="input-field-icon">👤</span>
-                <input type="text" id="g-input-name" placeholder="e.g. Pooja Sharma" required autocomplete="off" />
-              </div>
+              <input type="text" id="g-input-name" placeholder="e.g. Rahul Sharma" required />
             </div>
-
             <div class="form-group">
               <label for="g-input-phone">Mobile Number</label>
-              <div class="input-with-icon">
-                <span class="input-field-icon">📞</span>
-                <input type="tel" id="g-input-phone" placeholder="e.g. +91 98111 22233" required autocomplete="off" />
+              <input type="tel" id="g-input-phone" placeholder="e.g. +91 98222 33344" required />
+            </div>
+            <div class="form-row">
+              <div class="form-group half">
+                <label for="g-input-rel">Relationship</label>
+                <select id="g-input-rel">
+                  <option value="Mother">👩 Mother</option>
+                  <option value="Father">👨 Father</option>
+                  <option value="Brother">👦 Brother</option>
+                  <option value="Sister">👧 Sister</option>
+                  <option value="Spouse">💍 Spouse / Partner</option>
+                  <option value="Friend">🤝 Close Friend</option>
+                  <option value="Other">🛡️ Other Guardian</option>
+                </select>
+              </div>
+              <div class="form-group half checkbox-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="g-input-primary" />
+                  <span>Primary Alert</span>
+                </label>
               </div>
             </div>
-
-            <!-- Interactive Relationship Selection -->
-            <div class="form-group rel-selector-group">
-              <div class="rel-label-row">
-                <label>Relationship</label>
-                <span class="rel-hint-badge" id="rel-hint-badge">Selected: 👩 Mother</span>
-              </div>
-              <div class="rel-chips-grid" id="rel-chips-container">
-                <button type="button" class="rel-chip active" data-rel="Mother">
-                  <span class="chip-icon">👩</span>
-                  <span class="chip-label">Mother</span>
-                </button>
-                <button type="button" class="rel-chip" data-rel="Father">
-                  <span class="chip-icon">👨</span>
-                  <span class="chip-label">Father</span>
-                </button>
-                <button type="button" class="rel-chip" data-rel="Sister">
-                  <span class="chip-icon">👧</span>
-                  <span class="chip-label">Sister</span>
-                </button>
-                <button type="button" class="rel-chip" data-rel="Brother">
-                  <span class="chip-icon">👦</span>
-                  <span class="chip-label">Brother</span>
-                </button>
-                <button type="button" class="rel-chip" data-rel="Spouse">
-                  <span class="chip-icon">💍</span>
-                  <span class="chip-label">Spouse</span>
-                </button>
-                <button type="button" class="rel-chip" data-rel="Friend">
-                  <span class="chip-icon">🤝</span>
-                  <span class="chip-label">Friend</span>
-                </button>
-                <button type="button" class="rel-chip" data-rel="Other">
-                  <span class="chip-icon">🛡️</span>
-                  <span class="chip-label">Other / Custom</span>
-                </button>
-              </div>
-              <input type="hidden" id="g-input-rel" value="Mother" />
-            </div>
-
-            <!-- Custom Relationship Field (Slides down when Other is chosen) -->
-            <div class="form-group custom-rel-group" id="g-custom-rel-container" style="display: none;">
-              <label for="g-input-custom-rel">Specify Relationship <span class="custom-pill-tag">Custom</span></label>
-              <div class="input-with-icon">
-                <span class="input-field-icon">✏️</span>
-                <input type="text" id="g-input-custom-rel" placeholder="e.g. Roommate, Colleague, Mentor, Neighbor..." maxlength="30" />
-              </div>
-            </div>
-
-            <!-- Primary Contact Toggle Card -->
-            <div class="form-group">
-              <label class="primary-toggle-card" for="g-input-primary">
-                <div class="primary-toggle-left">
-                  <input type="checkbox" id="g-input-primary" class="styled-checkbox" />
-                  <div class="primary-card-text">
-                    <span class="primary-card-title">Set as Primary Emergency Guardian</span>
-                    <span class="primary-card-desc">Receives priority automated alert during 10s countdown</span>
-                  </div>
-                </div>
-                <span class="star-badge">⭐ Priority</span>
-              </label>
-            </div>
-
-            <button type="submit" class="action-btn btn-primary btn-save-guardian" id="btn-submit-guardian">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <button type="submit" class="action-btn btn-primary" id="btn-submit-guardian">
               <span>Save Emergency Contact</span>
             </button>
           </form>

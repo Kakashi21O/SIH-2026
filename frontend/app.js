@@ -325,16 +325,19 @@ function updateUserMarkerOnMap() {
   if (state.mapLayers.userMarker) {
     state.mapLayers.userMarker.setLatLng(latlng);
   } else {
+    // Multi-layer radar sonar beacon for active user GPS marker
     const beaconIcon = L.divIcon({
-      className: "user-gps-beacon",
-      html: `<div style="position: relative; width: 18px; height: 18px;">
-               <div style="position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #38bdf8; opacity: 0.4; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-               <div style="position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; background: #38bdf8; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 10px #38bdf8;"></div>
+      className: "user-gps-beacon-custom",
+      html: `<div class="user-gps-beacon-wrap">
+               <div class="sonar-ring"></div>
+               <div class="sonar-ring delay-1"></div>
+               <div class="sonar-ring delay-2"></div>
+               <div class="beacon-core-dot"></div>
              </div>`,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9]
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
     });
-    state.mapLayers.userMarker = L.marker(latlng, { icon: beaconIcon }).addTo(state.mapInstance);
+    state.mapLayers.userMarker = L.marker(latlng, { icon: beaconIcon, zIndexOffset: 1000 }).addTo(state.mapInstance);
   }
 }
 
@@ -355,7 +358,12 @@ function jumpToLocation(key) {
   updateSafetyScore(loc.lat, loc.lng);
   updateUserMarkerOnMap();
   if (state.mapInstance) {
-    state.mapInstance.panTo([loc.lat, loc.lng]);
+    // Smooth cinematic camera pan/zoom to new location scenario
+    state.mapInstance.flyTo([loc.lat, loc.lng], 14, {
+      animate: true,
+      duration: 0.9,
+      easeLinearity: 0.25
+    });
   }
 }
 
@@ -691,18 +699,26 @@ function previewRouteOnMap(routeType) {
     initOrResizeMap();
     clearRoutePolylines();
 
+    // Animated glowing route polyline
     const polyline = L.polyline(route.waypoints, {
       color: route.color || (routeType === "SAFER" ? "#10B981" : "#F97316"),
-      weight: 5,
-      opacity: 0.9,
+      weight: 6,
+      opacity: 0.95,
       lineCap: "round",
-      dashArray: routeType === "SAFER" ? null : "8, 8"
+      className: routeType === "SAFER" ? "route-polyline-safe-glow" : "route-polyline-fastest",
+      dashArray: routeType === "SAFER" ? "12, 8" : "8, 8"
     }).addTo(state.mapInstance);
 
     state.mapLayers.routePolylines.push(polyline);
-    state.mapInstance.fitBounds(polyline.getBounds(), { padding: [30, 30] });
+    // Smooth cinematic zoom and pan to fit entire route
+    state.mapInstance.flyToBounds(polyline.getBounds(), { 
+      padding: [35, 35], 
+      maxZoom: 16,
+      animate: true, 
+      duration: 1.1 
+    });
 
-    showToastAlert(`Showing ${routeType === "SAFER" ? "Recommended Safe" : "Fastest"} Route Preview`, "info");
+    showToastAlert(`Showing ${routeType === "SAFER" ? "⭐ Recommended Safe" : "⚡ Fastest"} Route Preview`, "info");
   }, 200);
 }
 
@@ -735,13 +751,22 @@ async function startLiveNavigation(routeType) {
     initOrResizeMap();
     clearRoutePolylines();
 
+    // Animated glowing navigation route
     const polyline = L.polyline(route.waypoints, {
       color: route.color || (routeType === "SAFER" ? "#10B981" : "#F97316"),
-      weight: 5,
-      opacity: 0.9
+      weight: 6,
+      opacity: 0.95,
+      lineCap: "round",
+      className: routeType === "SAFER" ? "route-polyline-safe-glow" : "route-polyline-fastest",
+      dashArray: routeType === "SAFER" ? "12, 8" : "8, 8"
     }).addTo(state.mapInstance);
     state.mapLayers.routePolylines.push(polyline);
-    state.mapInstance.fitBounds(polyline.getBounds(), { padding: [30, 30] });
+    state.mapInstance.flyToBounds(polyline.getBounds(), { 
+      padding: [35, 35], 
+      maxZoom: 16,
+      animate: true, 
+      duration: 1.1 
+    });
 
     const hud = document.getElementById("map-nav-hud");
     const hudTag = document.getElementById("hud-route-type");
@@ -774,6 +799,11 @@ async function startLiveNavigation(routeType) {
         updateUserMarkerOnMap();
         updateSafetyScore(pt[0], pt[1]);
 
+        // Smooth camera follow during live GPS movement
+        if (state.mapInstance) {
+          state.mapInstance.panTo([pt[0], pt[1]], { animate: true, duration: 0.6 });
+        }
+
         const pct = Math.round(((state.journeyState.currentWaypointIndex + 1) / waypoints.length) * 100);
         if (hudFill) hudFill.style.width = `${pct}%`;
         const minsLeft = Math.max(1, Math.round(route.duration_mins * (1 - pct / 100)));
@@ -799,44 +829,8 @@ function endLiveNavigation() {
 }
 
 // ================= GUARDIAN MANAGEMENT =================
-// ================= GUARDIAN MANAGEMENT =================
-const REL_EMOJIS = {
-  Mother: "👩",
-  Father: "👨",
-  Sister: "👧",
-  Brother: "👦",
-  Spouse: "💍",
-  Friend: "🤝",
-  Other: "🛡️"
-};
-
-function getRelEmoji(rel) {
-  if (!rel) return "🛡️";
-  if (REL_EMOJIS[rel]) return REL_EMOJIS[rel];
-  const lower = rel.toLowerCase();
-  if (lower.includes("mother") || lower.includes("mom") || lower.includes("maa")) return "👩";
-  if (lower.includes("father") || lower.includes("dad") || lower.includes("papa")) return "👨";
-  if (lower.includes("sister") || lower.includes("sis")) return "👧";
-  if (lower.includes("brother") || lower.includes("bro")) return "👦";
-  if (lower.includes("spouse") || lower.includes("husband") || lower.includes("wife") || lower.includes("partner")) return "💍";
-  if (lower.includes("friend") || lower.includes("roommate") || lower.includes("colleague")) return "🤝";
-  return "🛡️";
-}
-
-function escapeHtml(str) {
-  if (!str) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
 function initGuardianManagement() {
   document.getElementById("btn-close-guardians-modal")?.addEventListener("click", closeGuardiansModal);
-  document.getElementById("btn-header-guardians")?.addEventListener("click", openGuardiansModal);
-  document.getElementById("btn-nav-contacts")?.addEventListener("click", openGuardiansModal);
 
   const toggleBtn = document.getElementById("btn-toggle-add-guardian");
   const form = document.getElementById("form-add-guardian");
@@ -845,90 +839,16 @@ function initGuardianManagement() {
     if (form.style.display === "none" || !form.style.display) {
       form.style.display = "flex";
       toggleBtn.innerHTML = `<span>✕ Cancel</span>`;
-      document.getElementById("g-input-name")?.focus();
     } else {
-      resetGuardianForm();
-    }
-  });
-
-  // Interactive relationship chips
-  const chips = document.querySelectorAll(".rel-chip");
-  const hiddenRelInput = document.getElementById("g-input-rel");
-  const customContainer = document.getElementById("g-custom-rel-container");
-  const customInput = document.getElementById("g-input-custom-rel");
-  const hintBadge = document.getElementById("rel-hint-badge");
-
-  chips.forEach(chip => {
-    chip.addEventListener("click", () => {
-      chips.forEach(c => c.classList.remove("active"));
-      chip.classList.add("active");
-
-      const rel = chip.getAttribute("data-rel");
-      if (hiddenRelInput) hiddenRelInput.value = rel;
-
-      if (rel === "Other") {
-        if (customContainer) {
-          customContainer.style.display = "block";
-          if (customInput) {
-            customInput.focus();
-            const val = customInput.value.trim();
-            if (hintBadge) hintBadge.textContent = val ? `Selected: 🛡️ ${val}` : "Selected: 🛡️ Custom Relation";
-          }
-        }
-      } else {
-        if (customContainer) {
-          customContainer.style.display = "none";
-          if (customInput) customInput.value = "";
-        }
-        const icon = chip.querySelector(".chip-icon")?.textContent || "🛡️";
-        if (hintBadge) hintBadge.textContent = `Selected: ${icon} ${rel}`;
-      }
-    });
-  });
-
-  // Update dynamic hint on typing custom relation
-  customInput?.addEventListener("input", (e) => {
-    const val = e.target.value.trim();
-    if (hintBadge) {
-      hintBadge.textContent = val ? `Selected: 🛡️ ${val}` : "Selected: 🛡️ Custom Relation";
+      form.style.display = "none";
+      toggleBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>Add New Contact</span>
+      `;
     }
   });
 
   form?.addEventListener("submit", handleCreateGuardian);
-
-  // Background fetch of contacts
-  loadGuardiansList();
-}
-
-function resetGuardianForm() {
-  const form = document.getElementById("form-add-guardian");
-  if (form) {
-    form.reset();
-    form.style.display = "none";
-  }
-
-  // Reset chips to Mother
-  document.querySelectorAll(".rel-chip").forEach(c => {
-    c.classList.toggle("active", c.getAttribute("data-rel") === "Mother");
-  });
-  const hiddenInput = document.getElementById("g-input-rel");
-  if (hiddenInput) hiddenInput.value = "Mother";
-
-  const customContainer = document.getElementById("g-custom-rel-container");
-  const customInput = document.getElementById("g-input-custom-rel");
-  if (customContainer) customContainer.style.display = "none";
-  if (customInput) customInput.value = "";
-
-  const hintBadge = document.getElementById("rel-hint-badge");
-  if (hintBadge) hintBadge.textContent = "Selected: 👩 Mother";
-
-  const toggleBtn = document.getElementById("btn-toggle-add-guardian");
-  if (toggleBtn) {
-    toggleBtn.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      <span>Add Emergency Contact</span>
-    `;
-  }
 }
 
 function openGuardiansModal() {
@@ -938,14 +858,20 @@ function openGuardiansModal() {
 
 function closeGuardiansModal() {
   document.getElementById("modal-guardians")?.classList.remove("active");
-  resetGuardianForm();
+  const form = document.getElementById("form-add-guardian");
+  if (form) form.style.display = "none";
+  const toggleBtn = document.getElementById("btn-toggle-add-guardian");
+  if (toggleBtn) {
+    toggleBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Add New Contact</span>
+    `;
+  }
 }
 
 async function loadGuardiansList() {
   const container = document.getElementById("guardians-list-container");
   const countBadge = document.getElementById("guardian-count-badge");
-  const headerBadge = document.getElementById("header-guardian-badge");
-  const homeTileDesc = document.querySelector("#btn-nav-contacts .tile-desc");
   if (!container) return;
 
   try {
@@ -954,60 +880,37 @@ async function loadGuardiansList() {
     const guardians = await res.json();
 
     if (countBadge) countBadge.textContent = `${guardians.length} Active`;
-    if (headerBadge) headerBadge.textContent = `${guardians.length}`;
-    if (homeTileDesc) homeTileDesc.textContent = `${guardians.length} Emergency Contact${guardians.length === 1 ? '' : 's'}`;
 
     if (guardians.length === 0) {
-      container.innerHTML = `
-        <div class="guardians-empty-state">
-          <div class="empty-icon-shield">🛡️</div>
-          <h4>No Emergency Guardians Registered</h4>
-          <p>Add at least one trusted contact below to receive automated priority alerts, live GPS streaming, and emergency notifications.</p>
-        </div>
-      `;
+      container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem; text-align: center; padding: 12px;">No guardians added yet. Add your trusted contacts below.</p>`;
       return;
     }
 
-    container.innerHTML = guardians.map(g => {
-      const emoji = getRelEmoji(g.relationship);
-      const safeName = escapeHtml(g.name);
-      const safePhone = escapeHtml(g.phone);
-      const safeRel = escapeHtml(g.relationship);
-      const jsName = g.name.replace(/'/g, "\\'");
-
-      return `
-        <div class="guardian-item ${g.is_primary ? 'primary-card' : ''}" id="guardian-card-${g.id}">
-          <div class="g-avatar-circle ${g.is_primary ? 'primary-avatar' : ''}">
-            <span class="g-avatar-emoji">${emoji}</span>
+    container.innerHTML = guardians.map(g => `
+      <div class="guardian-item ${g.is_primary ? 'primary-card' : ''}" id="guardian-card-${g.id}">
+        <div class="g-info">
+          <div class="g-header-row">
+            <span class="g-name">${g.name}</span>
+            ${g.is_primary ? '<span class="primary-pill">⭐ Primary</span>' : ''}
           </div>
-          <div class="g-info">
-            <div class="g-header-row">
-              <span class="g-name">${safeName}</span>
-              ${g.is_primary ? '<span class="primary-pill">⭐ PRIMARY</span>' : ''}
-            </div>
-            <div class="g-meta-row">
-              <span class="g-phone">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                ${safePhone}
-              </span>
-              <span class="g-rel-tag">${safeRel}</span>
-            </div>
-          </div>
-          <div class="g-actions">
-            <button class="g-action-btn test" onclick="handleSendTestAlert('${g.id}', '${jsName}')" title="Send simulated test SOS alert">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              <span>Test</span>
-            </button>
-            ${!g.is_primary ? `<button class="g-action-btn set-primary" onclick="handleSetPrimaryGuardian('${g.id}')">Make Primary</button>` : ''}
-            <button class="g-action-btn delete" onclick="handleDeleteGuardian('${g.id}')" title="Remove Contact">✕</button>
+          <div class="g-meta-row">
+            <span class="g-phone">${g.phone}</span>
+            <span class="g-rel-tag">${g.relationship}</span>
           </div>
         </div>
-      `;
-    }).join("");
+        <div class="g-actions">
+          <button class="g-action-btn test" onclick="handleSendTestAlert('${g.id}', '${g.name.replace(/'/g, "\\'")}')">
+            <span>Test Alert</span>
+          </button>
+          ${!g.is_primary ? `<button class="g-action-btn set-primary" onclick="handleSetPrimaryGuardian('${g.id}')">Make Primary</button>` : ''}
+          <button class="g-action-btn delete" onclick="handleDeleteGuardian('${g.id}')">✕</button>
+        </div>
+      </div>
+    `).join("");
 
   } catch (err) {
     console.warn("Could not load guardians:", err);
-    container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem; text-align: center; padding: 10px;">Could not load emergency contacts.</p>`;
+    container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem;">Could not load emergency contacts.</p>`;
   }
 }
 
@@ -1015,18 +918,10 @@ async function handleCreateGuardian(e) {
   e.preventDefault();
   const name = document.getElementById("g-input-name").value.trim();
   const phone = document.getElementById("g-input-phone").value.trim();
-  let relationship = document.getElementById("g-input-rel")?.value || "Mother";
-  const customRel = document.getElementById("g-input-custom-rel")?.value.trim();
-  const is_primary = document.getElementById("g-input-primary")?.checked || false;
+  const relationship = document.getElementById("g-input-rel").value;
+  const is_primary = document.getElementById("g-input-primary").checked;
 
-  if (relationship === "Other") {
-    relationship = customRel ? customRel : "Other";
-  }
-
-  if (!name || !phone) {
-    showToastAlert("Please provide both name and phone number", "warn");
-    return;
-  }
+  if (!name || !phone) return;
 
   try {
     const res = await fetch("/api/guardians", {
@@ -1043,12 +938,22 @@ async function handleCreateGuardian(e) {
 
     if (!res.ok) throw new Error("Failed to create guardian");
     
-    resetGuardianForm();
+    // Reset form
+    document.getElementById("form-add-guardian").reset();
+    document.getElementById("form-add-guardian").style.display = "none";
+    const toggleBtn = document.getElementById("btn-toggle-add-guardian");
+    if (toggleBtn) {
+      toggleBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>Add New Contact</span>
+      `;
+    }
+
     loadGuardiansList();
     showToastAlert(`✅ Added ${name} (${relationship}) as Emergency Guardian`, "safe");
   } catch (err) {
     console.warn("Error adding guardian:", err);
-    showToastAlert("Failed to add contact. Please verify details.", "danger");
+    showToastAlert("Failed to add contact", "danger");
   }
 }
 
@@ -1060,7 +965,6 @@ async function handleDeleteGuardian(id) {
     showToastAlert("Guardian removed from emergency list", "info");
   } catch (err) {
     console.warn("Error deleting guardian:", err);
-    showToastAlert("Failed to delete contact", "danger");
   }
 }
 
@@ -1076,7 +980,6 @@ async function handleSetPrimaryGuardian(id) {
     showToastAlert("⭐ Primary guardian updated", "safe");
   } catch (err) {
     console.warn("Error updating primary guardian:", err);
-    showToastAlert("Failed to update primary contact", "danger");
   }
 }
 
@@ -1085,7 +988,7 @@ async function handleSendTestAlert(id, name) {
     const res = await fetch(`/api/guardians/${id}/test-alert`, { method: "POST" });
     if (!res.ok) throw new Error("Test alert failed");
     const data = await res.json();
-    showToastAlert(`🔔 Test SOS Alert dispatched to ${data.recipient} (${data.phone})`, "safe");
+    showToastAlert(`🔔 Test SOS Alert sent to ${data.recipient} (${data.phone})`, "safe");
   } catch (err) {
     console.warn("Error sending test alert:", err);
     showToastAlert("Test alert dispatch failed", "danger");
