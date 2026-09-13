@@ -799,8 +799,44 @@ function endLiveNavigation() {
 }
 
 // ================= GUARDIAN MANAGEMENT =================
+// ================= GUARDIAN MANAGEMENT =================
+const REL_EMOJIS = {
+  Mother: "👩",
+  Father: "👨",
+  Sister: "👧",
+  Brother: "👦",
+  Spouse: "💍",
+  Friend: "🤝",
+  Other: "🛡️"
+};
+
+function getRelEmoji(rel) {
+  if (!rel) return "🛡️";
+  if (REL_EMOJIS[rel]) return REL_EMOJIS[rel];
+  const lower = rel.toLowerCase();
+  if (lower.includes("mother") || lower.includes("mom") || lower.includes("maa")) return "👩";
+  if (lower.includes("father") || lower.includes("dad") || lower.includes("papa")) return "👨";
+  if (lower.includes("sister") || lower.includes("sis")) return "👧";
+  if (lower.includes("brother") || lower.includes("bro")) return "👦";
+  if (lower.includes("spouse") || lower.includes("husband") || lower.includes("wife") || lower.includes("partner")) return "💍";
+  if (lower.includes("friend") || lower.includes("roommate") || lower.includes("colleague")) return "🤝";
+  return "🛡️";
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function initGuardianManagement() {
   document.getElementById("btn-close-guardians-modal")?.addEventListener("click", closeGuardiansModal);
+  document.getElementById("btn-header-guardians")?.addEventListener("click", openGuardiansModal);
+  document.getElementById("btn-nav-contacts")?.addEventListener("click", openGuardiansModal);
 
   const toggleBtn = document.getElementById("btn-toggle-add-guardian");
   const form = document.getElementById("form-add-guardian");
@@ -809,35 +845,59 @@ function initGuardianManagement() {
     if (form.style.display === "none" || !form.style.display) {
       form.style.display = "flex";
       toggleBtn.innerHTML = `<span>✕ Cancel</span>`;
+      document.getElementById("g-input-name")?.focus();
     } else {
       resetGuardianForm();
     }
   });
 
-  // Relationship chips selection
-  document.querySelectorAll(".rel-chip").forEach(chip => {
+  // Interactive relationship chips
+  const chips = document.querySelectorAll(".rel-chip");
+  const hiddenRelInput = document.getElementById("g-input-rel");
+  const customContainer = document.getElementById("g-custom-rel-container");
+  const customInput = document.getElementById("g-input-custom-rel");
+  const hintBadge = document.getElementById("rel-hint-badge");
+
+  chips.forEach(chip => {
     chip.addEventListener("click", () => {
-      document.querySelectorAll(".rel-chip").forEach(c => c.classList.remove("active"));
+      chips.forEach(c => c.classList.remove("active"));
       chip.classList.add("active");
 
       const rel = chip.getAttribute("data-rel");
-      const hiddenInput = document.getElementById("g-input-rel");
-      if (hiddenInput) hiddenInput.value = rel;
-
-      const customContainer = document.getElementById("g-custom-rel-container");
-      const customInput = document.getElementById("g-input-custom-rel");
+      if (hiddenRelInput) hiddenRelInput.value = rel;
 
       if (rel === "Other") {
-        if (customContainer) customContainer.style.display = "block";
-        if (customInput) customInput.focus();
+        if (customContainer) {
+          customContainer.style.display = "block";
+          if (customInput) {
+            customInput.focus();
+            const val = customInput.value.trim();
+            if (hintBadge) hintBadge.textContent = val ? `Selected: 🛡️ ${val}` : "Selected: 🛡️ Custom Relation";
+          }
+        }
       } else {
-        if (customContainer) customContainer.style.display = "none";
-        if (customInput) customInput.value = "";
+        if (customContainer) {
+          customContainer.style.display = "none";
+          if (customInput) customInput.value = "";
+        }
+        const icon = chip.querySelector(".chip-icon")?.textContent || "🛡️";
+        if (hintBadge) hintBadge.textContent = `Selected: ${icon} ${rel}`;
       }
     });
   });
 
+  // Update dynamic hint on typing custom relation
+  customInput?.addEventListener("input", (e) => {
+    const val = e.target.value.trim();
+    if (hintBadge) {
+      hintBadge.textContent = val ? `Selected: 🛡️ ${val}` : "Selected: 🛡️ Custom Relation";
+    }
+  });
+
   form?.addEventListener("submit", handleCreateGuardian);
+
+  // Background fetch of contacts
+  loadGuardiansList();
 }
 
 function resetGuardianForm() {
@@ -859,11 +919,14 @@ function resetGuardianForm() {
   if (customContainer) customContainer.style.display = "none";
   if (customInput) customInput.value = "";
 
+  const hintBadge = document.getElementById("rel-hint-badge");
+  if (hintBadge) hintBadge.textContent = "Selected: 👩 Mother";
+
   const toggleBtn = document.getElementById("btn-toggle-add-guardian");
   if (toggleBtn) {
     toggleBtn.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      <span>Add New Contact</span>
+      <span>Add Emergency Contact</span>
     `;
   }
 }
@@ -881,6 +944,8 @@ function closeGuardiansModal() {
 async function loadGuardiansList() {
   const container = document.getElementById("guardians-list-container");
   const countBadge = document.getElementById("guardian-count-badge");
+  const headerBadge = document.getElementById("header-guardian-badge");
+  const homeTileDesc = document.querySelector("#btn-nav-contacts .tile-desc");
   if (!container) return;
 
   try {
@@ -889,37 +954,60 @@ async function loadGuardiansList() {
     const guardians = await res.json();
 
     if (countBadge) countBadge.textContent = `${guardians.length} Active`;
+    if (headerBadge) headerBadge.textContent = `${guardians.length}`;
+    if (homeTileDesc) homeTileDesc.textContent = `${guardians.length} Emergency Contact${guardians.length === 1 ? '' : 's'}`;
 
     if (guardians.length === 0) {
-      container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem; text-align: center; padding: 12px;">No guardians added yet. Add your trusted contacts below.</p>`;
+      container.innerHTML = `
+        <div class="guardians-empty-state">
+          <div class="empty-icon-shield">🛡️</div>
+          <h4>No Emergency Guardians Registered</h4>
+          <p>Add at least one trusted contact below to receive automated priority alerts, live GPS streaming, and emergency notifications.</p>
+        </div>
+      `;
       return;
     }
 
-    container.innerHTML = guardians.map(g => `
-      <div class="guardian-item ${g.is_primary ? 'primary-card' : ''}" id="guardian-card-${g.id}">
-        <div class="g-info">
-          <div class="g-header-row">
-            <span class="g-name">${g.name}</span>
-            ${g.is_primary ? '<span class="primary-pill">⭐ Primary</span>' : ''}
+    container.innerHTML = guardians.map(g => {
+      const emoji = getRelEmoji(g.relationship);
+      const safeName = escapeHtml(g.name);
+      const safePhone = escapeHtml(g.phone);
+      const safeRel = escapeHtml(g.relationship);
+      const jsName = g.name.replace(/'/g, "\\'");
+
+      return `
+        <div class="guardian-item ${g.is_primary ? 'primary-card' : ''}" id="guardian-card-${g.id}">
+          <div class="g-avatar-circle ${g.is_primary ? 'primary-avatar' : ''}">
+            <span class="g-avatar-emoji">${emoji}</span>
           </div>
-          <div class="g-meta-row">
-            <span class="g-phone">${g.phone}</span>
-            <span class="g-rel-tag">${g.relationship}</span>
+          <div class="g-info">
+            <div class="g-header-row">
+              <span class="g-name">${safeName}</span>
+              ${g.is_primary ? '<span class="primary-pill">⭐ PRIMARY</span>' : ''}
+            </div>
+            <div class="g-meta-row">
+              <span class="g-phone">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                ${safePhone}
+              </span>
+              <span class="g-rel-tag">${safeRel}</span>
+            </div>
+          </div>
+          <div class="g-actions">
+            <button class="g-action-btn test" onclick="handleSendTestAlert('${g.id}', '${jsName}')" title="Send simulated test SOS alert">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span>Test</span>
+            </button>
+            ${!g.is_primary ? `<button class="g-action-btn set-primary" onclick="handleSetPrimaryGuardian('${g.id}')">Make Primary</button>` : ''}
+            <button class="g-action-btn delete" onclick="handleDeleteGuardian('${g.id}')" title="Remove Contact">✕</button>
           </div>
         </div>
-        <div class="g-actions">
-          <button class="g-action-btn test" onclick="handleSendTestAlert('${g.id}', '${g.name.replace(/'/g, "\\'")}')">
-            <span>Test Alert</span>
-          </button>
-          ${!g.is_primary ? `<button class="g-action-btn set-primary" onclick="handleSetPrimaryGuardian('${g.id}')">Make Primary</button>` : ''}
-          <button class="g-action-btn delete" onclick="handleDeleteGuardian('${g.id}')">✕</button>
-        </div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
 
   } catch (err) {
     console.warn("Could not load guardians:", err);
-    container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem;">Could not load emergency contacts.</p>`;
+    container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem; text-align: center; padding: 10px;">Could not load emergency contacts.</p>`;
   }
 }
 
@@ -929,13 +1017,16 @@ async function handleCreateGuardian(e) {
   const phone = document.getElementById("g-input-phone").value.trim();
   let relationship = document.getElementById("g-input-rel")?.value || "Mother";
   const customRel = document.getElementById("g-input-custom-rel")?.value.trim();
-  const is_primary = document.getElementById("g-input-primary").checked;
+  const is_primary = document.getElementById("g-input-primary")?.checked || false;
 
   if (relationship === "Other") {
     relationship = customRel ? customRel : "Other";
   }
 
-  if (!name || !phone) return;
+  if (!name || !phone) {
+    showToastAlert("Please provide both name and phone number", "warn");
+    return;
+  }
 
   try {
     const res = await fetch("/api/guardians", {
@@ -957,7 +1048,7 @@ async function handleCreateGuardian(e) {
     showToastAlert(`✅ Added ${name} (${relationship}) as Emergency Guardian`, "safe");
   } catch (err) {
     console.warn("Error adding guardian:", err);
-    showToastAlert("Failed to add contact", "danger");
+    showToastAlert("Failed to add contact. Please verify details.", "danger");
   }
 }
 
@@ -969,6 +1060,7 @@ async function handleDeleteGuardian(id) {
     showToastAlert("Guardian removed from emergency list", "info");
   } catch (err) {
     console.warn("Error deleting guardian:", err);
+    showToastAlert("Failed to delete contact", "danger");
   }
 }
 
@@ -984,6 +1076,7 @@ async function handleSetPrimaryGuardian(id) {
     showToastAlert("⭐ Primary guardian updated", "safe");
   } catch (err) {
     console.warn("Error updating primary guardian:", err);
+    showToastAlert("Failed to update primary contact", "danger");
   }
 }
 
@@ -992,7 +1085,7 @@ async function handleSendTestAlert(id, name) {
     const res = await fetch(`/api/guardians/${id}/test-alert`, { method: "POST" });
     if (!res.ok) throw new Error("Test alert failed");
     const data = await res.json();
-    showToastAlert(`🔔 Test SOS Alert sent to ${data.recipient} (${data.phone})`, "safe");
+    showToastAlert(`🔔 Test SOS Alert dispatched to ${data.recipient} (${data.phone})`, "safe");
   } catch (err) {
     console.warn("Error sending test alert:", err);
     showToastAlert("Test alert dispatch failed", "danger");
