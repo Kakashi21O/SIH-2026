@@ -714,6 +714,17 @@ input:checked + .switch-slider:before {
 .legend-dot.high { background: var(--accent-high); }
 .legend-dot.critical { background: var(--accent-danger); }
 
+/* Organic Risk Zone Polygons */
+.organic-risk-zone {
+  transition: fill-opacity 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.45));
+  cursor: pointer;
+}
+
+.organic-risk-zone:hover {
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.25));
+}
+
 .sim-panel {
   display: flex;
   flex-direction: column;

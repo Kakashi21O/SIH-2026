@@ -261,13 +261,33 @@ async function loadMapRiskZones() {
     state.mapLayers.zones = L.geoJSON(geojson, {
       style: (feature) => ({
         color: feature.properties.color || "#10b981",
-        weight: 2,
+        weight: 2.2,
         fillColor: feature.properties.color || "#10b981",
-        fillOpacity: feature.properties.fillOpacity || 0.25
+        fillOpacity: feature.properties.fillOpacity ? Math.min(0.5, feature.properties.fillOpacity + 0.08) : 0.35,
+        lineJoin: "round",
+        lineCap: "round",
+        className: "organic-risk-zone"
       }),
       onEachFeature: (feature, layer) => {
+        // Subtle hover highlight
+        layer.on({
+          mouseover: (e) => {
+            const l = e.target;
+            l.setStyle({
+              weight: 3.5,
+              fillOpacity: 0.55
+            });
+            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+              l.bringToFront();
+            }
+          },
+          mouseout: (e) => {
+            state.mapLayers.zones.resetStyle(e.target);
+          }
+        });
+
         layer.bindPopup(`
-          <div style="color: #0b0f19; font-family: sans-serif; padding: 4px; min-width: 160px;">
+          <div style="color: #0b0f19; font-family: sans-serif; padding: 4px; min-width: 170px;">
             <b style="font-size: 13px; color: #0b0f19;">${feature.properties.name}</b><br/>
             <div style="margin: 4px 0; font-size: 12px; color: #334155;">
               Safety Index: <b>${feature.properties.safety_score}/100</b><br/>

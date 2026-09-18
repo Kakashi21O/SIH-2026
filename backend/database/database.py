@@ -133,9 +133,8 @@ def init_db():
         )
         conn.commit()
 
-    # Seed Risk Zones if table is empty
-    cursor.execute("SELECT COUNT(*) FROM risk_zones")
-    if cursor.fetchone()[0] == 0 and os.path.exists(settings.RISK_ZONES_SEED):
+    # Seed or synchronize Risk Zones from JSON seed
+    if os.path.exists(settings.RISK_ZONES_SEED):
         with open(settings.RISK_ZONES_SEED, "r", encoding="utf-8-sig") as f:
             zone_data = json.load(f)
             for feature in zone_data.get("features", []):
@@ -143,6 +142,15 @@ def init_db():
                     """
                     INSERT INTO risk_zones (id, name, risk_level, safety_score, color, fill_opacity, description, polygon_geojson, complaint_count)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        name=excluded.name,
+                        risk_level=excluded.risk_level,
+                        safety_score=excluded.safety_score,
+                        color=excluded.color,
+                        fill_opacity=excluded.fill_opacity,
+                        description=excluded.description,
+                        polygon_geojson=excluded.polygon_geojson,
+                        complaint_count=excluded.complaint_count
                     """,
                     (
                         feature["id"],
