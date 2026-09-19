@@ -90,12 +90,45 @@ class IncidentReportResponse(BaseModel):
     actions_taken: List[str]
 
 # ================= COMPLAINTS SCHEMAS =================
+class ComplaintAnalyzeRequest(BaseModel):
+    text: str = Field(..., min_length=3, example="Streetlights are completely off and area is pitch dark.")
+
+class ComplaintAnalyzeResponse(BaseModel):
+    category: str
+    confidence: float
+    severity: str
+    keywords: List[str]
+    urgent_flag: bool
+
+class DuplicateCheckRequest(BaseModel):
+    text: str = Field(..., min_length=3, example="Streetlights are broken and dark here")
+    lat: float = Field(..., example=28.6410)
+    lng: float = Field(..., example=77.2310)
+
+class DuplicateCheckResponse(BaseModel):
+    is_duplicate: bool
+    similarity_score: float
+    distance_meters: Optional[float] = None
+    matched_report: Optional[Dict[str, Any]] = None
+    cluster_id: Optional[str] = None
+
+class ComplaintClusterResponse(BaseModel):
+    cluster_id: str
+    category: str
+    headline: str
+    severity: str
+    center_lat: float
+    center_lng: float
+    total_count: int
+    upvotes_sum: int
+    first_reported_at: Optional[str] = None
+
 class ComplaintCreateRequest(BaseModel):
     user_id: Optional[str] = "usr_demo"
     text: str = Field(..., min_length=5, example="Streetlights are completely off and area is pitch dark.")
     lat: float = Field(..., example=28.6410)
     lng: float = Field(..., example=77.2310)
-    category: Optional[str] = "poor_lighting"
+    category: Optional[str] = None # Auto-detected by NLP if omitted or "auto"
 
 class ComplaintResponse(BaseModel):
     id: str
@@ -107,6 +140,9 @@ class ComplaintResponse(BaseModel):
     severity: str
     upvotes: int
     created_at: str
+    confidence: Optional[float] = None
+    keywords: Optional[List[str]] = None
+    cluster_id: Optional[str] = None
 
 # ================= JOURNEY SCHEMAS =================
 class RouteCompareRequest(BaseModel):

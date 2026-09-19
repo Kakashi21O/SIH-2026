@@ -1,13 +1,13 @@
 # Progress Tracker — SafeSteps
 
 ## 1. Current Phase
-- **Current Stage**: **Part 2 — `enhance` (Completed)** ➔ Next: **Part 3 — `intelligence`**
-- **Active Git Branch**: `enhance`
+- **Current Stage**: **Part 3 — `intelligence` (In Progress)**
+- **Active Git Branch**: `intelligence`
 
 ---
 
 ## 2. Current Goal
-Build the smallest complete working version of SafeSteps with all 7 screens, backend API routes, baseline SQLite database, Leaflet map with demo risk zones, 10s emergency verification workflow, simulated guardian/112 notification, and baseline complaint submission.
+Implement AI/NLP community complaint analysis, automatic category & severity classification, semantic duplicate/similarity clustering, dynamic Safety Hotspot generation, and live risk score recalculation.
 
 ---
 
@@ -30,10 +30,10 @@ Build the smallest complete working version of SafeSteps with all 7 screens, bac
 - [x] Improved mobile UI responsiveness and map animations (v2.3)
 - [x] Seamless organic non-rectangular danger and safety zones with gapless tessellation & hover inspection (v2.4)
 
-### Stage 3: `intelligence` (Pending)
-- [ ] NLP complaint text classification & category tagging
-- [ ] Semantic similarity matching & duplicate grouping
-- [ ] Dynamic Safety Hotspot detection engine & risk map updates
+### Stage 3: `intelligence` (In Progress)
+- [x] NLP complaint text classification & category tagging (v3.1)
+- [x] Semantic similarity matching & duplicate grouping (v3.2)
+- [ ] Dynamic Safety Hotspot detection engine & risk map updates (v3.3)
 
 ### Stage 4: `safety` (Pending)
 - [ ] Distress keyword audio detection (Web Speech API / simulated trigger)
@@ -56,8 +56,10 @@ Build the smallest complete working version of SafeSteps with all 7 screens, bac
 2. **FastAPI + SQLite**: Selected for typed, auto-documented OpenAPI docs, async route support, and portable zero-setup embedded storage.
 3. **Deterministic Verification State Machine**: 10-second countdown runs on client-side state machine with server sync to prevent false 112 alarms.
 4. **Organic Tessellated Safety Geometry**: Transitioned risk polygons from artificial rectangular bounding boxes to contiguous multi-vertex organic perimeters with shared border coordinates, eliminating void gaps.
+5. **Deterministic Lightweight NLP Engine**: Built an in-memory TF-IDF and semantic lexicon classifier (`backend/services/complaint_ai.py`) executing in `< 15ms` with zero paid external API dependencies.
+6. **Spatial-Semantic Issue Clustering**: Combined spatial great-circle Haversine distance ($\le 300\text{m}$) with semantic token vector similarity to deduplicate crowd reports and dynamically increment verification counts.
 
 ---
 
 ## 5. Session Notes
-- Stage 2 (`enhance`) is fully complete, including organic gapless map zones and seamless tessellation. Ready to branch to `intelligence` for AI/NLP complaint classification and hotspot detection.
+- Completed v3.1 (NLP Classification) and v3.2 (Semantic Similarity & Duplicate Clustering). Ready for v3.3 (Dynamic Safety Hotspots & Risk Map Updates).

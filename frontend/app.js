@@ -579,38 +579,183 @@ function closePinModal() {
   document.getElementById("pin-modal")?.classList.remove("active");
 }
 
-// ================= COMPLAINTS & COMMUNITY =================
+// ================= COMPLAINTS & COMMUNITY (NLP & CLUSTERING) =================
+let nlpDebounceTimer = null;
+let currentIntelTab = "all"; // "all" or "clustered"
+let pendingDuplicateMatch = null;
+
 function initComplaints() {
+  const textEl = document.getElementById("complaint-text");
+  const catEl = document.getElementById("complaint-category");
+  const livePill = document.getElementById("ai-live-tag-pill");
+  const liveText = document.getElementById("ai-live-tag-text");
+  const dupWarningBox = document.getElementById("duplicate-warning-box");
+  const dupMatchedText = document.getElementById("dup-matched-text");
+  const btnDupUpvote = document.getElementById("btn-dup-upvote");
+  const btnDupDismiss = document.getElementById("btn-dup-dismiss");
+
+  // Tab switching (All vs Clustered)
+  document.getElementById("tab-all-reports")?.addEventListener("click", () => switchIntelTab("all"));
+  document.getElementById("tab-clustered-issues")?.addEventListener("click", () => switchIntelTab("clustered"));
+
+  // Real-time debounced NLP classification & spatial duplicate check
+  textEl?.addEventListener("input", () => {
+    const query = textEl.value.trim();
+    clearTimeout(nlpDebounceTimer);
+
+    if (query.length < 5) {
+      if (livePill) livePill.style.display = "none";
+      if (dupWarningBox) dupWarningBox.style.display = "none";
+      pendingDuplicateMatch = null;
+      return;
+    }
+
+    nlpDebounceTimer = setTimeout(async () => {
+      try {
+        // 1. NLP Preview
+        const res = await fetch("/api/complaints/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: query })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (livePill && liveText) {
+          const catPretty = data.category.replace(/_/g, " ").toUpperCase();
+          liveText.textContent = `AI: ${catPretty} • ${data.severity}`;
+          livePill.className = `ai-tag-pill ${data.severity.toLowerCase()}`;
+          livePill.style.display = "inline-flex";
+
+          if (catEl && catEl.value === "auto") {
+            catEl.options[0].textContent = `⚡ Auto: ${data.category.replace(/_/g, " ")}`;
+          }
+        }
+
+        // 2. Spatial duplicate check within 300m
+        const dupRes = await fetch("/api/complaints/check-duplicate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: query,
+            lat: state.currentLocation.lat,
+            lng: state.currentLocation.lng
+          })
+        });
+
+        if (dupRes.ok) {
+          const dupData = await dupRes.json();
+          if (dupData.is_duplicate && dupData.matched_report) {
+            pendingDuplicateMatch = dupData.matched_report;
+            if (dupWarningBox && dupMatchedText) {
+              dupMatchedText.textContent = `"${dupData.matched_report.text}" (${dupData.distance_meters}m away, ${Math.round(dupData.similarity_score * 100)}% match)`;
+              dupWarningBox.style.display = "flex";
+            }
+          } else {
+            if (dupWarningBox) dupWarningBox.style.display = "none";
+            pendingDuplicateMatch = null;
+          }
+        }
+      } catch (err) {
+        console.warn("Live NLP/duplicate error:", err);
+      }
+    }, 300);
+  });
+
+  // Upvote existing report instead of creating duplicate
+  btnDupUpvote?.addEventListener("click", async () => {
+    if (!pendingDuplicateMatch) return;
+    await upvoteReport(pendingDuplicateMatch.id);
+    if (textEl) textEl.value = "";
+    if (dupWarningBox) dupWarningBox.style.display = "none";
+    if (livePill) livePill.style.display = "none";
+    pendingDuplicateMatch = null;
+    showToastAlert("👍 Upvoted & verified existing nearby hazard!", "safe");
+    loadComplaints();
+  });
+
+  btnDupDismiss?.addEventListener("click", () => {
+    if (dupWarningBox) dupWarningBox.style.display = "none";
+    pendingDuplicateMatch = null;
+  });
+
+  catEl?.addEventListener("change", () => {
+    if (catEl.value !== "auto" && catEl.options[0]) {
+      catEl.options[0].textContent = "⚡ Auto-Detect (AI NLP)";
+    }
+  });
+
   document.getElementById("btn-submit-complaint")?.addEventListener("click", async () => {
-    const textEl = document.getElementById("complaint-text");
-    const catEl = document.getElementById("complaint-category");
     const text = textEl.value.trim();
-    if (!text) return;
+    if (!text) {
+      showToastAlert("Please write a hazard description", "warn");
+      return;
+    }
+
+    const selectedCategory = catEl.value === "auto" ? null : catEl.value;
 
     try {
-      await fetch("/api/complaints", {
+      const res = await fetch("/api/complaints", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text,
-          category: catEl.value,
+          category: selectedCategory,
           lat: state.currentLocation.lat,
           lng: state.currentLocation.lng,
           user_id: state.currentUser.id
         })
       });
+
+      if (!res.ok) throw new Error("Submission failed");
+      const saved = await res.json();
+
       textEl.value = "";
+      if (livePill) livePill.style.display = "none";
+      if (dupWarningBox) dupWarningBox.style.display = "none";
+      if (catEl) catEl.value = "auto";
+      if (catEl?.options[0]) catEl.options[0].textContent = "⚡ Auto-Detect (AI NLP)";
+
+      showToastAlert(`✅ Report Logged: ${saved.category.replace(/_/g, " ")} (${saved.severity})`, "safe");
       loadComplaints();
     } catch (err) {
       console.warn("Could not post complaint:", err);
+      showToastAlert("Failed to submit complaint", "danger");
     }
   });
+}
+
+function switchIntelTab(tab) {
+  currentIntelTab = tab;
+  document.getElementById("tab-all-reports")?.classList.toggle("active", tab === "all");
+  document.getElementById("tab-clustered-issues")?.classList.toggle("active", tab === "clustered");
+  loadComplaints();
+}
+
+async function upvoteReport(reportId) {
+  try {
+    const res = await fetch(`/api/complaints/${reportId}/upvote`, { method: "POST" });
+    if (!res.ok) return;
+    const data = await res.json();
+    showToastAlert(`Verified! Upvotes: ${data.upvotes}`, "safe");
+    loadComplaints();
+  } catch (err) {
+    console.warn("Upvote error:", err);
+  }
 }
 
 async function loadComplaints() {
   const container = document.getElementById("complaints-list");
   if (!container) return;
 
+  if (currentIntelTab === "clustered") {
+    loadClusteredIssues(container);
+  } else {
+    loadAllReports(container);
+  }
+}
+
+async function loadAllReports(container) {
   try {
     const res = await fetch("/api/complaints");
     if (!res.ok) return;
@@ -618,18 +763,69 @@ async function loadComplaints() {
 
     container.innerHTML = items.map(c => {
       const timeStr = new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const sevClass = c.severity === 'CRITICAL' ? 'risk-pill danger' : (c.severity === 'HIGH' ? 'risk-pill high' : 'risk-pill warn');
+      const catLabel = (c.category || 'general_safety').replace(/_/g, ' ');
+      const confBadge = c.confidence ? `<span class="confidence-pill">${Math.round(c.confidence * 100)}% Match</span>` : '';
+      const upvoteCount = c.upvotes || 1;
+
       return `
         <div class="report-item">
           <div class="report-item-top">
-            <span class="report-tag ${c.severity === 'CRITICAL' ? 'risk-pill danger' : 'risk-pill warn'}">${c.category.replace('_', ' ')}</span>
+            <div class="report-meta-badges">
+              <span class="report-tag ${sevClass}">${catLabel}</span>
+              ${confBadge}
+            </div>
             <span class="report-time">${timeStr}</span>
           </div>
           <p>${c.text}</p>
+          <div class="cluster-footer">
+            <span>📍 (${c.lat.toFixed(3)}, ${c.lng.toFixed(3)})</span>
+            <button class="btn-upvote-inline" onclick="upvoteReport('${c.id}')">
+              👍 <span>${upvoteCount} Confirm${upvoteCount > 1 ? 's' : ''}</span>
+            </button>
+          </div>
         </div>
       `;
     }).join("");
   } catch (err) {
     container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem;">Loading reports...</p>`;
+  }
+}
+
+async function loadClusteredIssues(container) {
+  try {
+    const res = await fetch("/api/complaints/clusters");
+    if (!res.ok) return;
+    const clusters = await res.json();
+
+    if (!clusters.length) {
+      container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem; padding: 12px;">No active issue clusters detected in this area.</p>`;
+      return;
+    }
+
+    container.innerHTML = clusters.map(cl => {
+      const sevClass = cl.severity === 'CRITICAL' ? 'risk-pill danger' : (cl.severity === 'HIGH' ? 'risk-pill high' : 'risk-pill warn');
+      const catLabel = cl.category.replace(/_/g, ' ');
+
+      return `
+        <div class="cluster-group-card">
+          <div class="cluster-group-top">
+            <div class="cluster-badge-wrap">
+              <span class="report-tag ${sevClass}">${catLabel}</span>
+              <span class="cluster-count-pill">${cl.total_count} Report${cl.total_count > 1 ? 's' : ''}</span>
+            </div>
+            <span class="confidence-pill">👍 ${cl.upvotes_sum} Upvotes</span>
+          </div>
+          <p class="cluster-headline">"${cl.headline}"</p>
+          <div class="cluster-footer">
+            <span>Cluster Center: (${cl.center_lat.toFixed(3)}, ${cl.center_lng.toFixed(3)})</span>
+            <span style="color: var(--accent-primary); font-weight: 600;">Radius &le; 300m</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+  } catch (err) {
+    container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem;">Loading clustered issues...</p>`;
   }
 }
 

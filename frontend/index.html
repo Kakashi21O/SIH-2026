@@ -434,22 +434,49 @@
         </div>
 
         <div class="panel report-panel">
-          <span class="panel-heading">Submit Safety Hazard</span>
-          <textarea id="complaint-text" rows="3" placeholder="Describe the hazard (e.g. broken streetlight, dark stretch, lack of patrols)..."></textarea>
+          <div class="report-panel-top">
+            <span class="panel-heading">Submit Safety Hazard</span>
+            <div class="ai-tag-pill" id="ai-live-tag-pill" style="display: none;">
+              <span class="ai-tag-icon">⚡</span>
+              <span class="ai-tag-text" id="ai-live-tag-text">AI Detecting...</span>
+            </div>
+          </div>
+          <textarea id="complaint-text" rows="3" placeholder="Describe the hazard (e.g. broken streetlight, dark stretch, stalkers, lack of patrols)..."></textarea>
           
           <div class="report-actions">
             <select id="complaint-category">
+              <option value="auto">⚡ Auto-Detect (AI NLP)</option>
               <option value="poor_lighting">Poor / Broken Lighting</option>
               <option value="harassment">Loitering / Harassment</option>
               <option value="isolated_area">Deserted / Isolated Stretch</option>
               <option value="no_police_patrol">No Police Presence</option>
+              <option value="infrastructure_hazard">Infrastructure Hazard</option>
             </select>
             <button class="action-btn btn-primary btn-sm" id="btn-submit-complaint">Post Report</button>
+          </div>
+
+          <!-- Real-Time Duplicate Warning & Upvote Prompt -->
+          <div class="duplicate-alert-card" id="duplicate-warning-box" style="display: none;">
+            <div class="dup-icon">📍</div>
+            <div class="dup-content">
+              <span class="dup-title">Similar Hazard Found Nearby</span>
+              <p class="dup-text" id="dup-matched-text">Loading...</p>
+              <div class="dup-actions">
+                <button class="dup-upvote-btn" id="btn-dup-upvote">👍 Confirm & Upvote Existing</button>
+                <button class="dup-dismiss-btn" id="btn-dup-dismiss">Post Anyway</button>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="intel-section">
-          <span class="section-title">Recent Area Reports</span>
+          <div class="intel-header-row">
+            <span class="section-title">Community Intel</span>
+            <div class="intel-tabs">
+              <button class="intel-tab active" id="tab-all-reports">All Reports</button>
+              <button class="intel-tab" id="tab-clustered-issues">Grouped Issues 🗂️</button>
+            </div>
+          </div>
           <div id="complaints-list" class="reports-feed"></div>
         </div>
       </section>
