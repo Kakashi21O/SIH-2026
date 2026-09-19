@@ -1,5 +1,6 @@
 import uuid
 import datetime
+import json
 from fastapi import APIRouter, HTTPException
 from backend.models.schemas import (
     ComplaintCreateRequest,
@@ -134,6 +135,20 @@ def submit_complaint(payload: ComplaintCreateRequest):
             created_at
         )
     )
+
+    # Dynamically increment complaint_count for the containing risk zone
+    from backend.services.risk_engine import is_point_in_polygon
+    cursor.execute("SELECT id, polygon_geojson FROM risk_zones")
+    zone_rows = cursor.fetchall()
+    for zr in zone_rows:
+        try:
+            geom = json.loads(zr["polygon_geojson"])
+            if is_point_in_polygon(payload.lat, payload.lng, geom["coordinates"]):
+                cursor.execute("UPDATE risk_zones SET complaint_count = complaint_count + 1 WHERE id = ?", (zr["id"],))
+                break
+        except Exception:
+            pass
+
     conn.commit()
     conn.close()
 

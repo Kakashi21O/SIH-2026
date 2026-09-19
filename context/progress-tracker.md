@@ -30,10 +30,10 @@ Implement AI/NLP community complaint analysis, automatic category & severity cla
 - [x] Improved mobile UI responsiveness and map animations (v2.3)
 - [x] Seamless organic non-rectangular danger and safety zones with gapless tessellation & hover inspection (v2.4)
 
-### Stage 3: `intelligence` (In Progress)
+### Stage 3: `intelligence` (Completed)
 - [x] NLP complaint text classification & category tagging (v3.1)
 - [x] Semantic similarity matching & duplicate grouping (v3.2)
-- [ ] Dynamic Safety Hotspot detection engine & risk map updates (v3.3)
+- [x] Dynamic Safety Hotspot detection engine & risk map updates (v3.3)
 
 ### Stage 4: `safety` (Pending)
 - [ ] Distress keyword audio detection (Web Speech API / simulated trigger)
@@ -58,8 +58,9 @@ Implement AI/NLP community complaint analysis, automatic category & severity cla
 4. **Organic Tessellated Safety Geometry**: Transitioned risk polygons from artificial rectangular bounding boxes to contiguous multi-vertex organic perimeters with shared border coordinates, eliminating void gaps.
 5. **Deterministic Lightweight NLP Engine**: Built an in-memory TF-IDF and semantic lexicon classifier (`backend/services/complaint_ai.py`) executing in `< 15ms` with zero paid external API dependencies.
 6. **Spatial-Semantic Issue Clustering**: Combined spatial great-circle Haversine distance ($\le 300\text{m}$) with semantic token vector similarity to deduplicate crowd reports and dynamically increment verification counts.
+7. **Multi-Factor Situational Risk Engine**: Implemented weighted risk formula: Base Zone (40%) + Nearby Complaint Density (30%) + Time of Day (20%) + Safe Haven Proximity (10%) with live radar hotspot map layers.
 
 ---
 
 ## 5. Session Notes
-- Completed v3.1 (NLP Classification) and v3.2 (Semantic Similarity & Duplicate Clustering). Ready for v3.3 (Dynamic Safety Hotspots & Risk Map Updates).
+- Stage 3 (`intelligence`) is fully complete with NLP classification, semantic clustering, dynamic weighting formula, and live radar hotspot map overlay. Ready for Stage 4 (`safety`).

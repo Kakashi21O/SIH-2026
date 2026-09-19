@@ -725,6 +725,71 @@ input:checked + .switch-slider:before {
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.25));
 }
 
+/* Dynamic Safety Hotspot Radar Overlay */
+.hotspot-radar-pulse {
+  animation: radar-sweep 2.8s infinite ease-out;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.hotspot-radar-pulse-critical {
+  animation: radar-sweep-critical 2s infinite ease-out;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+@keyframes radar-sweep {
+  0% { stroke-opacity: 0.9; stroke-width: 1.5; fill-opacity: 0.25; }
+  50% { stroke-opacity: 0.5; stroke-width: 3.5; fill-opacity: 0.12; }
+  100% { stroke-opacity: 0.9; stroke-width: 1.5; fill-opacity: 0.25; }
+}
+
+@keyframes radar-sweep-critical {
+  0% { stroke-opacity: 1; stroke-width: 2; fill-opacity: 0.35; filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.8)); }
+  50% { stroke-opacity: 0.4; stroke-width: 4; fill-opacity: 0.15; filter: drop-shadow(0 0 14px rgba(239, 68, 68, 0.4)); }
+  100% { stroke-opacity: 1; stroke-width: 2; fill-opacity: 0.35; filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.8)); }
+}
+
+.hotspot-center-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.hotspot-pin-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 21, 31, 0.92);
+  border: 2px solid #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.hotspot-pin-dot.high {
+  border-color: #f97316;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.6);
+}
+
+.hotspot-pin-dot.critical {
+  border-color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+}
+
+.hotspot-pin-dot:hover {
+  transform: scale(1.15);
+}
+
+.hotspot-pin-count {
+  font-size: 11px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: #fff;
+}
+
 .sim-panel {
   display: flex;
   flex-direction: column;

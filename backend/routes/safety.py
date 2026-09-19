@@ -60,3 +60,41 @@ def get_safe_pois():
             return data.get("pois", [])
     return []
 
+@router.get("/hotspots", response_model=list)
+def get_active_safety_hotspots():
+    """
+    Compute and return dynamic safety hotspots from active community complaints
+    for live pulsating radar rendering on the Leaflet map.
+    """
+    from backend.services.complaint_ai import group_reports_into_clusters
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, text, category, lat, lng, severity, upvotes, cluster_id, created_at FROM complaints")
+    rows = cursor.fetchall()
+    conn.close()
+
+    reports = [dict(r) for r in rows]
+    clusters = group_reports_into_clusters(reports)
+
+    hotspots = []
+    for cl in clusters:
+        # Calculate dynamic hazard rating (0-100)
+        sev_mult = 30 if cl["severity"] == "CRITICAL" else (20 if cl["severity"] == "HIGH" else 10)
+        hazard_score = min(98, (cl["total_count"] * 15) + (cl["upvotes_sum"] * 3) + sev_mult)
+
+        hotspots.append({
+            "id": cl["cluster_id"],
+            "category": cl["category"],
+            "headline": cl["headline"],
+            "severity": cl["severity"],
+            "lat": round(cl["center_lat"], 5),
+            "lng": round(cl["center_lng"], 5),
+            "radius_meters": min(280.0, 100.0 + (cl["total_count"] * 35.0)),
+            "report_count": cl["total_count"],
+            "upvotes": cl["upvotes_sum"],
+            "hazard_score": hazard_score
+        })
+
+    return hotspots
+

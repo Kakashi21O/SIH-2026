@@ -35,6 +35,7 @@ const state = {
   mapInstance: null,
   mapLayers: {
     zones: null,
+    hotspots: [],
     userMarker: null,
     routePolylines: []
   }
@@ -240,9 +241,11 @@ function initOrResizeMap() {
 
     loadMapRiskZones();
     loadMapPois();
+    loadMapHotspots();
   } else {
     state.mapInstance.invalidateSize();
     state.mapInstance.setView([state.currentLocation.lat, state.currentLocation.lng], 14);
+    loadMapHotspots();
   }
 
   updateUserMarkerOnMap();
@@ -335,6 +338,70 @@ async function loadMapPois() {
     });
   } catch (err) {
     console.warn("Could not load POIs:", err);
+  }
+}
+
+async function loadMapHotspots() {
+  try {
+    const res = await fetch("/api/safety/hotspots");
+    if (!res.ok) return;
+    const hotspots = await res.json();
+
+    // Clear existing hotspot markers
+    if (state.mapLayers.hotspots && state.mapLayers.hotspots.length) {
+      state.mapLayers.hotspots.forEach(layer => state.mapInstance.removeLayer(layer));
+      state.mapLayers.hotspots = [];
+    }
+
+    hotspots.forEach(hs => {
+      const isCritical = hs.severity === "CRITICAL";
+      const color = isCritical ? "#ef4444" : (hs.severity === "HIGH" ? "#f97316" : "#f59e0b");
+
+      // Outer pulsating radar circle
+      const radarCircle = L.circle([hs.lat, hs.lng], {
+        radius: hs.radius_meters || 180,
+        color: color,
+        weight: 1.5,
+        opacity: 0.85,
+        fillColor: color,
+        fillOpacity: 0.18,
+        className: isCritical ? "hotspot-radar-pulse-critical" : "hotspot-radar-pulse"
+      }).addTo(state.mapInstance);
+
+      // Center hazard badge marker
+      const hazardIcon = L.divIcon({
+        className: "hotspot-center-icon",
+        html: `<div class="hotspot-pin-dot ${hs.severity.toLowerCase()}">
+                 <span class="hotspot-pin-count">${hs.report_count}</span>
+               </div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+
+      const pinMarker = L.marker([hs.lat, hs.lng], { icon: hazardIcon, zIndexOffset: 800 }).addTo(state.mapInstance);
+
+      const popupContent = `
+        <div style="color: #0b0f19; font-family: sans-serif; padding: 4px; min-width: 180px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <b style="font-size: 13px; color: ${color};">⚠️ ${hs.category.replace(/_/g, ' ').toUpperCase()}</b>
+            <span style="background: ${color}22; color: ${color}; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px;">${hs.severity}</span>
+          </div>
+          <p style="font-size: 12px; color: #334155; margin: 4px 0;">"${hs.headline}"</p>
+          <div style="font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 4px; margin-top: 4px;">
+            <span>Reports: <b>${hs.report_count}</b></span> • <span>Upvotes: <b>${hs.upvotes}</b></span><br/>
+            <span>Hazard Index: <b>${hs.hazard_score}/100</b></span>
+          </div>
+        </div>
+      `;
+
+      radarCircle.bindPopup(popupContent);
+      pinMarker.bindPopup(popupContent);
+
+      state.mapLayers.hotspots.push(radarCircle);
+      state.mapLayers.hotspots.push(pinMarker);
+    });
+  } catch (err) {
+    console.warn("Could not load map hotspots:", err);
   }
 }
 

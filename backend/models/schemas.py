@@ -123,6 +123,18 @@ class ComplaintClusterResponse(BaseModel):
     upvotes_sum: int
     first_reported_at: Optional[str] = None
 
+class HotspotClusterFeature(BaseModel):
+    id: str
+    category: str
+    headline: str
+    severity: str
+    lat: float
+    lng: float
+    radius_meters: float
+    report_count: int
+    upvotes: int
+    hazard_score: int
+
 class ComplaintCreateRequest(BaseModel):
     user_id: Optional[str] = "usr_demo"
     text: str = Field(..., min_length=5, example="Streetlights are completely off and area is pitch dark.")
