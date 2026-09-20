@@ -486,14 +486,39 @@ async function loadMapPois() {
     pois.forEach(poi => {
       const isPolice = poi.type === "POLICE";
       const isHospital = poi.type === "HOSPITAL";
-      const iconColor = isPolice ? "#38bdf8" : (isHospital ? "#ec4899" : "#10b981");
-      const iconSymbol = isPolice ? "🛡️" : (isHospital ? "🏥" : "🟢");
+
+      // Google Maps-style teardrop SVG pin
+      let pinSvg;
+      if (isPolice) {
+        pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+          <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="#1a73e8"/>
+          <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="none" stroke="#1557b0" stroke-width="1"/>
+          <path d="M16 7l5.5 2.2v4.8c0 3.2-2.3 6-5.5 6.8-3.2-.8-5.5-3.6-5.5-6.8V9.2L16 7z" fill="white" opacity="0.9"/>
+          <rect x="14.8" y="13.5" width="2.4" height="3" rx="0.4" fill="#1a73e8"/>
+          <rect x="14" y="12" width="4" height="2" rx="0.4" fill="#1a73e8"/>
+        </svg>`;
+      } else if (isHospital) {
+        pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+          <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="#ea4335"/>
+          <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="none" stroke="#c5221f" stroke-width="1"/>
+          <rect x="13.5" y="8" width="5" height="16" rx="1.5" fill="white"/>
+          <rect x="8" y="13.5" width="16" height="5" rx="1.5" fill="white"/>
+        </svg>`;
+      } else {
+        pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+          <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="#0f9d58"/>
+          <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="none" stroke="#0b8043" stroke-width="1"/>
+          <path d="M16 8l5.5 2.2v4.8c0 3.2-2.3 6-5.5 6.8-3.2-.8-5.5-3.6-5.5-6.8V10.2L16 8z" fill="white" opacity="0.9"/>
+          <path d="M13 16l2.2 2.2 4.5-4.5" stroke="#0f9d58" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>`;
+      }
 
       const poiIcon = L.divIcon({
         className: "safe-poi-icon",
-        html: `<div style="background: rgba(18,21,31,0.85); border: 1.5px solid ${iconColor}; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; box-shadow: 0 0 6px ${iconColor}44;">${iconSymbol}</div>`,
-        iconSize: [22, 22],
-        iconAnchor: [11, 11]
+        html: pinSvg,
+        iconSize: [32, 42],
+        iconAnchor: [16, 42],
+        popupAnchor: [0, -44]
       });
 
       const poiMarker = L.marker([poi.lat, poi.lng], { icon: poiIcon })
