@@ -125,16 +125,169 @@ function initNavigation() {
   document.getElementById("btn-nav-contacts")?.addEventListener("click", openGuardiansModal);
 }
 
-// ================= AUTH FLOW =================
+// ================= AUTH FLOW (Session-Persistent) =================
+
+const SS_KEY = "ss_user"; // localStorage key
+
+function getStoredUser() {
+  try { return JSON.parse(localStorage.getItem(SS_KEY)) || null; } catch { return null; }
+}
+function saveUser(data) {
+  localStorage.setItem(SS_KEY, JSON.stringify(data));
+}
+function clearUser() {
+  localStorage.removeItem(SS_KEY);
+}
+
+// Switch between "New User" and "Login" tabs on auth screen
+function switchAuthTab(tab) {
+  const isRegister = tab === "register";
+  document.getElementById("tab-register").classList.toggle("active", isRegister);
+  document.getElementById("tab-login").classList.toggle("active", !isRegister);
+  document.getElementById("auth-step-1").style.display = isRegister ? "" : "none";
+  document.getElementById("auth-step-2").style.display = "none";
+  document.getElementById("auth-login-panel").style.display = isRegister ? "none" : "";
+  document.getElementById("auth-error-1").textContent = "";
+  document.getElementById("auth-error-login").textContent = "";
+}
+
 function initAuthFlow() {
-  document.getElementById("btn-login")?.addEventListener("click", () => {
+  const stored = getStoredUser();
+
+  // ── Auto-login: skip auth screen if already logged in ──
+  if (stored?.loggedIn) {
+    applySession(stored);
+    showScreen("screen-home");
+    return;
+  }
+
+  // ── Step 1 → Step 2 (Continue) ──
+  document.getElementById("btn-next-step")?.addEventListener("click", () => {
     const name = document.getElementById("auth-name").value.trim();
     const phone = document.getElementById("auth-phone").value.trim();
-    if (name) state.currentUser.name = name;
-    if (phone) state.currentUser.phone = phone;
+    const pin = document.getElementById("auth-pin").value.trim();
+    const pinConfirm = document.getElementById("auth-pin-confirm").value.trim();
+    const errEl = document.getElementById("auth-error-1");
+
+    if (!name) { errEl.textContent = "Please enter your full name."; return; }
+    if (!phone || phone.length < 10) { errEl.textContent = "Enter a valid mobile number."; return; }
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { errEl.textContent = "PIN must be exactly 4 digits."; return; }
+    if (pin !== pinConfirm) { errEl.textContent = "PINs do not match."; return; }
+
+    errEl.textContent = "";
+    // Stash step-1 data temporarily
+    window._authTemp = { name, phone, pin };
+    document.getElementById("auth-step-1").style.display = "none";
+    document.getElementById("auth-step-2").style.display = "";
+  });
+
+  // ── Back button (Step 2 → Step 1) ──
+  document.getElementById("btn-back-step")?.addEventListener("click", () => {
+    document.getElementById("auth-step-2").style.display = "none";
+    document.getElementById("auth-step-1").style.display = "";
+  });
+
+  // ── Finish Registration (Step 2 with guardian) ──
+  document.getElementById("btn-finish-register")?.addEventListener("click", () => {
+    const gName = document.getElementById("reg-guardian-name").value.trim();
+    const gPhone = document.getElementById("reg-guardian-phone").value.trim();
+    const gRel = document.getElementById("reg-guardian-rel").value;
+    const errEl = document.getElementById("auth-error-2");
+
+    if (!gName || !gPhone) { errEl.textContent = "Please fill in guardian details to enable SOS."; return; }
+
+    const guardian = { id: "g_" + Date.now(), name: gName, phone: gPhone, relationship: gRel };
+    finishRegistration([guardian]);
+  });
+
+  // ── Skip Guardian ──
+  document.getElementById("btn-skip-guardian")?.addEventListener("click", () => {
+    finishRegistration([]);
+  });
+
+  // ── Login (returning user — phone + PIN) ──
+  document.getElementById("btn-login")?.addEventListener("click", () => {
+    const phone = document.getElementById("login-phone").value.trim();
+    const pin = document.getElementById("login-pin").value.trim();
+    const errEl = document.getElementById("auth-error-login");
+    const stored = getStoredUser();
+
+    if (!stored) {
+      errEl.textContent = "No account found. Please register first."; return;
+    }
+    if (stored.phone !== phone) {
+      errEl.textContent = "Phone number does not match."; return;
+    }
+    if (stored.pin !== pin) {
+      errEl.textContent = "Incorrect PIN. Try again."; return;
+    }
+
+    stored.loggedIn = true;
+    saveUser(stored);
+    applySession(stored);
     showScreen("screen-home");
   });
+
+  // ── Logout ──
+  document.getElementById("btn-logout")?.addEventListener("click", () => {
+    if (!confirm("Are you sure you want to logout?")) return;
+    const stored = getStoredUser();
+    if (stored) { stored.loggedIn = false; saveUser(stored); }
+    document.getElementById("btn-logout").style.display = "none";
+    showScreen("screen-auth");
+    // Reset auth form to register tab
+    switchAuthTab("register");
+    ["auth-name","auth-phone","auth-pin","auth-pin-confirm","reg-guardian-name","reg-guardian-phone"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+  });
 }
+
+function finishRegistration(guardians) {
+  const temp = window._authTemp || {};
+  const userData = {
+    name: temp.name,
+    phone: temp.phone,
+    pin: temp.pin,
+    loggedIn: true,
+    guardians: guardians
+  };
+  saveUser(userData);
+  applySession(userData);
+
+  // Sync guardian to backend API if provided
+  if (guardians.length > 0) {
+    const g = guardians[0];
+    fetch("/api/guardians/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: temp.phone, name: g.name, phone: g.phone, relationship: g.relationship })
+    }).catch(() => {}); // silent fail — guardian still saved locally
+  }
+
+  showScreen("screen-home");
+}
+
+function applySession(userData) {
+  // Populate state
+  if (userData.name) state.currentUser.name = userData.name;
+  if (userData.phone) state.currentUser.phone = userData.phone;
+
+  // Show logout button
+  const logoutBtn = document.getElementById("btn-logout");
+  if (logoutBtn) logoutBtn.style.display = "flex";
+
+  // Update emergency guardian status with real name
+  const guardians = userData.guardians || [];
+  const statusEl = document.getElementById("emg-guardian-status");
+  if (statusEl && guardians.length > 0) {
+    statusEl.textContent = `Alert will be sent to ${guardians[0].name} (${guardians[0].phone})`;
+  } else if (statusEl) {
+    statusEl.textContent = "No guardian set — add one in Contacts for SOS alerts.";
+  }
+}
+
 
 // ================= DASHBOARD & SAFETY SCORE =================
 function initScoreAndToggle() {
