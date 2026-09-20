@@ -665,14 +665,27 @@ input:checked + .switch-slider:before {
 }
 
 /* ================= 3. MAP SCREEN ================= */
+#screen-map {
+  flex: 1;
+  height: 100%;
+}
+
+#screen-map.active {
+  display: flex;
+  flex-direction: column;
+}
+
 .map-viewport-frame {
   position: relative;
   width: 100%;
-  height: 380px;
+  flex: 1;
+  min-height: 520px;
+  height: 100%;
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--border-subtle);
 }
+
 
 #leaflet-map {
   width: 100%;
