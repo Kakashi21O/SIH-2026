@@ -945,9 +945,10 @@ input:checked + .switch-slider:before {
 .fluid-water-zone {
   stroke: none !important;
   stroke-width: 0 !important;
-  filter: drop-shadow(0 0 12px currentColor);
   pointer-events: none !important; /* Purely static visual heatmap */
   cursor: default !important;
+  will-change: auto;
+  transform: translateZ(0);
 }
 
 /* Dynamic Safety Hotspot Radar Overlay */
@@ -2558,8 +2559,16 @@ input:checked + .switch-slider:before {
   transition: opacity 0.25s linear;
 }
 
+/* NO transform transition on SVG layers — prevents zone polygon shaking on zoom/pan */
 .leaflet-zoom-animated {
-  transition: transform 0.28s cubic-bezier(0, 0, 0.2, 1);
+  transition: none !important;
+}
+
+/* Also lock the SVG overlay itself */
+.leaflet-overlay-pane svg,
+.leaflet-overlay-pane path {
+  transition: none !important;
+  animation: none !important;
 }
 
 /* ================= MOBILE RESPONSIVENESS & SAFE INSETS ================= */

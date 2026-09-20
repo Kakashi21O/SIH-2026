@@ -266,6 +266,7 @@ function initOrResizeMap() {
       zoomControl: true,
       attributionControl: false,
       zoomAnimation: true,
+      markerZoomAnimation: false,
       zoomSnap: 0.5,
       zoomDelta: 0.5,
       wheelPxPerZoomLevel: 120,
