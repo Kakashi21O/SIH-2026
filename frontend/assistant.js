@@ -40,8 +40,9 @@ const SafeAssistantUI = {
   init() {
     this.injectUI();
     this.bindEvents();
-    this.updateScreenContext("screen-home");
-    console.info("[SafeAssistantUI] SafeSteps AI Assistant widget mounted.");
+    const currentActiveScreen = document.querySelector(".view-screen.active")?.id || "screen-auth";
+    this.updateScreenContext(currentActiveScreen);
+    console.info(`[SafeAssistantUI] SafeSteps AI Assistant widget mounted [Initial Screen: ${currentActiveScreen}].`);
   },
 
   injectUI() {
@@ -130,6 +131,21 @@ const SafeAssistantUI = {
 
   updateScreenContext(screenId) {
     this.activeScreen = screenId;
+    const triggerBtn = document.getElementById("safesteps-ai-btn");
+    const panel = document.getElementById("safesteps-ai-panel");
+
+    // Hide AI circle button and chat window on login/auth onboarding screen
+    if (screenId === "screen-auth") {
+      if (triggerBtn) triggerBtn.style.display = "none";
+      if (panel) {
+        panel.classList.remove("active");
+        this.isOpen = false;
+      }
+      return;
+    } else {
+      if (triggerBtn) triggerBtn.style.display = "flex";
+    }
+
     const chipsBar = document.getElementById("ai-quick-chips-bar");
     if (!chipsBar) return;
 
