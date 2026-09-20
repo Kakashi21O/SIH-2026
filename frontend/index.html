@@ -239,15 +239,49 @@
             <span>Back</span>
           </button>
           <h2>Live Risk Map</h2>
-          <div class="header-badge">Delhi NCR</div>
+          <button class="zone-info-header-btn" id="btn-map-zone-info" title="View Current Area Safety Details">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Area Info</span>
+          </button>
         </div>
 
         <div class="map-viewport-frame">
           <div id="leaflet-map"></div>
+
+          <!-- Slide-Down Current Area Safety Details Card -->
+          <div class="zone-info-floating-card" id="map-zone-info-card" style="display: none;">
+            <div class="zinfo-header">
+              <div class="zinfo-title-wrap">
+                <span class="zinfo-subtitle">CURRENT ZONE</span>
+                <h3 id="zinfo-name">Connaught Place Central Hub</h3>
+              </div>
+              <button class="zinfo-close-btn" id="btn-close-zone-info" aria-label="Close Area Info">✕</button>
+            </div>
+            
+            <div class="zinfo-metrics-row">
+              <div class="zinfo-metric-block">
+                <span class="zinfo-metric-label">Safety Index</span>
+                <span class="zinfo-score-value" id="zinfo-score">92<small>/100</small></span>
+              </div>
+              <div class="zinfo-metric-block">
+                <span class="zinfo-metric-label">Risk Level</span>
+                <span class="risk-pill safe" id="zinfo-risk-pill">LOW</span>
+              </div>
+              <div class="zinfo-metric-block">
+                <span class="zinfo-metric-label">Reported Issues</span>
+                <span class="zinfo-metric-val" id="zinfo-reports">2</span>
+              </div>
+            </div>
+
+            <p class="zinfo-desc" id="zinfo-desc">
+              High police presence, well-lit pedestrian corridors, active commercial surveillance.
+            </p>
+          </div>
           
           <!-- Live Navigation HUD (Shown during active journey) -->
           <div class="nav-hud-card" id="map-nav-hud" style="display: none;">
             <div class="hud-top">
+
               <div class="hud-route-info">
                 <span class="hud-tag" id="hud-route-type">SAFER ROUTE ACTIVE</span>
                 <h4 id="hud-dest-name">Karol Bagh Residence</h4>
