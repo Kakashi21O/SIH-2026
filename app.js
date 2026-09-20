@@ -516,9 +516,9 @@ async function loadMapPois() {
       const poiIcon = L.divIcon({
         className: "safe-poi-icon",
         html: pinSvg,
-        iconSize: [32, 42],
-        iconAnchor: [16, 42],
-        popupAnchor: [0, -44]
+        iconSize: [22, 28],
+        iconAnchor: [11, 28],
+        popupAnchor: [0, -30]
       });
 
       const poiMarker = L.marker([poi.lat, poi.lng], { icon: poiIcon })
@@ -556,25 +556,18 @@ async function loadMapHotspots() {
       const isCritical = hs.severity === "CRITICAL";
       const color = isCritical ? "#ef4444" : (hs.severity === "HIGH" ? "#f97316" : "#f59e0b");
 
-      // Outer pulsating radar circle
-      const radarCircle = L.circle([hs.lat, hs.lng], {
-        radius: hs.radius_meters || 140,
-        color: color,
-        weight: 1.2,
-        opacity: 0.8,
-        fillColor: color,
-        fillOpacity: 0.15,
-        className: isCritical ? "hotspot-radar-pulse-critical" : "hotspot-radar-pulse"
-      });
-
-      // Extra small micro-pin for crowd reports
+      // Tiny warning-flag pin — no circle radius, just a small precise marker
       const hazardIcon = L.divIcon({
         className: "hotspot-center-icon",
         html: `<div class="hotspot-pin-dot ${hs.severity.toLowerCase()}">
-                 <span class="hotspot-pin-count">${hs.report_count}</span>
+                 <svg width="9" height="9" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                   <path d="M5 1L9.33 8.5H0.67L5 1Z" fill="${color}" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/>
+                   <rect x="4.4" y="4.2" width="1.2" height="2.4" rx="0.3" fill="white"/>
+                   <circle cx="5" cy="7.4" r="0.55" fill="white"/>
+                 </svg>
                </div>`,
-        iconSize: [15, 15],
-        iconAnchor: [7.5, 7.5]
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
       });
 
       const pinMarker = L.marker([hs.lat, hs.lng], { icon: hazardIcon, zIndexOffset: 800 });
@@ -593,15 +586,12 @@ async function loadMapHotspots() {
         </div>
       `;
 
-      radarCircle.bindPopup(popupContent);
       pinMarker.bindPopup(popupContent);
 
       if (state.mapLayers.showHotspots) {
-        radarCircle.addTo(state.mapInstance);
         pinMarker.addTo(state.mapInstance);
       }
 
-      state.mapLayers.hotspots.push(radarCircle);
       state.mapLayers.hotspots.push(pinMarker);
     });
   } catch (err) {
