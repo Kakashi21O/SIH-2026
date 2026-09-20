@@ -71,8 +71,12 @@ class EmergencyEscalationRequest(BaseModel):
     verification_token: str
     lat: float
     lng: float
-    trigger_source: str
+    trigger_source: str = Field(..., example="manual_sos") # manual_sos, keyword_distress, timeout
+    distress_keyword: Optional[str] = None
+    repeated_signal: bool = False
     timed_out_without_pin: bool = True
+    audio_base64: Optional[str] = None
+    audio_duration_seconds: Optional[float] = None
 
 class IncidentReportResponse(BaseModel):
     id: str
@@ -83,9 +87,11 @@ class IncidentReportResponse(BaseModel):
     trigger_source: str
     severity_score: int
     severity_level: str
+    severity_breakdown: Optional[Dict[str, int]] = None
     guardian_notified: bool
     emergency_dispatched: bool
     audio_captured: bool
+    audio_data: Optional[str] = None
     status: str
     actions_taken: List[str]
 

@@ -1,22 +1,22 @@
 # Progress Tracker — SafeSteps
 
 ## 1. Current Phase
-- **Current Stage**: **Part 3 — `intelligence` (In Progress)**
-- **Active Git Branch**: `intelligence`
+- **Current Stage**: **Part 4 — `safety` (Completed)**
+- **Active Git Branch**: `safety`
 
 ---
 
 ## 2. Current Goal
-Implement AI/NLP community complaint analysis, automatic category & severity classification, semantic duplicate/similarity clustering, dynamic Safety Hotspot generation, and live risk score recalculation.
+Distress keyword audio detection (Web Speech API + simulation), Multi-factor emergency severity scoring engine, and emergency ambient audio evidence buffer recording with review player.
 
 ---
 
 ## 3. Milestones & Task Progress
 
-### Stage 1: `foundation` (In Progress)
+### Stage 1: `foundation` (Completed)
 - [x] Project specifications & context files aligned (`project-overview`, `architecture`, `ui-context`, `code-standards`, `ai-workflow-rules`)
 - [x] Backend foundation: FastAPI app setup, SQLite schema, demo seed data (`risk_zones.json`, `complaints.json`, `demo_incidents.json`) (v1.1)
-- [x] Frontend foundation: Responsive 7-screen SPA layout (`index.html`, `style.css`, `app.js`) (v1.2) — *(Marked for future UI improvements / open for design contributors)*
+- [x] Frontend foundation: Responsive 7-screen SPA layout (`index.html`, `style.css`, `app.js`) (v1.2)
 - [x] Leaflet.js map integration with colored risk zones, POIs & mock user GPS marker (v1.3)
 - [x] Safety score display (0-100) & Automatic Safety Mode toggle on risk zone entry (v1.4)
 - [x] Emergency trigger (Manual SOS / button simulation) + 10-second countdown verification modal (v1.5)
@@ -35,10 +35,10 @@ Implement AI/NLP community complaint analysis, automatic category & severity cla
 - [x] Semantic similarity matching & duplicate grouping (v3.2)
 - [x] Dynamic Safety Hotspot detection engine & risk map updates (v3.3)
 
-### Stage 4: `safety` (Pending)
-- [ ] Distress keyword audio detection (Web Speech API / simulated trigger)
-- [ ] Severity engine weighting formula (Zone + Distress + Silence)
-- [ ] Emergency audio evidence buffer capture (MediaRecorder)
+### Stage 4: `safety` (Completed)
+- [x] Distress keyword audio detection (Web Speech API / simulated trigger) (v4.1)
+- [x] Severity engine weighting formula (Zone + Distress + Repeated Signal + Silence/Timeout + Manual SOS) (v4.2)
+- [x] Emergency audio evidence buffer capture (MediaRecorder & in-app playback) (v4.3)
 
 ### Stage 5: `polish` (Pending)
 - [ ] Security audit & `.env` configuration isolation
@@ -59,8 +59,10 @@ Implement AI/NLP community complaint analysis, automatic category & severity cla
 5. **Deterministic Lightweight NLP Engine**: Built an in-memory TF-IDF and semantic lexicon classifier (`backend/services/complaint_ai.py`) executing in `< 15ms` with zero paid external API dependencies.
 6. **Spatial-Semantic Issue Clustering**: Combined spatial great-circle Haversine distance ($\le 300\text{m}$) with semantic token vector similarity to deduplicate crowd reports and dynamically increment verification counts.
 7. **Multi-Factor Situational Risk Engine**: Implemented weighted risk formula: Base Zone (40%) + Nearby Complaint Density (30%) + Time of Day (20%) + Safe Haven Proximity (10%) with live radar hotspot map layers.
+8. **Multi-Factor Emergency Severity Scoring**: Implemented exact specification formula: $\text{Zone Factor (+20)} + \text{Distress Signal (+30)} + \text{Repeated Signal (+20)} + \text{No Response (+20)} + \text{Manual SOS (+50)}$.
+9. **Dual-Layer Audio Pipeline**: Continuous Web Speech API recognition for trigger phrases (*"help me"*, *"bachao"*, *"stop"*, etc.) combined with `MediaRecorder` ambient audio evidence buffering and fallback synthesis.
 
 ---
 
 ## 5. Session Notes
-- Stage 3 (`intelligence`) is fully complete with NLP classification, semantic clustering, dynamic weighting formula, and live radar hotspot map overlay. Ready for Stage 4 (`safety`).
+- Stage 4 (`safety`) is fully completed and verified. Ready to commit milestone and transition to Stage 5 (`polish`).

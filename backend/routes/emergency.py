@@ -1,4 +1,4 @@
-﻿import uuid
+import uuid
 from fastapi import APIRouter, HTTPException
 from backend.models.schemas import (
     EmergencyTriggerRequest, EmergencyTriggerResponse,
@@ -38,7 +38,7 @@ def trigger_emergency(payload: EmergencyTriggerRequest):
 def escalate_emergency(payload: EmergencyEscalationRequest):
     """
     Escalate after 10-second verification timeout or direct urgent trigger.
-    Calculates severity and triggers Guardian & 112 dispatch simulation.
+    Calculates severity using multi-factor weights and triggers Guardian & 112 dispatch simulation.
     """
     # Assess zone risk level for contextual severity calculation
     risk_info = evaluate_location_risk(payload.lat, payload.lng)
@@ -48,7 +48,11 @@ def escalate_emergency(payload: EmergencyEscalationRequest):
         lat=payload.lat,
         lng=payload.lng,
         trigger_source=payload.trigger_source,
-        zone_risk_level=risk_info["risk_level"]
+        zone_risk_level=risk_info["risk_level"],
+        repeated_signal=payload.repeated_signal,
+        timed_out_without_pin=payload.timed_out_without_pin,
+        distress_keyword=payload.distress_keyword,
+        audio_base64=payload.audio_base64
     )
 
     return IncidentReportResponse(**incident)
@@ -64,6 +68,7 @@ def list_incidents():
 
     results = []
     for r in rows:
+        audio_val = r["audio_data"] if "audio_data" in r.keys() else None
         results.append(
             IncidentReportResponse(
                 id=r["id"],
@@ -77,6 +82,7 @@ def list_incidents():
                 guardian_notified=bool(r["guardian_notified"]),
                 emergency_dispatched=bool(r["emergency_dispatched"]),
                 audio_captured=bool(r["audio_captured"]),
+                audio_data=audio_val,
                 status=r["status"],
                 actions_taken=[f"Incident logged with status {r['status']}"]
             )

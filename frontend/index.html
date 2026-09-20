@@ -188,6 +188,28 @@
           </button>
         </div>
 
+        <!-- Audio Distress Listening Status & Voice Triggers -->
+        <div class="panel mic-voice-panel">
+          <div class="mic-panel-header">
+            <div class="mic-status-wrap" id="mic-status-badge">
+              <span class="live-dot standby" id="mic-live-dot"></span>
+              <span class="mic-label-title">Distress Keyword Listener:</span>
+              <span class="mic-label-state" id="mic-status-label">Standby</span>
+            </div>
+            <button class="mic-toggle-btn" id="btn-toggle-mic-listen" title="Toggle Voice Recognition">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              <span>Mic</span>
+            </button>
+          </div>
+          <div class="sim-chip-grid voice-chip-grid">
+            <span class="sim-chip-label">Voice Trigger Test:</span>
+            <button class="voice-chip" data-keyword="bachao">🎙️ "Bachao!"</button>
+            <button class="voice-chip" data-keyword="help me">🎙️ "Help Me!"</button>
+            <button class="voice-chip" data-keyword="stop">🎙️ "Stop It!"</button>
+            <button class="voice-chip" data-keyword="leave me">🎙️ "Leave Me!"</button>
+          </div>
+        </div>
+
         <!-- Emergency Trigger Button -->
         <div class="panic-wrapper">
           <button class="panic-btn" id="btn-trigger-sos">
@@ -198,7 +220,7 @@
               <span class="panic-text">EMERGENCY SOS</span>
             </div>
           </button>
-          <span class="panic-caption">Press to initiate 10s verification check</span>
+          <span class="panic-caption">Press to initiate 10s verification check (Repeated taps increase severity)</span>
         </div>
       </section>
 
@@ -344,11 +366,20 @@
           </div>
           
           <h2>Safety Check</h2>
-          <p class="verify-lead">Distress signal detected. Are you safe?</p>
+          <p class="verify-lead" id="verify-lead-text">Distress signal detected. Are you safe?</p>
+          <div class="verify-trigger-pill" id="verify-trigger-pill">
+            <span class="trigger-pill-icon">⚠️</span>
+            <span class="trigger-pill-text" id="verify-trigger-tag">Trigger: Manual SOS</span>
+          </div>
           
           <div class="countdown-circle">
             <span class="countdown-val" id="verify-countdown">10</span>
             <span class="countdown-unit">sec</span>
+          </div>
+
+          <div class="recording-indicator-bar" id="verify-rec-indicator">
+            <span class="rec-dot pulsing-red"></span>
+            <span>Recording ambient audio buffer...</span>
           </div>
 
           <div class="verify-controls">
@@ -398,24 +429,34 @@
             </div>
             <div class="status-info">
               <span class="status-title">112 Emergency Dispatch</span>
-              <span class="status-meta">Nearest PCR patrol van notified</span>
+              <span class="status-meta" id="emg-cad-status">Nearest PCR patrol van notified</span>
             </div>
           </div>
 
-          <div class="status-item recording">
-            <div class="status-icon rec">
-              <span class="rec-dot"></span>
+          <div class="status-item done">
+            <div class="status-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <div class="status-info">
-              <span class="status-title">Audio Evidence Active</span>
-              <span class="status-meta">Secure ambient audio recording</span>
+              <span class="status-title">Audio Evidence Captured</span>
+              <span class="status-meta" id="emg-audio-status">Encrypted evidence buffer archived</span>
             </div>
           </div>
         </div>
 
+        <!-- Audio Evidence Playback Player -->
+        <div class="panel audio-player-panel" id="emg-audio-player-container" style="display: none;"></div>
+
+        <!-- Incident & Multi-factor Severity Panel -->
         <div class="panel incident-badge-panel">
-          <span class="inc-id" id="emg-inc-id">Incident: #902</span>
-          <span class="risk-pill danger" id="emg-inc-severity">Critical</span>
+          <div class="inc-head-row">
+            <span class="inc-id" id="emg-inc-id">Incident: #902</span>
+            <span class="risk-pill danger" id="emg-inc-severity">Critical 90/100</span>
+          </div>
+          <div class="severity-breakdown-box" id="emg-severity-breakdown">
+            <span class="breakdown-title">Multi-Factor Severity Breakdown:</span>
+            <div class="breakdown-pills" id="emg-breakdown-pills"></div>
+          </div>
         </div>
 
         <button class="action-btn btn-secondary disarm-btn" id="btn-abort-emergency-active">
@@ -618,6 +659,9 @@
   <!-- Leaflet Map JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
+  <!-- SafeSteps Audio & Speech Intelligence -->
+  <script src="audio.js"></script>
+
   <!-- SafeSteps Controller -->
   <script src="app.js"></script>
 </body>

@@ -92,10 +92,17 @@ def init_db():
         guardian_notified INTEGER DEFAULT 0,
         emergency_dispatched INTEGER DEFAULT 0,
         audio_captured INTEGER DEFAULT 0,
+        audio_data TEXT,
         status TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
+
+    # Migration check for existing databases
+    cursor.execute("PRAGMA table_info(incidents);")
+    columns = [col[1] for col in cursor.fetchall()]
+    if "audio_data" not in columns:
+        cursor.execute("ALTER TABLE incidents ADD COLUMN audio_data TEXT;")
 
     # 6. Journeys table
     cursor.execute("""

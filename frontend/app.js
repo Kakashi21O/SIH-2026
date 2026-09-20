@@ -23,7 +23,12 @@ const state = {
     countdownInterval: null,
     countdownSeconds: 10,
     verificationToken: null,
-    incidentId: null
+    incidentId: null,
+    triggerSource: "manual_sos",
+    distressKeyword: null,
+    repeatedSignal: false,
+    tapCount: 0,
+    lastTapTime: 0
   },
   journeyState: {
     active: false,
@@ -122,6 +127,15 @@ function initScoreAndToggle() {
   toggle?.addEventListener("change", (e) => {
     state.safetyModeActive = e.target.checked;
     updateStatusPill(state.safetyModeActive ? "Monitoring On" : "Protected", state.safetyModeActive ? "safe" : "safe");
+    
+    // Proactively start or pause voice recognition based on user safety mode toggle
+    if (window.SafeAudioEngine) {
+      if (state.safetyModeActive) {
+        window.SafeAudioEngine.startSpeechListening();
+      } else {
+        window.SafeAudioEngine.stopSpeechListening();
+      }
+    }
   });
 
   document.getElementById("btn-switch-location")?.addEventListener("click", () => {
@@ -454,13 +468,53 @@ function jumpToLocation(key) {
   }
 }
 
-// ================= EMERGENCY VERIFICATION =================
+// ================= EMERGENCY VERIFICATION & AUDIO INTELLIGENCE =================
 function initEmergencyVerification() {
-  document.getElementById("btn-trigger-sos")?.addEventListener("click", () => {
+  // Manual SOS Trigger with repeated tap detection
+  const sosBtn = document.getElementById("btn-trigger-sos");
+  sosBtn?.addEventListener("click", () => {
+    const now = Date.now();
+    if (now - state.emergencyState.lastTapTime < 2500) {
+      state.emergencyState.tapCount += 1;
+      state.emergencyState.repeatedSignal = true;
+      showToastAlert(`🚨 Repeated SOS Signal Detected (Tap count: ${state.emergencyState.tapCount})! Severity Elevated.`, "danger");
+    } else {
+      state.emergencyState.tapCount = 1;
+      state.emergencyState.repeatedSignal = false;
+    }
+    state.emergencyState.lastTapTime = now;
     triggerEmergencyWorkflow("manual_sos");
   });
 
-  // Clicking 'I Am Safe' now strictly opens the 4-digit PIN keypad
+  // Voice Trigger Simulation Chips
+  document.querySelectorAll(".voice-chip[data-keyword]").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const keyword = chip.getAttribute("data-keyword");
+      triggerEmergencyWorkflow("keyword_distress", keyword);
+    });
+  });
+
+  // Speech Recognition Listener Toggle
+  document.getElementById("btn-toggle-mic-listen")?.addEventListener("click", () => {
+    if (window.SafeAudioEngine) {
+      if (window.SafeAudioEngine.isListening) {
+        window.SafeAudioEngine.stopSpeechListening();
+        showToastAlert("🎙️ Distress Keyword Listener Paused", "info");
+      } else {
+        window.SafeAudioEngine.startSpeechListening();
+        showToastAlert("🎙️ Distress Keyword Listener Active (English & Hindi)", "safe");
+      }
+    }
+  });
+
+  // Initialize Speech Recognition
+  if (window.SafeAudioEngine) {
+    window.SafeAudioEngine.initSpeechRecognition((detectedKeyword) => {
+      triggerEmergencyWorkflow("keyword_distress", detectedKeyword);
+    });
+  }
+
+  // Clicking 'I Am Safe' strictly opens the 4-digit PIN keypad
   document.getElementById("btn-im-safe")?.addEventListener("click", () => {
     openPinModal();
   });
@@ -468,9 +522,34 @@ function initEmergencyVerification() {
   document.getElementById("btn-abort-emergency-active")?.addEventListener("click", openPinModal);
 }
 
-async function triggerEmergencyWorkflow(source = "manual_sos") {
+async function triggerEmergencyWorkflow(source = "manual_sos", keyword = null) {
   state.emergencyState.active = true;
   state.emergencyState.countdownSeconds = 10;
+  state.emergencyState.triggerSource = source;
+  state.emergencyState.distressKeyword = keyword;
+
+  // Start ambient audio evidence buffer capture immediately
+  if (window.SafeAudioEngine) {
+    window.SafeAudioEngine.startEvidenceRecording();
+  }
+
+  // Update verification UI details
+  const triggerTag = document.getElementById("verify-trigger-tag");
+  const leadText = document.getElementById("verify-lead-text");
+  if (triggerTag) {
+    if (source === "keyword_distress") {
+      triggerTag.textContent = `Voice Trigger: "${keyword || 'Distress Word'}"`;
+    } else if (state.emergencyState.repeatedSignal) {
+      triggerTag.textContent = `Repeated Manual SOS (${state.emergencyState.tapCount}x)`;
+    } else {
+      triggerTag.textContent = "Trigger: Manual SOS";
+    }
+  }
+  if (leadText) {
+    leadText.textContent = source === "keyword_distress"
+      ? `Distress phrase "${keyword}" recognized by audio engine. Are you safe?`
+      : "Emergency SOS activated. Are you safe?";
+  }
 
   try {
     const res = await fetch("/api/emergency/trigger", {
@@ -480,6 +559,7 @@ async function triggerEmergencyWorkflow(source = "manual_sos") {
         lat: state.currentLocation.lat,
         lng: state.currentLocation.lng,
         trigger_source: source,
+        distress_keyword: keyword,
         user_id: state.currentUser.id
       })
     });
@@ -518,6 +598,14 @@ function updateCountdownUI() {
 function cancelEmergencyCountdown(reason) {
   clearInterval(state.emergencyState.countdownInterval);
   state.emergencyState.active = false;
+  state.emergencyState.repeatedSignal = false;
+  state.emergencyState.tapCount = 0;
+
+  // Stop evidence recording without escalating
+  if (window.SafeAudioEngine) {
+    window.SafeAudioEngine.stopEvidenceRecording();
+  }
+
   closePinModal();
   showScreen("screen-home");
   updateStatusPill("Protected", "safe");
@@ -528,6 +616,16 @@ async function escalateToActiveEmergency(source) {
   clearInterval(state.emergencyState.countdownInterval);
   closePinModal();
 
+  // Stop recording to finalize audio chunks & blob
+  if (window.SafeAudioEngine) {
+    window.SafeAudioEngine.stopEvidenceRecording();
+  }
+
+  // Small delay to allow MediaRecorder onstop to produce base64
+  await new Promise(r => setTimeout(r, 200));
+
+  const audioPayload = window.SafeAudioEngine ? window.SafeAudioEngine.recordedAudioBase64 : null;
+
   try {
     const res = await fetch("/api/emergency/escalate", {
       method: "POST",
@@ -537,16 +635,42 @@ async function escalateToActiveEmergency(source) {
         lat: state.currentLocation.lat,
         lng: state.currentLocation.lng,
         trigger_source: source,
+        distress_keyword: state.emergencyState.distressKeyword,
+        repeated_signal: state.emergencyState.repeatedSignal,
+        timed_out_without_pin: true,
         user_id: state.currentUser.id,
-        timed_out_without_pin: true
+        audio_base64: audioPayload,
+        audio_duration_seconds: 10.0
       })
     });
     const data = await res.json();
     state.emergencyState.incidentId = data.id;
 
-    document.getElementById("emg-inc-id").textContent = `Incident ID: ${data.id}`;
-    document.getElementById("emg-inc-severity").textContent = `Severity ${data.severity_score}/100`;
+    // Populate Emergency Screen UI
+    document.getElementById("emg-inc-id").textContent = `Incident: ${data.id}`;
+    document.getElementById("emg-inc-severity").textContent = `${data.severity_level} ${data.severity_score}/100`;
     document.getElementById("emg-coords-stream").textContent = `Broadcasting (${data.lat.toFixed(4)}, ${data.lng.toFixed(4)})`;
+
+    // Render Multi-Factor Severity Breakdown Pills
+    const pillsContainer = document.getElementById("emg-breakdown-pills");
+    if (pillsContainer && data.severity_breakdown) {
+      pillsContainer.innerHTML = `
+        <span class="breakdown-pill ${data.severity_breakdown.manual_sos ? 'active' : ''}">Manual SOS: +${data.severity_breakdown.manual_sos}</span>
+        <span class="breakdown-pill ${data.severity_breakdown.distress_signal ? 'active' : ''}">Distress Signal: +${data.severity_breakdown.distress_signal}</span>
+        <span class="breakdown-pill ${data.severity_breakdown.repeated_signal ? 'active' : ''}">Repeated Signal: +${data.severity_breakdown.repeated_signal}</span>
+        <span class="breakdown-pill ${data.severity_breakdown.no_response_timeout ? 'active' : ''}">Timeout / No PIN: +${data.severity_breakdown.no_response_timeout}</span>
+        <span class="breakdown-pill ${data.severity_breakdown.zone_factor ? 'active' : ''}">Zone Factor: +${data.severity_breakdown.zone_factor}</span>
+      `;
+    }
+
+    // Audio status update
+    const audioStatusEl = document.getElementById("emg-audio-status");
+    if (audioStatusEl) {
+      audioStatusEl.textContent = data.audio_captured
+        ? "Encrypted ambient audio evidence captured (10s)"
+        : "Audio evidence stream buffered";
+    }
+
   } catch (err) {
     console.warn("Escalation error fallback:", err);
   }
