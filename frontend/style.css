@@ -866,7 +866,76 @@ input:checked + .switch-slider:before {
   font-size: 0.78rem;
   color: #94a3b8;
   line-height: 1.4;
-  margin: 0;
+  margin: 0 0 12px 0;
+}
+
+/* Layer Visibility Toggles inside Area Info Card */
+.zinfo-layer-toggles {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+}
+
+.zinfo-toggles-title {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.zinfo-toggle-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.zinfo-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.zinfo-toggle-btn .toggle-icon {
+  font-size: 0.85rem;
+  margin-right: 4px;
+}
+
+.zinfo-toggle-btn .toggle-name {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zinfo-toggle-btn .toggle-badge {
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+.zinfo-toggle-btn.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #ffffff;
+}
+
+.zinfo-toggle-btn.active .toggle-badge {
+  background: #0284c7;
+  color: #ffffff;
 }
 
 /* Static Watercolor Danger Zones: No clicks, no hover flashes, pure smooth heatmap */
@@ -877,9 +946,6 @@ input:checked + .switch-slider:before {
   pointer-events: none !important; /* Purely static visual heatmap */
   cursor: default !important;
 }
-
-
-
 
 /* Dynamic Safety Hotspot Radar Overlay */
 .hotspot-radar-pulse {
@@ -911,40 +977,43 @@ input:checked + .switch-slider:before {
   border: none !important;
 }
 
+/* Extra small micro-pin for crowd reports (1, 2, etc.) */
 .hotspot-pin-dot {
-  width: 28px;
-  height: 28px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(18, 21, 31, 0.92);
-  border: 2px solid #f59e0b;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  background: rgba(18, 21, 31, 0.94);
+  border: 1.5px solid #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
   cursor: pointer;
   transition: transform 0.15s ease;
 }
 
 .hotspot-pin-dot.high {
   border-color: #f97316;
-  box-shadow: 0 0 10px rgba(249, 115, 22, 0.6);
+  box-shadow: 0 0 6px rgba(249, 115, 22, 0.7);
 }
 
 .hotspot-pin-dot.critical {
   border-color: #ef4444;
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.9);
 }
 
 .hotspot-pin-dot:hover {
-  transform: scale(1.15);
+  transform: scale(1.3);
 }
 
 .hotspot-pin-count {
-  font-size: 11px;
+  font-size: 8px;
   font-weight: 800;
   font-family: var(--font-mono);
   color: #fff;
+  line-height: 1;
 }
+
 
 .sim-panel {
   display: flex;

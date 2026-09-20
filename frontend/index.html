@@ -276,7 +276,25 @@
             <p class="zinfo-desc" id="zinfo-desc">
               High police presence, well-lit pedestrian corridors, active commercial surveillance.
             </p>
+
+            <!-- Layer Visibility Toggles -->
+            <div class="zinfo-layer-toggles">
+              <span class="zinfo-toggles-title">MAP OVERLAYS</span>
+              <div class="zinfo-toggle-buttons">
+                <button class="zinfo-toggle-btn active" id="btn-toggle-reports-layer" title="Turn Reports On/Off">
+                  <span class="toggle-icon">⚠️</span>
+                  <span class="toggle-name">Reports</span>
+                  <span class="toggle-badge" id="badge-reports-state">ON</span>
+                </button>
+                <button class="zinfo-toggle-btn active" id="btn-toggle-pois-layer" title="Turn Police & Hospitals On/Off">
+                  <span class="toggle-icon">🛡️🏥</span>
+                  <span class="toggle-name">Police / Hospital</span>
+                  <span class="toggle-badge" id="badge-pois-state">ON</span>
+                </button>
+              </div>
+            </div>
           </div>
+
           
           <!-- Live Navigation HUD (Shown during active journey) -->
           <div class="nav-hud-card" id="map-nav-hud" style="display: none;">

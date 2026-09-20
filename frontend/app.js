@@ -41,10 +41,14 @@ const state = {
   mapLayers: {
     zones: null,
     hotspots: [],
+    pois: [],
     userMarker: null,
-    routePolylines: []
+    routePolylines: [],
+    showHotspots: true,
+    showPois: true
   }
 };
+
 
 // Preset demo locations
 const DEMO_LOCATIONS = {
@@ -309,6 +313,48 @@ function initAreaInfoModal() {
     if (card) card.style.display = "none";
   });
 
+  // Layer toggle buttons inside the Area Info card
+  const toggleReportsBtn = document.getElementById("btn-toggle-reports-layer");
+  const togglePoisBtn = document.getElementById("btn-toggle-pois-layer");
+
+  toggleReportsBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    state.mapLayers.showHotspots = !state.mapLayers.showHotspots;
+    toggleReportsBtn.classList.toggle("active", state.mapLayers.showHotspots);
+    const badge = document.getElementById("badge-reports-state");
+    if (badge) badge.textContent = state.mapLayers.showHotspots ? "ON" : "OFF";
+    
+    // Toggle visibility of all hotspot elements on map
+    if (state.mapLayers.hotspots && state.mapLayers.hotspots.length) {
+      state.mapLayers.hotspots.forEach(layer => {
+        if (state.mapLayers.showHotspots) {
+          state.mapInstance.addLayer(layer);
+        } else {
+          state.mapInstance.removeLayer(layer);
+        }
+      });
+    }
+  });
+
+  togglePoisBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    state.mapLayers.showPois = !state.mapLayers.showPois;
+    togglePoisBtn.classList.toggle("active", state.mapLayers.showPois);
+    const badge = document.getElementById("badge-pois-state");
+    if (badge) badge.textContent = state.mapLayers.showPois ? "ON" : "OFF";
+
+    // Toggle visibility of all POI markers on map
+    if (state.mapLayers.pois && state.mapLayers.pois.length) {
+      state.mapLayers.pois.forEach(layer => {
+        if (state.mapLayers.showPois) {
+          state.mapInstance.addLayer(layer);
+        } else {
+          state.mapInstance.removeLayer(layer);
+        }
+      });
+    }
+  });
+
   // Clicking anywhere else on map closes the info card
   state.mapInstance?.on("click", () => {
     if (card) card.style.display = "none";
@@ -424,13 +470,17 @@ async function loadMapRiskZones() {
   }
 }
 
-
-
 async function loadMapPois() {
   try {
     const res = await fetch("/api/safety/pois");
     if (!res.ok) return;
     const pois = await res.json();
+
+    // Clear existing POIs
+    if (state.mapLayers.pois && state.mapLayers.pois.length) {
+      state.mapLayers.pois.forEach(layer => state.mapInstance.removeLayer(layer));
+      state.mapLayers.pois = [];
+    }
 
     pois.forEach(poi => {
       const isPolice = poi.type === "POLICE";
@@ -440,20 +490,24 @@ async function loadMapPois() {
 
       const poiIcon = L.divIcon({
         className: "safe-poi-icon",
-        html: `<div style="background: rgba(18,21,31,0.85); border: 1.5px solid ${iconColor}; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; box-shadow: 0 0 8px ${iconColor}44;">${iconSymbol}</div>`,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13]
+        html: `<div style="background: rgba(18,21,31,0.85); border: 1.5px solid ${iconColor}; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; box-shadow: 0 0 6px ${iconColor}44;">${iconSymbol}</div>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
       });
 
-      L.marker([poi.lat, poi.lng], { icon: poiIcon })
+      const poiMarker = L.marker([poi.lat, poi.lng], { icon: poiIcon })
         .bindPopup(`
           <div style="color: #0b0f19; font-family: sans-serif; padding: 2px;">
             <b style="font-size: 13px;">${poi.name}</b><br/>
             <span style="font-size: 12px; color: #475569;">Type: <b>${poi.type}</b> • ETA: <b>${poi.eta_mins} mins</b></span><br/>
             <span style="font-size: 11px; color: #0284c7;">Emergency: ${poi.phone}</span>
           </div>
-        `)
-        .addTo(state.mapInstance);
+        `);
+
+      if (state.mapLayers.showPois) {
+        poiMarker.addTo(state.mapInstance);
+      }
+      state.mapLayers.pois.push(poiMarker);
     });
   } catch (err) {
     console.warn("Could not load POIs:", err);
@@ -478,35 +532,35 @@ async function loadMapHotspots() {
 
       // Outer pulsating radar circle
       const radarCircle = L.circle([hs.lat, hs.lng], {
-        radius: hs.radius_meters || 180,
+        radius: hs.radius_meters || 140,
         color: color,
-        weight: 1.5,
-        opacity: 0.85,
+        weight: 1.2,
+        opacity: 0.8,
         fillColor: color,
-        fillOpacity: 0.18,
+        fillOpacity: 0.15,
         className: isCritical ? "hotspot-radar-pulse-critical" : "hotspot-radar-pulse"
-      }).addTo(state.mapInstance);
+      });
 
-      // Center hazard badge marker
+      // Extra small micro-pin for crowd reports
       const hazardIcon = L.divIcon({
         className: "hotspot-center-icon",
         html: `<div class="hotspot-pin-dot ${hs.severity.toLowerCase()}">
                  <span class="hotspot-pin-count">${hs.report_count}</span>
                </div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
+        iconSize: [15, 15],
+        iconAnchor: [7.5, 7.5]
       });
 
-      const pinMarker = L.marker([hs.lat, hs.lng], { icon: hazardIcon, zIndexOffset: 800 }).addTo(state.mapInstance);
+      const pinMarker = L.marker([hs.lat, hs.lng], { icon: hazardIcon, zIndexOffset: 800 });
 
       const popupContent = `
         <div style="color: #0b0f19; font-family: sans-serif; padding: 4px; min-width: 180px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <b style="font-size: 13px; color: ${color};">⚠️ ${hs.category.replace(/_/g, ' ').toUpperCase()}</b>
-            <span style="background: ${color}22; color: ${color}; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px;">${hs.severity}</span>
+            <b style="font-size: 12px; color: ${color};">⚠️ ${hs.category.replace(/_/g, ' ').toUpperCase()}</b>
+            <span style="background: ${color}22; color: ${color}; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 99px;">${hs.severity}</span>
           </div>
-          <p style="font-size: 12px; color: #334155; margin: 4px 0;">"${hs.headline}"</p>
-          <div style="font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 4px; margin-top: 4px;">
+          <p style="font-size: 11px; color: #334155; margin: 3px 0;">"${hs.headline}"</p>
+          <div style="font-size: 10px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 3px; margin-top: 3px;">
             <span>Reports: <b>${hs.report_count}</b></span> • <span>Upvotes: <b>${hs.upvotes}</b></span><br/>
             <span>Hazard Index: <b>${hs.hazard_score}/100</b></span>
           </div>
@@ -516,6 +570,11 @@ async function loadMapHotspots() {
       radarCircle.bindPopup(popupContent);
       pinMarker.bindPopup(popupContent);
 
+      if (state.mapLayers.showHotspots) {
+        radarCircle.addTo(state.mapInstance);
+        pinMarker.addTo(state.mapInstance);
+      }
+
       state.mapLayers.hotspots.push(radarCircle);
       state.mapLayers.hotspots.push(pinMarker);
     });
@@ -523,6 +582,7 @@ async function loadMapHotspots() {
     console.warn("Could not load map hotspots:", err);
   }
 }
+
 
 function updateUserMarkerOnMap() {
   if (!state.mapInstance) return;
