@@ -1070,29 +1070,16 @@ async function submitPin() {
     return;
   }
 
-  try {
-    const res = await fetch("/api/auth/verify-pin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin: enteredPin, user_id: state.currentUser.id })
-    });
-    const data = await res.json();
+  // Check against the user's own login PIN stored in localStorage
+  const userData = getStoredUser();
+  const savedPin = userData?.pin || "";
 
-    if (data.valid) {
-      cancelEmergencyCountdown("PIN verified");
-    } else {
-      if (errorMsg) errorMsg.textContent = "Incorrect PIN. Try again.";
-      enteredPin = "";
-      updatePinDots();
-    }
-  } catch (err) {
-    if (enteredPin === "1234") {
-      cancelEmergencyCountdown("Fallback PIN verified");
-    } else {
-      if (errorMsg) errorMsg.textContent = "Incorrect PIN (Demo is 1234)";
-      enteredPin = "";
-      updatePinDots();
-    }
+  if (enteredPin === savedPin) {
+    cancelEmergencyCountdown("PIN verified");
+  } else {
+    if (errorMsg) errorMsg.textContent = "Incorrect PIN. Try again.";
+    enteredPin = "";
+    updatePinDots();
   }
 }
 
