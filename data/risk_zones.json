@@ -10,87 +10,24 @@
         "safety_score": 92,
         "color": "#10B981",
         "fillOpacity": 0.25,
-        "description": "High police presence, well-lit pedestrian corridors, active commercial surveillance.",
-        "lighting_rating": "Excellent",
-        "police_patrol_freq": "High",
-        "complaint_count": 2
+        "description": "High police presence, continuous street illumination, active commercial CCTV surveillance, and 24/7 metro security.",
+        "lighting_rating": "Excellent (98% Lit)",
+        "police_patrol_freq": "High (Continuous PCR & Foot Patrols)",
+        "complaint_count": 3
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
-            [
-              77.194,
-              28.638
-            ],
-            [
-              77.2005,
-              28.636
-            ],
-            [
-              77.2075,
-              28.6392
-            ],
-            [
-              77.214,
-              28.636
-            ],
-            [
-              77.2175,
-              28.6385
-            ],
-            [
-              77.221,
-              28.6375
-            ],
-            [
-              77.2245,
-              28.633
-            ],
-            [
-              77.2215,
-              28.6275
-            ],
-            [
-              77.225,
-              28.6225
-            ],
-            [
-              77.195,
-              28.622
-            ],
-            [
-              77.2,
-              28.6202
-            ],
-            [
-              77.2065,
-              28.6175
-            ],
-            [
-              77.213,
-              28.6198
-            ],
-            [
-              77.195,
-              28.622
-            ],
-            [
-              77.1932,
-              28.6265
-            ],
-            [
-              77.1948,
-              28.6315
-            ],
-            [
-              77.193,
-              28.635
-            ],
-            [
-              77.194,
-              28.638
-            ]
+            [77.2090, 28.6365],
+            [77.2150, 28.6385],
+            [77.2225, 28.6360],
+            [77.2270, 28.6310],
+            [77.2250, 28.6240],
+            [77.2180, 28.6210],
+            [77.2110, 28.6235],
+            [77.2075, 28.6300],
+            [77.2090, 28.6365]
           ]
         ]
       }
@@ -103,92 +40,23 @@
         "risk_level": "MODERATE",
         "safety_score": 68,
         "color": "#F59E0B",
-        "fillOpacity": 0.3,
-        "description": "Dense market traffic, medium illumination, occasional pickpocketing reports.",
-        "lighting_rating": "Moderate",
-        "police_patrol_freq": "Medium",
-        "complaint_count": 8
+        "fillOpacity": 0.30,
+        "description": "Dense budget hotel district, narrow lanes, pickpocketing, occasional eve-teasing reports after 9 PM.",
+        "lighting_rating": "Moderate (65% Lit)",
+        "police_patrol_freq": "Medium (Periodic Bike Patrols)",
+        "complaint_count": 14
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
-            [
-              77.194,
-              28.638
-            ],
-            [
-              77.1955,
-              28.6415
-            ],
-            [
-              77.1925,
-              28.6465
-            ],
-            [
-              77.1942,
-              28.652
-            ],
-            [
-              77.195,
-              28.658
-            ],
-            [
-              77.201,
-              28.66
-            ],
-            [
-              77.2085,
-              28.659
-            ],
-            [
-              77.215,
-              28.6612
-            ],
-            [
-              77.2215,
-              28.662
-            ],
-            [
-              77.2238,
-              28.6565
-            ],
-            [
-              77.2195,
-              28.651
-            ],
-            [
-              77.2245,
-              28.6455
-            ],
-            [
-              77.2198,
-              28.641
-            ],
-            [
-              77.221,
-              28.6375
-            ],
-            [
-              77.2175,
-              28.6385
-            ],
-            [
-              77.214,
-              28.636
-            ],
-            [
-              77.2075,
-              28.6392
-            ],
-            [
-              77.2005,
-              28.636
-            ],
-            [
-              77.194,
-              28.638
-            ]
+            [77.2070, 28.6470],
+            [77.2155, 28.6480],
+            [77.2195, 28.6435],
+            [77.2185, 28.6385],
+            [77.2115, 28.6380],
+            [77.2050, 28.6420],
+            [77.2070, 28.6470]
           ]
         ]
       }
@@ -197,92 +65,27 @@
       "type": "Feature",
       "id": "zone_3",
       "properties": {
-        "name": "Railway Underpass Corridor",
+        "name": "Railway Underpass & Ajmeri Gate Corridor",
         "risk_level": "HIGH",
         "safety_score": 45,
         "color": "#F97316",
         "fillOpacity": 0.35,
-        "description": "Broken streetlights, blind curve, isolated after 9 PM. Auto-Safety Mode advisory active.",
-        "lighting_rating": "Poor",
-        "police_patrol_freq": "Low",
-        "complaint_count": 19
+        "description": "Dim railway underpasses, low night foot traffic, unmonitored cuts with recurring phone snatching & stalking reports.",
+        "lighting_rating": "Poor (35% Broken Streetlights)",
+        "police_patrol_freq": "Low (No Static Checkpoint)",
+        "complaint_count": 26
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
-            [
-              77.221,
-              28.6375
-            ],
-            [
-              77.224,
-              28.6395
-            ],
-            [
-              77.2285,
-              28.6435
-            ],
-            [
-              77.2355,
-              28.642
-            ],
-            [
-              77.2425,
-              28.645
-            ],
-            [
-              77.2485,
-              28.643
-            ],
-            [
-              77.2465,
-              28.639
-            ],
-            [
-              77.249,
-              28.633
-            ],
-            [
-              77.2455,
-              28.627
-            ],
-            [
-              77.247,
-              28.621
-            ],
-            [
-              77.2405,
-              28.6195
-            ],
-            [
-              77.233,
-              28.6212
-            ],
-            [
-              77.226,
-              28.618
-            ],
-            [
-              77.2195,
-              28.6185
-            ],
-            [
-              77.225,
-              28.6225
-            ],
-            [
-              77.2215,
-              28.6275
-            ],
-            [
-              77.2245,
-              28.633
-            ],
-            [
-              77.221,
-              28.6375
-            ]
+            [77.2205, 28.6450],
+            [77.2315, 28.6465],
+            [77.2360, 28.6410],
+            [77.2335, 28.6340],
+            [77.2245, 28.6355],
+            [77.2195, 28.6410],
+            [77.2205, 28.6450]
           ]
         ]
       }
@@ -291,96 +94,139 @@
       "type": "Feature",
       "id": "zone_4",
       "properties": {
-        "name": "Old Industrial Bypass & Canal",
+        "name": "Old Industrial Bypass & Canal Trail",
         "risk_level": "CRITICAL",
         "safety_score": 28,
         "color": "#EF4444",
         "fillOpacity": 0.45,
-        "description": "Zero functional streetlights, unpaved terrain, multiple reported stalking incidents. Immediate Safety Mode trigger.",
-        "lighting_rating": "Dark/Non-functional",
-        "police_patrol_freq": "Very Low",
-        "complaint_count": 34
+        "description": "Zero functional streetlights, overgrown canal walls, high incidence of group loitering and harassment. Auto-Safety Mode active.",
+        "lighting_rating": "Critical Dark (15% Lit)",
+        "police_patrol_freq": "Very Low (Infrequent)",
+        "complaint_count": 48
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
-            [
-              77.221,
-              28.6375
-            ],
-            [
-              77.2198,
-              28.641
-            ],
-            [
-              77.2245,
-              28.6455
-            ],
-            [
-              77.2195,
-              28.651
-            ],
-            [
-              77.2238,
-              28.6565
-            ],
-            [
-              77.2215,
-              28.662
-            ],
-            [
-              77.228,
-              28.663
-            ],
-            [
-              77.236,
-              28.6615
-            ],
-            [
-              77.2445,
-              28.662
-            ],
-            [
-              77.252,
-              28.6575
-            ],
-            [
-              77.2505,
-              28.654
-            ],
-            [
-              77.253,
-              28.6485
-            ],
-            [
-              77.249,
-              28.6455
-            ],
-            [
-              77.2485,
-              28.643
-            ],
-            [
-              77.2425,
-              28.645
-            ],
-            [
-              77.2355,
-              28.642
-            ],
-            [
-              77.2285,
-              28.6435
-            ],
-            [
-              77.224,
-              28.6395
-            ],
-            [
-              77.221,
-              28.6375
-            ]
+            [77.2330, 28.6590],
+            [77.2475, 28.6600],
+            [77.2530, 28.6520],
+            [77.2480, 28.6440],
+            [77.2370, 28.6455],
+            [77.2315, 28.6530],
+            [77.2330, 28.6590]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone_5",
+      "properties": {
+        "name": "North Campus & University Enclave",
+        "risk_level": "LOW",
+        "safety_score": 88,
+        "color": "#10B981",
+        "fillOpacity": 0.25,
+        "description": "Student transit area, illuminated library boulevard, frequent college security patrols, and Women Help Desks.",
+        "lighting_rating": "Good (92% Lit)",
+        "police_patrol_freq": "High (Regular University PCRs)",
+        "complaint_count": 5
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.2020, 28.6940],
+            [77.2150, 28.6950],
+            [77.2185, 28.6860],
+            [77.2120, 28.6810],
+            [77.2015, 28.6850],
+            [77.2020, 28.6940]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone_6",
+      "properties": {
+        "name": "Kashmere Gate ISBT & Transit Interchange",
+        "risk_level": "HIGH",
+        "safety_score": 48,
+        "color": "#F97316",
+        "fillOpacity": 0.35,
+        "description": "Heavy bus transit bottleneck, dark flyover pedestrian ramps, crowd surges, and frequent evening harassment reports.",
+        "lighting_rating": "Inadequate (45% Shadowed Underpasses)",
+        "police_patrol_freq": "Medium-Low (Traffic Police Only)",
+        "complaint_count": 31
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.2230, 28.6730],
+            [77.2360, 28.6745],
+            [77.2410, 28.6660],
+            [77.2340, 28.6605],
+            [77.2240, 28.6630],
+            [77.2230, 28.6730]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone_7",
+      "properties": {
+        "name": "Anand Parbat & Industrial Slopes",
+        "risk_level": "CRITICAL",
+        "safety_score": 32,
+        "color": "#EF4444",
+        "fillOpacity": 0.45,
+        "description": "Isolated industrial fringe, unpaved factory cuts, deserted after factory shifts, multiple assault complaints registered.",
+        "lighting_rating": "Very Poor (20% Lit)",
+        "police_patrol_freq": "Minimal",
+        "complaint_count": 42
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.1720, 28.6680],
+            [77.1850, 28.6690],
+            [77.1890, 28.6600],
+            [77.1820, 28.6540],
+            [77.1710, 28.6580],
+            [77.1720, 28.6680]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone_8",
+      "properties": {
+        "name": "Civil Lines Residential Enclave",
+        "risk_level": "LOW",
+        "safety_score": 90,
+        "color": "#10B981",
+        "fillOpacity": 0.25,
+        "description": "Quiet wide boulevards, continuous LED streetlights, VIP security perimeter, and prompt police response.",
+        "lighting_rating": "Excellent (96% Lit)",
+        "police_patrol_freq": "High",
+        "complaint_count": 4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.2140, 28.6830],
+            [77.2280, 28.6840],
+            [77.2310, 28.6750],
+            [77.2220, 28.6710],
+            [77.2120, 28.6760],
+            [77.2140, 28.6830]
           ]
         ]
       }
@@ -392,7 +238,7 @@
       "name": "Connaught Place Police Station",
       "type": "POLICE",
       "lat": 28.6315,
-      "lng": 77.219,
+      "lng": 77.2190,
       "phone": "011-23340000",
       "eta_mins": 3
     },
@@ -400,19 +246,82 @@
       "id": "poi_2",
       "name": "Dr. RML Emergency Hospital",
       "type": "HOSPITAL",
-      "lat": 28.625,
-      "lng": 77.201,
+      "lat": 28.6250,
+      "lng": 77.2010,
       "phone": "011-23365525",
-      "eta_mins": 6
+      "eta_mins": 5
     },
     {
       "id": "poi_3",
-      "name": "Safe Haven 24/7 Metro Booth",
+      "name": "Safe Haven 24/7 Metro Booth (Rajiv Chowk)",
       "type": "SAFE_HUB",
       "lat": 28.6328,
       "lng": 77.2197,
       "phone": "112",
       "eta_mins": 2
+    },
+    {
+      "id": "poi_4",
+      "name": "Paharganj Police Station",
+      "type": "POLICE",
+      "lat": 28.6432,
+      "lng": 77.2125,
+      "phone": "011-23588100",
+      "eta_mins": 4
+    },
+    {
+      "id": "poi_5",
+      "name": "Lady Hardinge Emergency Hospital",
+      "type": "HOSPITAL",
+      "lat": 28.6345,
+      "lng": 77.2120,
+      "phone": "011-23363728",
+      "eta_mins": 4
+    },
+    {
+      "id": "poi_6",
+      "name": "Kashmere Gate Police Station",
+      "type": "POLICE",
+      "lat": 28.6675,
+      "lng": 77.2310,
+      "phone": "011-23865666",
+      "eta_mins": 3
+    },
+    {
+      "id": "poi_7",
+      "name": "Hindu Rao Municipal Hospital",
+      "type": "HOSPITAL",
+      "lat": 28.6735,
+      "lng": 77.2120,
+      "phone": "011-23919476",
+      "eta_mins": 6
+    },
+    {
+      "id": "poi_8",
+      "name": "North Campus Women Police Help Desk",
+      "type": "POLICE",
+      "lat": 28.6875,
+      "lng": 77.2105,
+      "phone": "1091",
+      "eta_mins": 2
+    },
+    {
+      "id": "poi_9",
+      "name": "Lok Nayak Jai Prakash (LNJP) Hospital",
+      "type": "HOSPITAL",
+      "lat": 28.6370,
+      "lng": 77.2405,
+      "phone": "011-23233000",
+      "eta_mins": 5
+    },
+    {
+      "id": "poi_10",
+      "name": "Civil Lines Police Assistance Booth",
+      "type": "POLICE",
+      "lat": 28.6795,
+      "lng": 77.2215,
+      "phone": "011-23956100",
+      "eta_mins": 3
     }
   ]
 }

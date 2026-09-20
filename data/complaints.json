@@ -1,42 +1,452 @@
-﻿[
+[
   {
-    "id": "comp_001",
-    "text": "Completely dark stretch near the old bus terminal. Streetlights have been broken for 3 weeks.",
+    "id": "cmp_001",
+    "text": "Street lights broken for past 2 weeks near Paharganj bus stop. Very dark after 9pm, feels unsafe for women.",
     "category": "poor_lighting",
-    "lat": 28.6410,
-    "lng": 77.2310,
+    "lat": 28.6448,
+    "lng": 77.2143,
     "severity": "HIGH",
-    "upvotes": 12,
-    "created_at": "2026-09-08T20:15:00Z"
-  },
-  {
-    "id": "comp_002",
-    "text": "Groups of men loitering and passing comments at the metro exit gate 3 after 8 PM.",
-    "category": "harassment",
-    "lat": 28.6480,
-    "lng": 77.2380,
-    "severity": "CRITICAL",
     "upvotes": 27,
-    "created_at": "2026-09-09T21:40:00Z"
+    "created_at": "2026-09-01T21:30:00"
   },
   {
-    "id": "comp_003",
-    "text": "No police PCR van stationed near the railway underpass despite multiple complaints.",
+    "id": "cmp_002",
+    "text": "Group of men harassing women near Paharganj market lane every evening. No police patrol.",
+    "category": "harassment",
+    "lat": 28.6452,
+    "lng": 77.2138,
+    "severity": "HIGH",
+    "upvotes": 41,
+    "created_at": "2026-09-02T20:15:00"
+  },
+  {
+    "id": "cmp_003",
+    "text": "Attempted chain snatching near Paharganj backstreet. No CCTV cameras visible.",
     "category": "no_police_patrol",
-    "lat": 28.6390,
+    "lat": 28.6445,
+    "lng": 77.2150,
+    "severity": "CRITICAL",
+    "upvotes": 35,
+    "created_at": "2026-09-03T22:00:00"
+  },
+  {
+    "id": "cmp_004",
+    "text": "Drunk individuals blocking narrow lane near Paharganj hotel area at night, shouting at passersby.",
+    "category": "harassment",
+    "lat": 28.6455,
+    "lng": 77.2130,
+    "severity": "MODERATE",
+    "upvotes": 18,
+    "created_at": "2026-09-05T23:10:00"
+  },
+  {
+    "id": "cmp_005",
+    "text": "Railway underpass completely dark after 8pm. Lone woman was followed through tunnel yesterday.",
+    "category": "poor_lighting",
+    "lat": 28.6398,
+    "lng": 77.2205,
+    "severity": "CRITICAL",
+    "upvotes": 52,
+    "created_at": "2026-09-01T20:45:00"
+  },
+  {
+    "id": "cmp_006",
+    "text": "Underpass smells of alcohol, group of men loiter here every night. Very threatening atmosphere.",
+    "category": "harassment",
+    "lat": 28.6395,
+    "lng": 77.2210,
+    "severity": "CRITICAL",
+    "upvotes": 48,
+    "created_at": "2026-09-03T21:30:00"
+  },
+  {
+    "id": "cmp_007",
+    "text": "No CCTV and broken railings in railway underpass. Platform light also flickering. Dangerous.",
+    "category": "infrastructure_hazard",
+    "lat": 28.6401,
+    "lng": 77.2202,
+    "severity": "HIGH",
+    "upvotes": 31,
+    "created_at": "2026-09-06T19:00:00"
+  },
+  {
+    "id": "cmp_008",
+    "text": "Woman molested near industrial bypass road canal side last Tuesday night. Please increase patrol.",
+    "category": "harassment",
+    "lat": 28.6580,
+    "lng": 77.1780,
+    "severity": "CRITICAL",
+    "upvotes": 63,
+    "created_at": "2026-09-02T23:30:00"
+  },
+  {
+    "id": "cmp_009",
+    "text": "Isolated industrial area - no streetlights for 500m stretch along canal. Very unsafe at night.",
+    "category": "isolated_area",
+    "lat": 28.6575,
+    "lng": 77.1790,
+    "severity": "CRITICAL",
+    "upvotes": 44,
+    "created_at": "2026-09-04T22:00:00"
+  },
+  {
+    "id": "cmp_010",
+    "text": "Stalker followed a girl from bus stop to her home near Anand Parbat industrial zone. Police not responding.",
+    "category": "no_police_patrol",
+    "lat": 28.6570,
+    "lng": 77.1795,
+    "severity": "CRITICAL",
+    "upvotes": 39,
+    "created_at": "2026-09-07T21:45:00"
+  },
+  {
+    "id": "cmp_011",
+    "text": "Desolate factory lane near Anand Parbat used by drug addicts at night. Women avoid this area entirely.",
+    "category": "isolated_area",
+    "lat": 28.6565,
+    "lng": 77.1801,
+    "severity": "HIGH",
+    "upvotes": 28,
+    "created_at": "2026-09-08T20:30:00"
+  },
+  {
+    "id": "cmp_012",
+    "text": "Kashmere Gate bus stand lights broken. Very dark alley behind stand, feel very unsafe after work.",
+    "category": "poor_lighting",
+    "lat": 28.6642,
+    "lng": 77.2282,
+    "severity": "HIGH",
+    "upvotes": 33,
+    "created_at": "2026-09-03T21:00:00"
+  },
+  {
+    "id": "cmp_013",
+    "text": "Men on bikes following women near Kashmere Gate metro exit. This has happened multiple times this month.",
+    "category": "harassment",
+    "lat": 28.6648,
+    "lng": 77.2278,
+    "severity": "HIGH",
+    "upvotes": 47,
+    "created_at": "2026-09-05T20:15:00"
+  },
+  {
+    "id": "cmp_014",
+    "text": "No police visible near Kashmere Gate underbridge after 9pm. Very isolated stretch.",
+    "category": "no_police_patrol",
+    "lat": 28.6638,
     "lng": 77.2290,
     "severity": "HIGH",
-    "upvotes": 9,
-    "created_at": "2026-09-10T19:05:00Z"
+    "upvotes": 22,
+    "created_at": "2026-09-09T22:30:00"
   },
   {
-    "id": "comp_004",
-    "text": "Isolated road with high bushes along the industrial canal. Needs emergency call box.",
-    "category": "isolated_area",
-    "lat": 28.6510,
-    "lng": 77.2390,
+    "id": "cmp_015",
+    "text": "Aggressive beggars near Kashmere Gate ISBT creating threatening situations for women passengers.",
+    "category": "harassment",
+    "lat": 28.6655,
+    "lng": 77.2270,
+    "severity": "MODERATE",
+    "upvotes": 15,
+    "created_at": "2026-09-10T18:45:00"
+  },
+  {
+    "id": "cmp_016",
+    "text": "Broken pavement and open sewer near Paharganj station road. Risk of injury especially at night.",
+    "category": "infrastructure_hazard",
+    "lat": 28.6443,
+    "lng": 77.2145,
+    "severity": "MODERATE",
+    "upvotes": 12,
+    "created_at": "2026-09-06T10:00:00"
+  },
+  {
+    "id": "cmp_017",
+    "text": "Lewd comments and cat-calling by shopkeepers in Paharganj market lane every day targeting female tourists.",
+    "category": "harassment",
+    "lat": 28.6460,
+    "lng": 77.2125,
+    "severity": "MODERATE",
+    "upvotes": 36,
+    "created_at": "2026-09-08T16:30:00"
+  },
+  {
+    "id": "cmp_018",
+    "text": "Pickpocket gang operating near Connaught Place inner circle. Already three victims reported this week.",
+    "category": "no_police_patrol",
+    "lat": 28.6320,
+    "lng": 77.2195,
+    "severity": "MODERATE",
+    "upvotes": 21,
+    "created_at": "2026-09-04T14:00:00"
+  },
+  {
+    "id": "cmp_019",
+    "text": "Unauthorized taxi touts harassing foreign women tourists outside Connaught Place metro exit.",
+    "category": "harassment",
+    "lat": 28.6315,
+    "lng": 77.2200,
+    "severity": "MODERATE",
+    "upvotes": 19,
+    "created_at": "2026-09-07T11:30:00"
+  },
+  {
+    "id": "cmp_020",
+    "text": "Dimly lit parking lot near Connaught Place, Block B. Witnessed suspicious activity multiple times.",
+    "category": "poor_lighting",
+    "lat": 28.6325,
+    "lng": 77.2188,
+    "severity": "LOW",
+    "upvotes": 8,
+    "created_at": "2026-09-09T21:00:00"
+  },
+  {
+    "id": "cmp_021",
+    "text": "Railway underpass graffiti and broken glass all over floor. Trip hazard at night.",
+    "category": "infrastructure_hazard",
+    "lat": 28.6393,
+    "lng": 77.2215,
+    "severity": "MODERATE",
+    "upvotes": 14,
+    "created_at": "2026-09-10T07:30:00"
+  },
+  {
+    "id": "cmp_022",
+    "text": "Open electrical wiring near railway underpass entrance. Very dangerous in monsoon.",
+    "category": "infrastructure_hazard",
+    "lat": 28.6400,
+    "lng": 77.2208,
+    "severity": "HIGH",
+    "upvotes": 25,
+    "created_at": "2026-09-11T09:00:00"
+  },
+  {
+    "id": "cmp_023",
+    "text": "Molestation incident reported near Anand Parbat market late evening. Area has no CCTV.",
+    "category": "harassment",
+    "lat": 28.6560,
+    "lng": 77.1810,
     "severity": "CRITICAL",
-    "upvotes": 18,
-    "created_at": "2026-09-10T22:30:00Z"
+    "upvotes": 57,
+    "created_at": "2026-09-09T22:15:00"
+  },
+  {
+    "id": "cmp_024",
+    "text": "North Campus library back gate poorly lit. Female students afraid to walk back to hostel after dark.",
+    "category": "poor_lighting",
+    "lat": 28.6880,
+    "lng": 77.2100,
+    "severity": "LOW",
+    "upvotes": 11,
+    "created_at": "2026-09-08T19:30:00"
+  },
+  {
+    "id": "cmp_025",
+    "text": "Suspicious men loitering near North Campus hostel gate at night. Need more security guards.",
+    "category": "no_police_patrol",
+    "lat": 28.6885,
+    "lng": 77.2095,
+    "severity": "MODERATE",
+    "upvotes": 17,
+    "created_at": "2026-09-10T22:00:00"
+  },
+  {
+    "id": "cmp_026",
+    "text": "Civil Lines park benches occupied by drunk men at night. Women joggers feel unsafe during morning runs too.",
+    "category": "harassment",
+    "lat": 28.6780,
+    "lng": 77.2238,
+    "severity": "LOW",
+    "upvotes": 9,
+    "created_at": "2026-09-11T06:30:00"
+  },
+  {
+    "id": "cmp_027",
+    "text": "Industrial bypass canal side: woman reported being followed for 2km by motorbike. Very isolated.",
+    "category": "isolated_area",
+    "lat": 28.6585,
+    "lng": 77.1775,
+    "severity": "CRITICAL",
+    "upvotes": 61,
+    "created_at": "2026-09-11T21:00:00"
+  },
+  {
+    "id": "cmp_028",
+    "text": "Kashmere Gate pedestrian bridge with broken light posts - pitch dark at night, multiple women complained.",
+    "category": "poor_lighting",
+    "lat": 28.6645,
+    "lng": 77.2275,
+    "severity": "HIGH",
+    "upvotes": 30,
+    "created_at": "2026-09-12T20:00:00"
+  },
+  {
+    "id": "cmp_029",
+    "text": "Pan shop near Paharganj plays loud music and men block footpath, harassing women at night.",
+    "category": "harassment",
+    "lat": 28.6458,
+    "lng": 77.2140,
+    "severity": "MODERATE",
+    "upvotes": 24,
+    "created_at": "2026-09-12T22:30:00"
+  },
+  {
+    "id": "cmp_030",
+    "text": "Autorickshaw drivers near Kashmere Gate refusing women passengers after 10pm and demanding extra fare.",
+    "category": "harassment",
+    "lat": 28.6640,
+    "lng": 77.2285,
+    "severity": "MODERATE",
+    "upvotes": 20,
+    "created_at": "2026-09-13T22:00:00"
+  },
+  {
+    "id": "cmp_031",
+    "text": "Stray dogs near industrial bypass attacking pedestrians. No municipal action taken.",
+    "category": "infrastructure_hazard",
+    "lat": 28.6572,
+    "lng": 77.1785,
+    "severity": "HIGH",
+    "upvotes": 16,
+    "created_at": "2026-09-13T08:00:00"
+  },
+  {
+    "id": "cmp_032",
+    "text": "Connaught Place Block C basement parking has no cameras. Handbag snatching happened last Friday.",
+    "category": "no_police_patrol",
+    "lat": 28.6318,
+    "lng": 77.2205,
+    "severity": "MODERATE",
+    "upvotes": 23,
+    "created_at": "2026-09-14T20:30:00"
+  },
+  {
+    "id": "cmp_033",
+    "text": "Paharganj main bazaar: women being pushed and groped in crowds. Request police deployment.",
+    "category": "harassment",
+    "lat": 28.6450,
+    "lng": 77.2135,
+    "severity": "HIGH",
+    "upvotes": 38,
+    "created_at": "2026-09-14T18:00:00"
+  },
+  {
+    "id": "cmp_034",
+    "text": "North Campus metro feeder road has potholes and zero lighting after 8pm. Students at risk.",
+    "category": "infrastructure_hazard",
+    "lat": 28.6875,
+    "lng": 77.2105,
+    "severity": "LOW",
+    "upvotes": 7,
+    "created_at": "2026-09-15T19:00:00"
+  },
+  {
+    "id": "cmp_035",
+    "text": "Anand Parbat industrial zone: screams heard at night from abandoned factory area. Very alarming.",
+    "category": "isolated_area",
+    "lat": 28.6562,
+    "lng": 77.1808,
+    "severity": "CRITICAL",
+    "upvotes": 55,
+    "created_at": "2026-09-15T23:45:00"
+  },
+  {
+    "id": "cmp_036",
+    "text": "Civil Lines metro station exit 3: eve-teasing incidents reported, request CCTV installation.",
+    "category": "harassment",
+    "lat": 28.6775,
+    "lng": 77.2240,
+    "severity": "LOW",
+    "upvotes": 6,
+    "created_at": "2026-09-16T20:00:00"
+  },
+  {
+    "id": "cmp_037",
+    "text": "Railway underpass used as open toilet by homeless. Extremely unsafe and unhygienic for women.",
+    "category": "isolated_area",
+    "lat": 28.6397,
+    "lng": 77.2212,
+    "severity": "HIGH",
+    "upvotes": 29,
+    "created_at": "2026-09-16T09:00:00"
+  },
+  {
+    "id": "cmp_038",
+    "text": "Kashmere Gate ISBT women's waiting area broken door and no female security guard posted.",
+    "category": "infrastructure_hazard",
+    "lat": 28.6650,
+    "lng": 77.2265,
+    "severity": "HIGH",
+    "upvotes": 32,
+    "created_at": "2026-09-17T14:30:00"
+  },
+  {
+    "id": "cmp_039",
+    "text": "Paharganj auto stand: drunk auto driver made inappropriate remarks to two women passengers today.",
+    "category": "harassment",
+    "lat": 28.6442,
+    "lng": 77.2148,
+    "severity": "MODERATE",
+    "upvotes": 13,
+    "created_at": "2026-09-17T21:15:00"
+  },
+  {
+    "id": "cmp_040",
+    "text": "Industrial bypass road: no street light for 1.2km. Female factory workers report fear walking to bus stop.",
+    "category": "poor_lighting",
+    "lat": 28.6578,
+    "lng": 77.1782,
+    "severity": "CRITICAL",
+    "upvotes": 49,
+    "created_at": "2026-09-18T20:00:00"
+  },
+  {
+    "id": "cmp_041",
+    "text": "Connaught Place metro to parking B: beggar woman aggressively blocking path, tourist feels unsafe.",
+    "category": "harassment",
+    "lat": 28.6310,
+    "lng": 77.2198,
+    "severity": "LOW",
+    "upvotes": 5,
+    "created_at": "2026-09-18T15:00:00"
+  },
+  {
+    "id": "cmp_042",
+    "text": "North Campus: group of unknown men sitting outside girls' hostel gate every night after 11pm.",
+    "category": "no_police_patrol",
+    "lat": 28.6882,
+    "lng": 77.2092,
+    "severity": "HIGH",
+    "upvotes": 26,
+    "created_at": "2026-09-19T23:00:00"
+  },
+  {
+    "id": "cmp_043",
+    "text": "Railway underpass: CCTV camera mounted but cable is visibly cut. No actual monitoring.",
+    "category": "no_police_patrol",
+    "lat": 28.6402,
+    "lng": 77.2200,
+    "severity": "HIGH",
+    "upvotes": 34,
+    "created_at": "2026-09-19T10:00:00"
+  },
+  {
+    "id": "cmp_044",
+    "text": "Anand Parbat water tanker road: women vegetable sellers harassed by roadside goons daily.",
+    "category": "harassment",
+    "lat": 28.6558,
+    "lng": 77.1815,
+    "severity": "HIGH",
+    "upvotes": 40,
+    "created_at": "2026-09-20T08:30:00"
+  },
+  {
+    "id": "cmp_045",
+    "text": "Kashmere Gate narrow back lane: multiple incidents of bag snatching in last 30 days. No action taken.",
+    "category": "no_police_patrol",
+    "lat": 28.6635,
+    "lng": 77.2295,
+    "severity": "CRITICAL",
+    "upvotes": 58,
+    "created_at": "2026-09-20T19:00:00"
   }
 ]

@@ -173,15 +173,14 @@ def init_db():
                 )
         conn.commit()
 
-    # Seed Complaints if table is empty
-    cursor.execute("SELECT COUNT(*) FROM complaints")
-    if cursor.fetchone()[0] == 0 and os.path.exists(settings.COMPLAINTS_SEED):
+    # Seed Complaints using INSERT OR IGNORE so new entries always load
+    if os.path.exists(settings.COMPLAINTS_SEED):
         with open(settings.COMPLAINTS_SEED, "r", encoding="utf-8-sig") as f:
             complaint_data = json.load(f)
             for comp in complaint_data:
                 cursor.execute(
                     """
-                    INSERT INTO complaints (id, user_id, text, category, lat, lng, severity, upvotes, created_at)
+                    INSERT OR IGNORE INTO complaints (id, user_id, text, category, lat, lng, severity, upvotes, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
