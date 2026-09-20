@@ -46,7 +46,8 @@ const state = {
     routePolylines: [],
     showHotspots: true,
     showPois: true
-  }
+  },
+  mapData: { pois: [], hotspots: [] }
 };
 
 
@@ -286,6 +287,9 @@ function initOrResizeMap() {
       updateUserMarkerOnMap();
     });
 
+    // Zoom-aware marker scaling — resize POI pins and report triangles on every zoom change
+    state.mapInstance.on("zoomend", () => refreshMarkersForZoom());
+
     initAreaInfoModal();
     loadMapRiskZones();
     loadMapPois();
@@ -475,66 +479,8 @@ async function loadMapPois() {
   try {
     const res = await fetch("/api/safety/pois");
     if (!res.ok) return;
-    const pois = await res.json();
-
-    // Clear existing POIs
-    if (state.mapLayers.pois && state.mapLayers.pois.length) {
-      state.mapLayers.pois.forEach(layer => state.mapInstance.removeLayer(layer));
-      state.mapLayers.pois = [];
-    }
-
-    pois.forEach(poi => {
-      const isPolice = poi.type === "POLICE";
-      const isHospital = poi.type === "HOSPITAL";
-
-      // Google Maps-style teardrop SVG pin
-      let pinSvg;
-      if (isPolice) {
-        pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="#1a73e8"/>
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="none" stroke="#1557b0" stroke-width="1"/>
-          <path d="M16 7l5.5 2.2v4.8c0 3.2-2.3 6-5.5 6.8-3.2-.8-5.5-3.6-5.5-6.8V9.2L16 7z" fill="white" opacity="0.9"/>
-          <rect x="14.8" y="13.5" width="2.4" height="3" rx="0.4" fill="#1a73e8"/>
-          <rect x="14" y="12" width="4" height="2" rx="0.4" fill="#1a73e8"/>
-        </svg>`;
-      } else if (isHospital) {
-        pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="#ea4335"/>
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="none" stroke="#c5221f" stroke-width="1"/>
-          <rect x="13.5" y="8" width="5" height="16" rx="1.5" fill="white"/>
-          <rect x="8" y="13.5" width="16" height="5" rx="1.5" fill="white"/>
-        </svg>`;
-      } else {
-        pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="#0f9d58"/>
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="none" stroke="#0b8043" stroke-width="1"/>
-          <path d="M16 8l5.5 2.2v4.8c0 3.2-2.3 6-5.5 6.8-3.2-.8-5.5-3.6-5.5-6.8V10.2L16 8z" fill="white" opacity="0.9"/>
-          <path d="M13 16l2.2 2.2 4.5-4.5" stroke="#0f9d58" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        </svg>`;
-      }
-
-      const poiIcon = L.divIcon({
-        className: "safe-poi-icon",
-        html: pinSvg,
-        iconSize: [22, 28],
-        iconAnchor: [11, 28],
-        popupAnchor: [0, -30]
-      });
-
-      const poiMarker = L.marker([poi.lat, poi.lng], { icon: poiIcon })
-        .bindPopup(`
-          <div style="color: #0b0f19; font-family: sans-serif; padding: 2px;">
-            <b style="font-size: 13px;">${poi.name}</b><br/>
-            <span style="font-size: 12px; color: #475569;">Type: <b>${poi.type}</b> • ETA: <b>${poi.eta_mins} mins</b></span><br/>
-            <span style="font-size: 11px; color: #0284c7;">Emergency: ${poi.phone}</span>
-          </div>
-        `);
-
-      if (state.mapLayers.showPois) {
-        poiMarker.addTo(state.mapInstance);
-      }
-      state.mapLayers.pois.push(poiMarker);
-    });
+    state.mapData.pois = await res.json();
+    refreshMarkersForZoom();
   } catch (err) {
     console.warn("Could not load POIs:", err);
   }
@@ -544,59 +490,113 @@ async function loadMapHotspots() {
   try {
     const res = await fetch("/api/safety/hotspots");
     if (!res.ok) return;
-    const hotspots = await res.json();
-
-    // Clear existing hotspot markers
-    if (state.mapLayers.hotspots && state.mapLayers.hotspots.length) {
-      state.mapLayers.hotspots.forEach(layer => state.mapInstance.removeLayer(layer));
-      state.mapLayers.hotspots = [];
-    }
-
-    hotspots.forEach(hs => {
-      const isCritical = hs.severity === "CRITICAL";
-      const color = isCritical ? "#ef4444" : (hs.severity === "HIGH" ? "#f97316" : "#f59e0b");
-
-      // Tiny warning-flag pin — no circle radius, just a small precise marker
-      const hazardIcon = L.divIcon({
-        className: "hotspot-center-icon",
-        html: `<div class="hotspot-pin-dot ${hs.severity.toLowerCase()}">
-                 <svg width="9" height="9" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                   <path d="M5 1L9.33 8.5H0.67L5 1Z" fill="${color}" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/>
-                   <rect x="4.4" y="4.2" width="1.2" height="2.4" rx="0.3" fill="white"/>
-                   <circle cx="5" cy="7.4" r="0.55" fill="white"/>
-                 </svg>
-               </div>`,
-        iconSize: [12, 12],
-        iconAnchor: [6, 6]
-      });
-
-      const pinMarker = L.marker([hs.lat, hs.lng], { icon: hazardIcon, zIndexOffset: 800 });
-
-      const popupContent = `
-        <div style="color: #0b0f19; font-family: sans-serif; padding: 4px; min-width: 180px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <b style="font-size: 12px; color: ${color};">⚠️ ${hs.category.replace(/_/g, ' ').toUpperCase()}</b>
-            <span style="background: ${color}22; color: ${color}; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 99px;">${hs.severity}</span>
-          </div>
-          <p style="font-size: 11px; color: #334155; margin: 3px 0;">"${hs.headline}"</p>
-          <div style="font-size: 10px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 3px; margin-top: 3px;">
-            <span>Reports: <b>${hs.report_count}</b></span> • <span>Upvotes: <b>${hs.upvotes}</b></span><br/>
-            <span>Hazard Index: <b>${hs.hazard_score}/100</b></span>
-          </div>
-        </div>
-      `;
-
-      pinMarker.bindPopup(popupContent);
-
-      if (state.mapLayers.showHotspots) {
-        pinMarker.addTo(state.mapInstance);
-      }
-
-      state.mapLayers.hotspots.push(pinMarker);
-    });
+    state.mapData.hotspots = await res.json();
+    refreshMarkersForZoom();
   } catch (err) {
     console.warn("Could not load map hotspots:", err);
   }
+}
+
+// ---- Zoom-aware size tiers ----
+// Returns pixel sizes for POI pins and hotspot triangles based on zoom level.
+// zoom <=12 → tiny, 13-14 → small, 15-16 → medium, >=17 → large
+function getZoomSizes(zoom) {
+  if (zoom <= 12) return { pw: 14, ph: 18, pa: [7, 18], pp: [0, -20], tw: 7,  th: 7  };
+  if (zoom <= 14) return { pw: 19, ph: 25, pa: [9, 25], pp: [0, -27], tw: 10, th: 10 };
+  if (zoom <= 16) return { pw: 26, ph: 34, pa: [13,34], pp: [0, -36], tw: 14, th: 14 };
+                  return { pw: 34, ph: 44, pa: [17,44], pp: [0, -46], tw: 19, th: 19 };
+}
+
+function buildPoiSvg(poi, w, h) {
+  const isPolice   = poi.type === "POLICE";
+  const isHospital = poi.type === "HOSPITAL";
+  if (isPolice) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 32 42">
+      <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="#1a73e8"/>
+      <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="none" stroke="#1557b0" stroke-width="1.2"/>
+      <path d="M16 7l5.5 2.2v4.8c0 3.2-2.3 6-5.5 6.8-3.2-.8-5.5-3.6-5.5-6.8V9.2L16 7z" fill="white" opacity="0.9"/>
+      <rect x="14.8" y="13.5" width="2.4" height="3" rx="0.4" fill="#1a73e8"/>
+      <rect x="14" y="12" width="4" height="2" rx="0.4" fill="#1a73e8"/>
+    </svg>`;
+  } else if (isHospital) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 32 42">
+      <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="#ea4335"/>
+      <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="none" stroke="#c5221f" stroke-width="1.2"/>
+      <rect x="13.5" y="8" width="5" height="16" rx="1.5" fill="white"/>
+      <rect x="8" y="13.5" width="16" height="5" rx="1.5" fill="white"/>
+    </svg>`;
+  } else {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 32 42">
+      <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="#0f9d58"/>
+      <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="none" stroke="#0b8043" stroke-width="1.2"/>
+      <path d="M16 8l5.5 2.2v4.8c0 3.2-2.3 6-5.5 6.8-3.2-.8-5.5-3.6-5.5-6.8V10.2L16 8z" fill="white" opacity="0.9"/>
+      <path d="M13 16l2.2 2.2 4.5-4.5" stroke="#0f9d58" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>`;
+  }
+}
+
+function refreshMarkersForZoom() {
+  if (!state.mapInstance) return;
+  const zoom = state.mapInstance.getZoom();
+  const sz = getZoomSizes(zoom);
+
+  // --- Re-render POI markers ---
+  if (state.mapLayers.pois && state.mapLayers.pois.length) {
+    state.mapLayers.pois.forEach(m => state.mapInstance.removeLayer(m));
+    state.mapLayers.pois = [];
+  }
+  state.mapData.pois.forEach(poi => {
+    const icon = L.divIcon({
+      className: "safe-poi-icon",
+      html: buildPoiSvg(poi, sz.pw, sz.ph),
+      iconSize: [sz.pw, sz.ph],
+      iconAnchor: sz.pa,
+      popupAnchor: sz.pp
+    });
+    const m = L.marker([poi.lat, poi.lng], { icon })
+      .bindPopup(`<div style="color:#0b0f19;font-family:sans-serif;padding:2px;">
+        <b style="font-size:13px;">${poi.name}</b><br/>
+        <span style="font-size:12px;color:#475569;">Type: <b>${poi.type}</b> • ETA: <b>${poi.eta_mins} mins</b></span><br/>
+        <span style="font-size:11px;color:#0284c7;">Emergency: ${poi.phone}</span>
+      </div>`);
+    if (state.mapLayers.showPois) m.addTo(state.mapInstance);
+    state.mapLayers.pois.push(m);
+  });
+
+  // --- Re-render hotspot markers ---
+  if (state.mapLayers.hotspots && state.mapLayers.hotspots.length) {
+    state.mapLayers.hotspots.forEach(m => state.mapInstance.removeLayer(m));
+    state.mapLayers.hotspots = [];
+  }
+  state.mapData.hotspots.forEach(hs => {
+    const color = hs.severity === "CRITICAL" ? "#ef4444" : (hs.severity === "HIGH" ? "#f97316" : "#f59e0b");
+    const icon = L.divIcon({
+      className: "hotspot-center-icon",
+      html: `<div class="hotspot-pin-dot ${hs.severity.toLowerCase()}">
+        <svg width="${sz.tw}" height="${sz.th}" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 1L9.33 8.5H0.67L5 1Z" fill="${color}" stroke="rgba(0,0,0,0.35)" stroke-width="0.5"/>
+          <rect x="4.4" y="4.2" width="1.2" height="2.4" rx="0.3" fill="white"/>
+          <circle cx="5" cy="7.4" r="0.55" fill="white"/>
+        </svg>
+      </div>`,
+      iconSize: [sz.tw, sz.th],
+      iconAnchor: [sz.tw / 2, sz.th / 2]
+    });
+    const popup = `<div style="color:#0b0f19;font-family:sans-serif;padding:4px;min-width:180px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <b style="font-size:12px;color:${color};">⚠️ ${hs.category.replace(/_/g,' ').toUpperCase()}</b>
+        <span style="background:${color}22;color:${color};font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px;">${hs.severity}</span>
+      </div>
+      <p style="font-size:11px;color:#334155;margin:3px 0;">"${hs.headline}"</p>
+      <div style="font-size:10px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:3px;margin-top:3px;">
+        <span>Reports: <b>${hs.report_count}</b></span> • <span>Upvotes: <b>${hs.upvotes}</b></span><br/>
+        <span>Hazard Index: <b>${hs.hazard_score}/100</b></span>
+      </div>
+    </div>`;
+    const m = L.marker([hs.lat, hs.lng], { icon, zIndexOffset: 800 }).bindPopup(popup);
+    if (state.mapLayers.showHotspots) m.addTo(state.mapInstance);
+    state.mapLayers.hotspots.push(m);
+  });
 }
 
 
