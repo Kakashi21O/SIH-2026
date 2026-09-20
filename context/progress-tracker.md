@@ -61,8 +61,11 @@ Distress keyword audio detection (Web Speech API + simulation), Multi-factor eme
 7. **Multi-Factor Situational Risk Engine**: Implemented weighted risk formula: Base Zone (40%) + Nearby Complaint Density (30%) + Time of Day (20%) + Safe Haven Proximity (10%) with live radar hotspot map layers.
 8. **Multi-Factor Emergency Severity Scoring**: Implemented exact specification formula: $\text{Zone Factor (+20)} + \text{Distress Signal (+30)} + \text{Repeated Signal (+20)} + \text{No Response (+20)} + \text{Manual SOS (+50)}$.
 9. **Dual-Layer Audio Pipeline**: Continuous Web Speech API recognition for trigger phrases (*"help me"*, *"bachao"*, *"stop"*, etc.) combined with `MediaRecorder` ambient audio evidence buffering and fallback synthesis.
+10. **Dual-Trigger Mode (Auto + Manual)**: Distress Keyword Listener operates both manually (user toggle / voice simulation chips) and automatically engages upon crossing into Red / High-Risk / Critical danger zones alongside Safety Mode.
 
 ---
 
 ## 5. Session Notes
-- Stage 4 (`safety`) is fully completed and verified. Ready to commit milestone and transition to Stage 5 (`polish`).
+- Stage 4 (`safety`) completed and pushed (`origin/safety`).
+- Enhanced Distress Keyword Listener to auto-activate upon entering Red / High-Risk zones (in addition to manual controls) and pushed to `origin/polish`.
+- Ready for Stage 5 (`polish`) execution: Security audit, error toasts, performance optimization, and automated testing.
