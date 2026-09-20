@@ -1,10 +1,10 @@
 /* ================= SAFESTEPS AI ASSISTANT STYLING ================= */
 
-/* Floating 30px Circular Glassmorphic AI Button */
+/* Floating 30px Circular Glassmorphic AI Button inside mobile app-frame */
 .safesteps-ai-trigger {
-  position: fixed;
-  bottom: 84px;
-  right: 18px;
+  position: absolute;
+  bottom: 74px;
+  right: 16px;
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -46,18 +46,19 @@
   50% { transform: scale(1.15); opacity: 1; }
 }
 
-/* Compact Glassmorphism Chat Window */
+/* Compact Glassmorphism Chat Window inside mobile app-frame */
 .safesteps-ai-window {
-  position: fixed;
-  bottom: 126px;
-  right: 18px;
-  width: 340px;
-  max-width: calc(100vw - 36px);
+  position: absolute;
+  bottom: 116px;
+  right: 12px;
+  left: 12px;
+  width: auto;
+  max-width: none;
   height: 480px;
-  max-height: calc(100vh - 160px);
-  background: rgba(15, 23, 42, 0.94);
+  max-height: calc(100% - 150px);
+  background: rgba(15, 23, 42, 0.95);
   border: 1px solid rgba(36, 50, 82, 0.9);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(6, 182, 212, 0.25);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(6, 182, 212, 0.25);
   border-radius: 16px;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);

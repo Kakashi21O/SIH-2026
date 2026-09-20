@@ -45,7 +45,10 @@ const SafeAssistantUI = {
   },
 
   injectUI() {
-    // 1. Floating 30px Circular Trigger Button
+    // Locate the mobile shell container (.app-frame) to ensure the AI circle stays inside the mobile layout
+    const container = document.querySelector(".app-frame") || document.body;
+
+    // 1. Floating 30px Circular Trigger Button inside mobile app-frame
     const triggerBtn = document.createElement("button");
     triggerBtn.id = "safesteps-ai-btn";
     triggerBtn.className = "safesteps-ai-trigger";
@@ -53,9 +56,9 @@ const SafeAssistantUI = {
     triggerBtn.innerHTML = `
       <span class="ai-trigger-sparkle">✨</span>
     `;
-    document.body.appendChild(triggerBtn);
+    container.appendChild(triggerBtn);
 
-    // 2. Chat Panel Window
+    // 2. Chat Panel Window inside mobile app-frame
     const chatWindow = document.createElement("div");
     chatWindow.id = "safesteps-ai-panel";
     chatWindow.className = "safesteps-ai-window";
@@ -87,7 +90,7 @@ const SafeAssistantUI = {
         </button>
       </form>
     `;
-    document.body.appendChild(chatWindow);
+    container.appendChild(chatWindow);
   },
 
   bindEvents() {
