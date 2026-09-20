@@ -1263,6 +1263,53 @@ function clearRoutePolylines() {
   if (!state.mapInstance) return;
   state.mapLayers.routePolylines.forEach(layer => state.mapInstance.removeLayer(layer));
   state.mapLayers.routePolylines = [];
+  if (state.mapLayers.navVehicleMarker) {
+    state.mapInstance.removeLayer(state.mapLayers.navVehicleMarker);
+    state.mapLayers.navVehicleMarker = null;
+  }
+}
+
+// Compute bearing angle between two lat/lng coordinates in degrees
+function calculateHeading(lat1, lon1, lat2, lon2) {
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+  const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+            Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+  const brng = Math.atan2(y, x) * 180 / Math.PI;
+  return (brng + 360) % 360;
+}
+
+function updateNavVehicleMarker(lat, lng, heading = 0) {
+  if (!state.mapInstance) return;
+  const latlng = [lat, lng];
+
+  if (state.mapLayers.navVehicleMarker) {
+    state.mapLayers.navVehicleMarker.setLatLng(latlng);
+    const wrap = document.getElementById("nav-vehicle-arrow-wrap");
+    if (wrap) {
+      wrap.style.transform = `rotate(${heading}deg)`;
+    }
+  } else {
+    const vehicleIcon = L.divIcon({
+      className: "nav-vehicle-marker-custom",
+      html: `
+        <div class="nav-vehicle-arrow-wrap" id="nav-vehicle-arrow-wrap" style="transform: rotate(${heading}deg);">
+          <div class="nav-vehicle-pulse"></div>
+          <div class="nav-vehicle-chevron">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2L4 20l8-4 8 4L12 2z"/>
+            </svg>
+          </div>
+        </div>
+      `,
+      iconSize: [36, 36],
+      iconAnchor: [18, 18]
+    });
+    state.mapLayers.navVehicleMarker = L.marker(latlng, { 
+      icon: vehicleIcon, 
+      zIndexOffset: 1500 
+    }).addTo(state.mapInstance);
+  }
 }
 
 function previewRouteOnMap(routeType) {
@@ -1274,26 +1321,37 @@ function previewRouteOnMap(routeType) {
     initOrResizeMap();
     clearRoutePolylines();
 
-    // Animated glowing route polyline
-    const polyline = L.polyline(route.waypoints, {
-      color: route.color || (routeType === "SAFER" ? "#10B981" : "#F97316"),
-      weight: 6,
-      opacity: 0.95,
+    // Google Maps double-layer route rendering: Dark contrast outer casing + glowing colored core
+    const casingPolyline = L.polyline(route.waypoints, {
+      color: "#0b0f19",
+      weight: 10,
+      opacity: 0.9,
       lineCap: "round",
-      className: routeType === "SAFER" ? "route-polyline-safe-glow" : "route-polyline-fastest",
-      dashArray: routeType === "SAFER" ? "12, 8" : "8, 8"
+      lineJoin: "round",
+      className: "route-polyline-casing"
     }).addTo(state.mapInstance);
 
-    state.mapLayers.routePolylines.push(polyline);
-    // Smooth cinematic zoom and pan to fit entire route
-    state.mapInstance.flyToBounds(polyline.getBounds(), { 
-      padding: [35, 35], 
+    const activePolyline = L.polyline(route.waypoints, {
+      color: route.color || (routeType === "SAFER" ? "#10B981" : "#F97316"),
+      weight: 6,
+      opacity: 1,
+      lineCap: "round",
+      lineJoin: "round",
+      className: routeType === "SAFER" ? "route-polyline-safe-glow" : "route-polyline-fastest"
+    }).addTo(state.mapInstance);
+
+    state.mapLayers.routePolylines.push(casingPolyline);
+    state.mapLayers.routePolylines.push(activePolyline);
+
+    // Smooth camera pan to fit entire route
+    state.mapInstance.flyToBounds(activePolyline.getBounds(), { 
+      padding: [45, 45], 
       maxZoom: 16,
       animate: true, 
-      duration: 1.1 
+      duration: 1.0 
     });
 
-    showToastAlert(`Showing ${routeType === "SAFER" ? "⭐ Recommended Safe" : "⚡ Fastest"} Route Preview`, "info");
+    showToastAlert(`Showing ${routeType === "SAFER" ? "⭐ Recommended Safe" : "⚡ Fastest"} Route along road network`, "info");
   }, 200);
 }
 
@@ -1326,66 +1384,143 @@ async function startLiveNavigation(routeType) {
     initOrResizeMap();
     clearRoutePolylines();
 
-    // Animated glowing navigation route
-    const polyline = L.polyline(route.waypoints, {
+    const waypoints = route.waypoints;
+    const initialPt = waypoints[0];
+    const nextPt = waypoints.length > 1 ? waypoints[1] : waypoints[0];
+    const initialHeading = calculateHeading(initialPt[0], initialPt[1], nextPt[0], nextPt[1]);
+
+    // Outer casing for sharp road-contrast
+    const casingPolyline = L.polyline(waypoints, {
+      color: "#0b0f19",
+      weight: 10,
+      opacity: 0.9,
+      lineCap: "round",
+      lineJoin: "round",
+      className: "route-polyline-casing"
+    }).addTo(state.mapInstance);
+
+    // Vibrant path ahead (will be trimmed dynamically as user travels)
+    const activePolyline = L.polyline(waypoints, {
       color: route.color || (routeType === "SAFER" ? "#10B981" : "#F97316"),
       weight: 6,
-      opacity: 0.95,
+      opacity: 1,
       lineCap: "round",
-      className: routeType === "SAFER" ? "route-polyline-safe-glow" : "route-polyline-fastest",
-      dashArray: routeType === "SAFER" ? "12, 8" : "8, 8"
+      lineJoin: "round",
+      className: routeType === "SAFER" ? "route-polyline-safe-glow" : "route-polyline-fastest"
     }).addTo(state.mapInstance);
-    state.mapLayers.routePolylines.push(polyline);
-    state.mapInstance.flyToBounds(polyline.getBounds(), { 
-      padding: [35, 35], 
-      maxZoom: 16,
-      animate: true, 
-      duration: 1.1 
-    });
 
+    state.mapLayers.routePolylines.push(casingPolyline);
+    state.mapLayers.routePolylines.push(activePolyline);
+
+    // Hide standard static circle and show Google Maps directional vehicle chevron
+    if (state.mapLayers.userMarker) {
+      state.mapInstance.removeLayer(state.mapLayers.userMarker);
+      state.mapLayers.userMarker = null;
+    }
+    updateNavVehicleMarker(initialPt[0], initialPt[1], initialHeading);
+
+    // Initial camera focus on starting road segment
+    state.mapInstance.setView([initialPt[0], initialPt[1]], 16, { animate: true });
+
+    // Populate HUD
     const hud = document.getElementById("map-nav-hud");
-    const hudTag = document.getElementById("hud-route-type");
-    const hudDest = document.getElementById("hud-dest-name");
     const hudScore = document.getElementById("hud-score-badge");
     const hudEta = document.getElementById("hud-eta-text");
+    const hudDistRemain = document.getElementById("hud-dist-remain");
     const hudFill = document.getElementById("hud-progress-fill");
+    const hudDistToTurn = document.getElementById("hud-dist-to-turn");
+    const hudInstruction = document.getElementById("hud-instruction-text");
+    const hudTurnWrap = document.getElementById("hud-turn-icon-wrap");
 
     if (hud) hud.style.display = "flex";
-    if (hudTag) hudTag.textContent = routeType === "SAFER" ? "⭐ SAFE JOURNEY ACTIVE" : "⚡ FASTEST ROUTE (MONITORED)";
-    if (hudDest) hudDest.textContent = state.journeyState.data.destination.name;
     if (hudScore) {
       hudScore.textContent = `Score ${route.safety_score}`;
       hudScore.className = `hud-score-pill ${route.safety_score >= 80 ? 'safe' : 'danger'}`;
     }
-    if (hudEta) hudEta.textContent = `${route.duration_mins} mins remaining`;
-    if (hudFill) hudFill.style.width = "5%";
 
-    updateStatusPill(routeType === "SAFER" ? "Safe Journey Active" : "Route Monitored", "safe");
-    showToastAlert(`🚀 Navigation Started via ${route.name}`, "safe");
+    const steps = route.steps || [];
+    function renderStepManeuver(stepIdx) {
+      const step = steps[stepIdx] || steps[0] || { instruction: `Follow ${route.name}`, distance: "300m", maneuver: "straight" };
+      if (hudDistToTurn) hudDistToTurn.textContent = step.distance;
+      if (hudInstruction) hudInstruction.textContent = step.instruction;
+      if (hudTurnWrap) {
+        hudTurnWrap.className = `hud-maneuver-icon-wrap ${step.maneuver || 'straight'}`;
+      }
+    }
+
+    renderStepManeuver(0);
+    if (hudEta) hudEta.textContent = `${route.duration_mins} mins`;
+    if (hudDistRemain) hudDistRemain.textContent = `${route.distance_km} km remaining`;
+    if (hudFill) hudFill.style.width = "4%";
+
+    // Re-center button action
+    const recenterBtn = document.getElementById("btn-nav-recenter");
+    if (recenterBtn) {
+      recenterBtn.onclick = () => {
+        const curIdx = state.journeyState.currentWaypointIndex;
+        const curPt = waypoints[curIdx] || waypoints[0];
+        state.mapInstance.panTo([curPt[0], curPt[1]], { animate: true, duration: 0.5 });
+      };
+    }
+
+    updateStatusPill(routeType === "SAFER" ? "Safe Navigation Active" : "Navigating (Monitored)", "safe");
+    showToastAlert(`🚀 Navigation Started along ${route.name}`, "safe");
 
     clearInterval(state.journeyState.navInterval);
-    const waypoints = route.waypoints;
+
+    // Live Step-by-Step Traversal with Real-Time Path Trimming
     state.journeyState.navInterval = setInterval(() => {
       state.journeyState.currentWaypointIndex++;
-      if (state.journeyState.currentWaypointIndex < waypoints.length) {
-        const pt = waypoints[state.journeyState.currentWaypointIndex];
+      const curIdx = state.journeyState.currentWaypointIndex;
+
+      if (curIdx < waypoints.length) {
+        const pt = waypoints[curIdx];
+        const nextPtAhead = curIdx + 1 < waypoints.length ? waypoints[curIdx + 1] : pt;
+        const heading = calculateHeading(pt[0], pt[1], nextPtAhead[0], nextPtAhead[1]);
+
         state.currentLocation.lat = pt[0];
         state.currentLocation.lng = pt[1];
-        updateUserMarkerOnMap();
+
+        // 1. Move vehicle marker & rotate heading
+        updateNavVehicleMarker(pt[0], pt[1], heading);
         updateSafetyScore(pt[0], pt[1]);
 
-        // Smooth camera follow during live GPS movement
+        // 2. REAL-TIME PATH TRIMMING: Traversed path behind is removed, only path ahead remains!
+        const remainingWaypoints = waypoints.slice(curIdx);
+        casingPolyline.setLatLngs(remainingWaypoints);
+        activePolyline.setLatLngs(remainingWaypoints);
+
+        // 3. Smooth camera follow along road
         if (state.mapInstance) {
           state.mapInstance.panTo([pt[0], pt[1]], { animate: true, duration: 0.6 });
         }
 
-        const pct = Math.round(((state.journeyState.currentWaypointIndex + 1) / waypoints.length) * 100);
+        // 4. Update HUD Progress & Turn Maneuver
+        const pct = Math.round(((curIdx + 1) / waypoints.length) * 100);
         if (hudFill) hudFill.style.width = `${pct}%`;
         const minsLeft = Math.max(1, Math.round(route.duration_mins * (1 - pct / 100)));
-        if (hudEta) hudEta.textContent = `${minsLeft} mins remaining (${pct}% completed)`;
+        const kmLeft = (route.distance_km * (1 - pct / 100)).toFixed(1);
+        if (hudEta) hudEta.textContent = `${minsLeft} mins`;
+        if (hudDistRemain) hudDistRemain.textContent = `${kmLeft} km remaining`;
+
+        // Update step maneuver instruction corresponding to progression
+        const stepIdx = Math.min(steps.length - 1, Math.floor((curIdx / waypoints.length) * steps.length));
+        renderStepManeuver(stepIdx);
+
       } else {
         clearInterval(state.journeyState.navInterval);
-        if (hudEta) hudEta.textContent = "Arrived safely at destination!";
+        
+        // Remove remaining route polylines upon safe arrival
+        casingPolyline.setLatLngs([]);
+        activePolyline.setLatLngs([]);
+
+        if (hudDistToTurn) hudDistToTurn.textContent = "0 m";
+        if (hudInstruction) hudInstruction.textContent = "You have arrived safely at your destination!";
+        if (hudTurnWrap) hudTurnWrap.className = "hud-maneuver-icon-wrap arrive";
+        if (hudEta) hudEta.textContent = "Arrived";
+        if (hudDistRemain) hudDistRemain.textContent = "Safe Destination Reached";
+        if (hudFill) hudFill.style.width = "100%";
+
         showToastAlert("🎉 Safe Arrival: You have reached your destination!", "safe");
       }
     }, 2500);
@@ -1399,6 +1534,7 @@ function endLiveNavigation() {
   const hud = document.getElementById("map-nav-hud");
   if (hud) hud.style.display = "none";
   clearRoutePolylines();
+  updateUserMarkerOnMap();
   updateStatusPill("Protected", "safe");
   showToastAlert("Safe Journey navigation ended.", "info");
 }

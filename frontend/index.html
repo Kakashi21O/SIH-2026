@@ -296,22 +296,38 @@
           </div>
 
           
-          <!-- Live Navigation HUD (Shown during active journey) -->
+          <!-- Live Navigation HUD (Shown during active journey - Google Maps Tactical Style) -->
           <div class="nav-hud-card" id="map-nav-hud" style="display: none;">
-            <div class="hud-top">
-
-              <div class="hud-route-info">
-                <span class="hud-tag" id="hud-route-type">SAFER ROUTE ACTIVE</span>
-                <h4 id="hud-dest-name">Karol Bagh Residence</h4>
+            <!-- Turn Maneuver Direction Banner -->
+            <div class="hud-maneuver-banner">
+              <div class="hud-maneuver-icon-wrap" id="hud-turn-icon-wrap">
+                <svg id="hud-maneuver-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+              </div>
+              <div class="hud-maneuver-text-wrap">
+                <div class="hud-dist-next" id="hud-dist-to-turn">350 m</div>
+                <div class="hud-instruction" id="hud-instruction-text">Head west on Radial Rd towards Connaught Circus</div>
               </div>
               <span class="hud-score-pill safe" id="hud-score-badge">Score 89</span>
             </div>
+
+            <!-- Route Details & Progress Tracker -->
             <div class="hud-progress-bar">
-              <div class="hud-progress-fill" id="hud-progress-fill" style="width: 20%;"></div>
+              <div class="hud-progress-fill" id="hud-progress-fill" style="width: 10%;"></div>
             </div>
+
+            <!-- Bottom Metrics & Navigation Controls -->
             <div class="hud-bottom">
-              <span class="hud-eta" id="hud-eta-text">14 mins remaining</span>
-              <button class="hud-end-btn" id="btn-end-navigation">End Trip</button>
+              <div class="hud-metric-pair">
+                <span class="hud-eta" id="hud-eta-text">15 mins</span>
+                <span class="hud-subtext" id="hud-dist-remain">3.6 km remaining</span>
+              </div>
+              <div class="hud-actions-pair">
+                <button class="hud-recenter-btn" id="btn-nav-recenter" title="Re-center onto current vehicle position">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                  <span>Re-center</span>
+                </button>
+                <button class="hud-end-btn" id="btn-end-navigation">Exit</button>
+              </div>
             </div>
           </div>
 

@@ -1201,63 +1201,103 @@ input:checked + .switch-slider:before {
   padding: 0 !important;
 }
 
-/* Live Navigation HUD Overlay on Map */
+/* Live Navigation HUD Overlay on Map — Google Maps Tactical Style */
 .nav-hud-card {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  right: 12px;
-  background: rgba(18, 21, 31, 0.95);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border-subtle);
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 189, 248, 0.35);
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   z-index: 1000;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 12px rgba(56, 189, 248, 0.15);
 }
 
-.hud-top {
+.hud-maneuver-banner {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 12px;
 }
 
-.hud-route-info {
+.hud-maneuver-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
 }
 
-.hud-tag {
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: var(--accent-safe);
-  letter-spacing: 0.05em;
+.hud-maneuver-icon-wrap.turn-left svg {
+  transform: rotate(-90deg);
 }
 
-.hud-route-info h4 {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-main);
+.hud-maneuver-icon-wrap.turn-right svg {
+  transform: rotate(90deg);
+}
+
+.hud-maneuver-icon-wrap.slight-left svg {
+  transform: rotate(-45deg);
+}
+
+.hud-maneuver-icon-wrap.slight-right svg {
+  transform: rotate(45deg);
+}
+
+.hud-maneuver-icon-wrap.arrive {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.hud-maneuver-text-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.hud-dist-next {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: #38bdf8;
+  line-height: 1.1;
+}
+
+.hud-instruction {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
 }
 
 .hud-score-pill {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: var(--radius-full);
+  white-space: nowrap;
 }
 
 .hud-score-pill.safe {
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.4);
   color: var(--accent-safe);
 }
 
 .hud-score-pill.danger {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.4);
   color: var(--accent-danger);
 }
 
@@ -1265,14 +1305,15 @@ input:checked + .switch-slider:before {
   width: 100%;
   height: 4px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
+  border-radius: 99px;
   overflow: hidden;
 }
 
 .hud-progress-fill {
   height: 100%;
-  background: var(--accent-safe);
-  transition: width 0.3s ease;
+  background: linear-gradient(90deg, #38bdf8, #10b981);
+  transition: width 0.4s ease;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
 }
 
 .hud-bottom {
@@ -1281,21 +1322,59 @@ input:checked + .switch-slider:before {
   align-items: center;
 }
 
+.hud-metric-pair {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
 .hud-eta {
-  font-size: 0.72rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: #10b981;
+}
+
+.hud-subtext {
+  font-size: 0.7rem;
   color: var(--text-muted);
-  font-weight: 500;
+}
+
+.hud-actions-pair {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.hud-recenter-btn {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s ease;
+}
+
+.hud-recenter-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
 }
 
 .hud-end-btn {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.4);
   color: #fca5a5;
   font-size: 0.68rem;
   font-weight: 600;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: var(--radius-xs);
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 .hud-end-btn:hover {
@@ -2338,26 +2417,81 @@ input:checked + .switch-slider:before {
    v2.3 ENHANCEMENTS: MAP ANIMATIONS & RESPONSIVE REFINEMENTS
    ========================================================================== */
 
-/* Animated Route Polylines (Safe Route flowing glow) */
+/* Animated Route Polylines (Google Maps Tactical Solid & Casing) */
+.leaflet-pane svg path.route-polyline-casing {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8));
+}
+
 .leaflet-pane svg path.route-polyline-safe-glow {
-  stroke-dasharray: 12, 8;
-  animation: routeDashFlow 22s linear infinite;
-  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.75));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.9));
 }
 
 .leaflet-pane svg path.route-polyline-fastest {
-  stroke-dasharray: 8, 8;
-  animation: routeDashFlow 28s linear infinite reverse;
-  filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.6));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.9));
 }
 
-@keyframes routeDashFlow {
-  from {
-    stroke-dashoffset: 400;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
+/* Faint traversed trail behind user (optional, or removed cleanly) */
+.leaflet-pane svg path.route-polyline-traversed {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.35;
+  stroke-dasharray: 6, 6;
+}
+
+/* Directional Vehicle Arrow Indicator during Live Navigation */
+.nav-vehicle-marker-custom {
+  background: transparent !important;
+  border: none !important;
+}
+
+.nav-vehicle-arrow-wrap {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.4s ease-out;
+}
+
+.nav-vehicle-pulse {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.25);
+  animation: navVehiclePulse 1.8s infinite ease-out;
+}
+
+.nav-vehicle-chevron {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0284c7;
+  border: 2.5px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.9), 0 3px 8px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+}
+
+.nav-vehicle-chevron svg {
+  fill: #ffffff;
+  width: 14px;
+  height: 14px;
+}
+
+@keyframes navVehiclePulse {
+  0% { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
 }
 
 /* Enhanced Radar Sonar User GPS Beacon */
