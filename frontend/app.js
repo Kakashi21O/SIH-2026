@@ -6,9 +6,9 @@
 // Global Application State
 const state = {
   currentUser: {
-    id: "usr_demo",
-    name: "Ananya Sharma",
-    phone: "+919876543210"
+    id: "",
+    name: "",
+    phone: ""
   },
   currentLocation: {
     lat: 28.6315,
@@ -272,7 +272,10 @@ function finishRegistration(guardians) {
 function applySession(userData) {
   // Populate state
   if (userData.name) state.currentUser.name = userData.name;
-  if (userData.phone) state.currentUser.phone = userData.phone;
+  if (userData.phone) {
+    state.currentUser.phone = userData.phone;
+    state.currentUser.id = userData.phone; // use phone as unique user ID
+  }
 
   // Show logout button
   const logoutBtn = document.getElementById("btn-logout");
@@ -1754,44 +1757,40 @@ async function loadGuardiansList() {
   const countBadge = document.getElementById("guardian-count-badge");
   if (!container) return;
 
-  try {
-    const res = await fetch(`/api/guardians?user_id=${state.currentUser.id}`);
-    if (!res.ok) throw new Error("Failed to fetch guardians");
-    const guardians = await res.json();
+  // Load from localStorage — the user's own guardians
+  const userData = getStoredUser();
+  const guardians = userData?.guardians || [];
 
-    if (countBadge) countBadge.textContent = `${guardians.length} Active`;
+  if (countBadge) countBadge.textContent = `${guardians.length} Active`;
 
-    if (guardians.length === 0) {
-      container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem; text-align: center; padding: 12px;">No guardians added yet. Add your trusted contacts below.</p>`;
-      return;
-    }
+  if (guardians.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:20px 12px;">
+      <div style="font-size:2rem;margin-bottom:8px;">👥</div>
+      <p style="color:var(--text-dim);font-size:0.85rem;line-height:1.5;">No emergency contacts yet.<br/>Add a guardian to enable SOS alerts.</p>
+    </div>`;
+    return;
+  }
 
-    container.innerHTML = guardians.map(g => `
-      <div class="guardian-item ${g.is_primary ? 'primary-card' : ''}" id="guardian-card-${g.id}">
-        <div class="g-info">
-          <div class="g-header-row">
-            <span class="g-name">${g.name}</span>
-            ${g.is_primary ? '<span class="primary-pill">⭐ Primary</span>' : ''}
-          </div>
-          <div class="g-meta-row">
-            <span class="g-phone">${g.phone}</span>
-            <span class="g-rel-tag">${g.relationship}</span>
-          </div>
+  container.innerHTML = guardians.map((g, idx) => `
+    <div class="guardian-item ${idx === 0 ? 'primary-card' : ''}" id="guardian-card-${g.id}">
+      <div class="g-info">
+        <div class="g-header-row">
+          <span class="g-name">${g.name}</span>
+          ${idx === 0 ? '<span class="primary-pill">⭐ Primary</span>' : ''}
         </div>
-        <div class="g-actions">
-          <button class="g-action-btn test" onclick="handleSendTestAlert('${g.id}', '${g.name.replace(/'/g, "\\'")}')">
-            <span>Test Alert</span>
-          </button>
-          ${!g.is_primary ? `<button class="g-action-btn set-primary" onclick="handleSetPrimaryGuardian('${g.id}')">Make Primary</button>` : ''}
-          <button class="g-action-btn delete" onclick="handleDeleteGuardian('${g.id}')">✕</button>
+        <div class="g-meta-row">
+          <span class="g-phone">${g.phone}</span>
+          <span class="g-rel-tag">${g.relationship}</span>
         </div>
       </div>
-    `).join("");
-
-  } catch (err) {
-    console.warn("Could not load guardians:", err);
-    container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem;">Could not load emergency contacts.</p>`;
-  }
+      <div class="g-actions">
+        <button class="g-action-btn test" onclick="handleSendTestAlert('${g.id}', '${g.name.replace(/'/g, "\\'")}')">
+          <span>Test Alert</span>
+        </button>
+        <button class="g-action-btn delete" onclick="handleDeleteGuardian('${g.id}')">✕</button>
+      </div>
+    </div>
+  `).join("");
 }
 
 async function handleCreateGuardian(e) {
@@ -1799,69 +1798,49 @@ async function handleCreateGuardian(e) {
   const name = document.getElementById("g-input-name").value.trim();
   const phone = document.getElementById("g-input-phone").value.trim();
   const relationship = document.getElementById("g-input-rel").value;
-  const is_primary = document.getElementById("g-input-primary").checked;
 
   if (!name || !phone) return;
 
-  try {
-    const res = await fetch("/api/guardians", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: state.currentUser.id,
-        name,
-        phone,
-        relationship,
-        is_primary
-      })
-    });
+  // Save to localStorage
+  const userData = getStoredUser();
+  if (!userData) return;
+  if (!userData.guardians) userData.guardians = [];
 
-    if (!res.ok) throw new Error("Failed to create guardian");
-    
-    // Reset form
-    document.getElementById("form-add-guardian").reset();
-    document.getElementById("form-add-guardian").style.display = "none";
-    const toggleBtn = document.getElementById("btn-toggle-add-guardian");
-    if (toggleBtn) {
-      toggleBtn.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        <span>Add New Contact</span>
-      `;
-    }
+  const newGuardian = { id: "g_" + Date.now(), name, phone, relationship };
+  userData.guardians.push(newGuardian);
+  saveUser(userData);
 
-    loadGuardiansList();
-    showToastAlert(`✅ Added ${name} (${relationship}) as Emergency Guardian`, "safe");
-  } catch (err) {
-    console.warn("Error adding guardian:", err);
-    showToastAlert("Failed to add contact", "danger");
-  }
+  // Sync to backend silently
+  fetch("/api/guardians", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: state.currentUser.id, name, phone, relationship, is_primary: userData.guardians.length === 1 })
+  }).catch(() => {});
+
+  // Reset form UI
+  document.getElementById("form-add-guardian").reset();
+  document.getElementById("form-add-guardian").style.display = "none";
+  const toggleBtn = document.getElementById("btn-toggle-add-guardian");
+  if (toggleBtn) toggleBtn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <span>Add New Contact</span>
+  `;
+
+  loadGuardiansList();
+  applySession(userData); // refresh SOS guardian status
+  showToastAlert(`✅ Added ${name} (${relationship}) as Emergency Guardian`, "safe");
 }
 
 async function handleDeleteGuardian(id) {
-  try {
-    const res = await fetch(`/api/guardians/${id}`, { method: "DELETE" });
-    if (!res.ok) throw new Error("Delete failed");
-    loadGuardiansList();
-    showToastAlert("Guardian removed from emergency list", "info");
-  } catch (err) {
-    console.warn("Error deleting guardian:", err);
-  }
+  const userData = getStoredUser();
+  if (!userData) return;
+  userData.guardians = (userData.guardians || []).filter(g => g.id !== id);
+  saveUser(userData);
+  loadGuardiansList();
+  applySession(userData);
+  showToastAlert("Guardian removed from emergency list", "info");
 }
 
-async function handleSetPrimaryGuardian(id) {
-  try {
-    const res = await fetch(`/api/guardians/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_primary: true })
-    });
-    if (!res.ok) throw new Error("Update failed");
-    loadGuardiansList();
-    showToastAlert("⭐ Primary guardian updated", "safe");
-  } catch (err) {
-    console.warn("Error updating primary guardian:", err);
-  }
-}
 
 async function handleSendTestAlert(id, name) {
   try {
