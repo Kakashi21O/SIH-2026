@@ -615,12 +615,15 @@ function cancelEmergencyCountdown(reason) {
   // Stop evidence recording without escalating
   if (window.SafeAudioEngine) {
     window.SafeAudioEngine.stopEvidenceRecording();
+    
+    // Turn off Distress Keyword Listener if alarm was triggered mistakenly and cancelled by valid PIN
+    window.SafeAudioEngine.stopSpeechListening();
   }
 
   closePinModal();
   showScreen("screen-home");
   updateStatusPill("Protected", "safe");
-  showToastAlert("✅ Emergency Cancelled: PIN Verified Successfully", "safe");
+  showToastAlert("✅ Alarm Cancelled by PIN: Distress Listener & Recording Deactivated", "safe");
 }
 
 async function escalateToActiveEmergency(source) {
