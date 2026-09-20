@@ -733,16 +733,18 @@ input:checked + .switch-slider:before {
 .legend-dot.high { background: var(--accent-high); }
 .legend-dot.critical { background: var(--accent-danger); }
 
-/* Organic Risk Zone Polygons */
+/* Organic Fluid Water-Like Risk Zones */
 .organic-risk-zone {
-  transition: fill-opacity 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease;
-  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.45));
+  transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  filter: drop-shadow(0 0 10px currentColor) blur(0.4px);
   cursor: pointer;
+  stroke-dasharray: none;
 }
 
 .organic-risk-zone:hover {
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.25));
+  filter: drop-shadow(0 0 16px currentColor) brightness(1.25);
 }
+
 
 /* Dynamic Safety Hotspot Radar Overlay */
 .hotspot-radar-pulse {

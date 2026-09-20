@@ -299,16 +299,22 @@ async function loadMapRiskZones() {
     }
 
     state.mapLayers.zones = L.geoJSON(geojson, {
-      style: (feature) => ({
-        color: feature.properties.color || "#10b981",
-        weight: 2.2,
-        fillColor: feature.properties.color || "#10b981",
-        fillOpacity: feature.properties.fillOpacity ? Math.min(0.5, feature.properties.fillOpacity + 0.08) : 0.35,
-        lineJoin: "round",
-        lineCap: "round",
-        className: "organic-risk-zone"
-      }),
+      style: (feature) => {
+        const color = feature.properties.color || "#10b981";
+        return {
+          color: color,
+          weight: 1.8,
+          opacity: 0.85,
+          fillColor: color,
+          fillOpacity: 0.32,
+          lineJoin: "round",
+          lineCap: "round",
+          smoothFactor: 2.0,
+          className: "organic-risk-zone"
+        };
+      },
       onEachFeature: (feature, layer) => {
+
         // Subtle hover highlight
         layer.on({
           mouseover: (e) => {
