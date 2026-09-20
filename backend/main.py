@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from backend.config import settings
 from backend.database.database import init_db
-from backend.routes import auth, safety, emergency, complaints, guardians, location
+from backend.routes import auth, safety, emergency, complaints, guardians, location, assistant
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -34,6 +34,7 @@ app.include_router(location.router)
 app.include_router(emergency.router)
 app.include_router(complaints.router)
 app.include_router(guardians.router)
+app.include_router(assistant.router)
 
 @app.get("/api/health")
 def health_check():

@@ -39,8 +39,9 @@ Distress keyword audio detection (Web Speech API + simulation), Multi-factor eme
 - [x] Distress keyword audio detection (Web Speech API / simulated trigger) (v4.1)
 - [x] Severity engine weighting formula (Zone + Distress + Repeated Signal + Silence/Timeout + Manual SOS) (v4.2)
 - [x] Emergency audio evidence buffer capture (MediaRecorder & in-app playback) (v4.3)
+- [x] SafeSteps AI Conversational Safety Guide integration (v4.4)
 
-### Stage 5: `polish` (Pending)
+### Stage 5: `polish` (In Progress)
 - [ ] Security audit & `.env` configuration isolation
 - [ ] Performance optimization, loading states, and error toasts
 - [ ] Automated route & API endpoint testing
@@ -62,10 +63,11 @@ Distress keyword audio detection (Web Speech API + simulation), Multi-factor eme
 8. **Multi-Factor Emergency Severity Scoring**: Implemented exact specification formula: $\text{Zone Factor (+20)} + \text{Distress Signal (+30)} + \text{Repeated Signal (+20)} + \text{No Response (+20)} + \text{Manual SOS (+50)}$.
 9. **Dual-Layer Audio Pipeline**: Continuous Web Speech API recognition for trigger phrases (*"help me"*, *"bachao"*, *"stop"*, etc.) combined with `MediaRecorder` ambient audio evidence buffering and fallback synthesis.
 10. **Dual-Trigger Mode (Auto + Manual)**: Distress Keyword Listener operates both manually (user toggle / voice simulation chips) and automatically engages upon crossing into Red / High-Risk / Critical danger zones alongside Safety Mode.
+11. **Grounded AI Assistant Architecture**: SafeSteps AI operates via a controlled read-only data layer (`ai_tools.py`) strictly grounded in actual Risk Engine, Complaint AI, and Journey metrics. Non-blocking design ensures 100% independence of the emergency/SOS pipeline.
 
 ---
 
 ## 5. Session Notes
-- Stage 4 (`safety`) completed and pushed (`origin/safety`).
-- Enhanced Distress Keyword Listener to auto-activate upon entering Red / High-Risk zones (in addition to manual controls) and pushed to `origin/polish`.
-- Ready for Stage 5 (`polish`) execution: Security audit, error toasts, performance optimization, and automated testing.
+- Integrated **SafeSteps AI Assistant** (POST `/api/assistant/chat`, `ai_tools.py`, `ai_assistant.py`, floating 30px glassmorphic button in `assistant.js` / `assistant.css`).
+- Emergency guardrail directly routes users in distress to the SOS countdown interface.
+- Ready to proceed with Stage 5 (`polish`) verification and testing.

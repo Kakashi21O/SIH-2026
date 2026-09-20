@@ -196,4 +196,16 @@ class GuardianResponse(BaseModel):
     relationship: str
     is_primary: bool
 
+# ================= ASSISTANT SCHEMAS =================
+class AssistantChatRequest(BaseModel):
+    message: str = Field(..., min_length=1, example="Tell me about this area")
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    context: Optional[Dict[str, Any]] = None
+
+class AssistantChatResponse(BaseModel):
+    reply: str
+    sources: List[str]
+    structured_data: Optional[Dict[str, Any]] = None
+
 

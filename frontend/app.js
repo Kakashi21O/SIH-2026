@@ -68,6 +68,11 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // Initial state fetch
   updateSafetyScore(state.currentLocation.lat, state.currentLocation.lng);
+
+  // Initialize SafeSteps AI Assistant widget
+  if (window.SafeAssistantUI) {
+    window.SafeAssistantUI.init();
+  }
 });
 
 function showScreen(screenId) {
@@ -75,6 +80,11 @@ function showScreen(screenId) {
   const target = document.getElementById(screenId);
   if (target) {
     target.classList.add("active");
+  }
+
+  // Update AI Assistant screen context
+  if (window.SafeAssistantUI) {
+    window.SafeAssistantUI.updateScreenContext(screenId);
   }
 
   // Update navigation tab highlights
