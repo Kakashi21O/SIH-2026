@@ -49,38 +49,48 @@ Traditional safety apps force a woman in distress to manually reach for her phon
 
 ---
 
-## 📱 7 Core Screens
-1. **Login & Security PIN**: Quick onboarding and 4-digit emergency abort PIN configuration.
-2. **Home Dashboard**: Live GPS status, dynamic safety score badge, manual/automatic Safety Mode toggle.
-3. **Smart Safety Map**: Leaflet.js + OpenStreetMap with color-coded risk zones (🟢 Low, 🟡 Moderate, 🟠 High, 🔴 Critical), POIs (Police, Hospitals), and user beacon.
-4. **Safe Journey**: Multi-criteria routing comparing **Fastest Route** vs **Safer Route ⭐**.
-5. **Emergency Verification**: 10-second countdown alert (*"Are you safe?"*) with PIN keypad abort.
-6. **Emergency Mode (Active)**: Live status checklist (Guardian notified ✓, Location shared ✓, 112 dispatched ✓, Audio evidence recording 🎙️).
-7. **Safety Intelligence**: Complaint submission, NLP categorization, and emerging safety hotspot feed.
+## 📱 7 Core Screens + SafeSteps AI Assistant
+1. **Login & Security PIN**: Quick onboarding and 4-digit emergency abort PIN configuration (Default demo PIN: `1234`).
+2. **Home Dashboard**: Live GPS status, dynamic situational safety score badge (0-100), and auto Safety Mode indicator.
+3. **Smart Safety Map**: Leaflet.js + CartoDB Dark Matter tiles with organic risk zones (🟢 Low, 🟡 Moderate, 🟠 High, 🔴 Critical), POIs (Police Stations, Safe Havens), and real-time crowd hazard radar.
+4. **Safe Journey**: Multi-criteria routing comparing **Fastest Route** vs **Safer Route ⭐** (with risk penalties, lighting indicators, and waypoint tracking).
+5. **Emergency Verification**: 10-second loud countdown alert (*"Are you safe?"*) with PIN keypad abort to prevent false alarms.
+6. **Emergency Mode (Active)**: Live status checklist (Guardian SMS alert ✓, 112 CAD simulation ✓, Ambient audio evidence recording 🎙️ with in-app playback).
+7. **Safety Intelligence**: Real-time complaint submission with AI NLP classification, duplicate detection, and dynamic spatial clustering.
+8. **🤖 SafeSteps AI Safety Assistant**: Grounded conversational safety guide available across all screens with emergency auto-routing.
 
 ---
 
 ## 🛠️ Technology Stack
-- **Frontend**: HTML5, CSS3, Vanilla JavaScript (ES6+), Leaflet.js, OpenStreetMap
-- **Backend**: Python 3.10+, FastAPI, Uvicorn
-- **Database**: SQLite (SQLAlchemy / JSON storage)
-- **AI / NLP**: Text categorization, keyword similarity matching, and spatial clustering
-- **Audio / Media**: Web Speech API & MediaStream Recording
+- **Frontend**: Zero-build Vanilla HTML5, CSS3, ES6+, Leaflet.js 1.9.4
+- **Backend**: Python 3.10+, FastAPI, Uvicorn, Pydantic v2
+- **Database**: SQLite with auto-initializing schema and pre-seeded demo datasets
+- **AI / NLP**: In-memory TF-IDF + lexicon semantic classifier (`backend/services/complaint_ai.py`)
+- **Audio / Media**: Continuous Web Speech API distress detection & MediaStream audio evidence buffering
+- **Testing**: Automated `pytest` suite with `httpx` TestClient
 
 ---
 
-## 🚀 Quickstart & Setup
+## 🚀 Quickstart & Running Tests
 
 ```bash
 # 1. Clone repository & install dependencies
 pip install -r requirements.txt
 
-# 2. Start FastAPI Backend & Frontend Server
-uvicorn backend.main:app --reload --port 8000
+# 2. Run automated regression test suite (7/7 tests)
+python -m pytest -v tests/test_backend_api.py
 
-# 3. Open SafeSteps in your browser
+# 3. Start FastAPI Backend & Static Server
+python -m uvicorn backend.main:app --reload --port 8000
+
+# 4. Open SafeSteps in your browser
 # Navigate to: http://localhost:8000
 ```
+
+---
+
+## ⏱️ 2-Minute Hackathon Demo
+Follow our structured, step-by-step judge demonstration guide in **`DEMO_SCRIPT.md`** to present the end-to-end prototype in under 120 seconds!
 
 ---
 
@@ -88,4 +98,5 @@ uvicorn backend.main:app --reload --port 8000
 Development strictly follows the 6 controlled branches:
 `foundation` ➔ `enhance` ➔ `intelligence` ➔ `safety` ➔ `polish` ➔ `final`
 
-For full details, see [githubworkflow.md](file:///c:/Users/vijay/OneDrive/Documents/Git/SIH%202026/githubworkflow.md) and the [context/](file:///c:/Users/vijay/OneDrive/Documents/Git/SIH%202026/context/) directory.
+For full architectural details and context documentation, see `githubworkflow.md` and the `context/` directory.
+
