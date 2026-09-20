@@ -2513,6 +2513,60 @@ button,
   color: #fca5a5;
 }
 
+/* ================= TOAST NOTIFICATION STYLING ================= */
+.app-toast {
+  position: absolute;
+  top: 70px;
+  left: 16px;
+  right: 16px;
+  z-index: 9999;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #ffffff;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  transform: translateY(-20px);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-toast.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-toast.safe {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(6, 78, 59, 0.92);
+  color: #6ee7b7;
+}
+
+.app-toast.danger {
+  border-color: rgba(239, 68, 68, 0.6);
+  background: rgba(127, 29, 29, 0.95);
+  color: #fca5a5;
+}
+
+.app-toast.warn {
+  border-color: rgba(245, 158, 11, 0.6);
+  background: rgba(120, 53, 15, 0.92);
+  color: #fde68a;
+}
+
+.app-toast.info {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(12, 74, 110, 0.92);
+  color: #7dd3fc;
+}
+
+
 
 
 

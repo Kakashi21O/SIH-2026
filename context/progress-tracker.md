@@ -41,10 +41,10 @@ Distress keyword audio detection (Web Speech API + simulation), Multi-factor eme
 - [x] Emergency audio evidence buffer capture (MediaRecorder & in-app playback) (v4.3)
 - [x] SafeSteps AI Conversational Safety Guide integration (v4.4)
 
-### Stage 5: `polish` (In Progress)
-- [ ] Security audit & `.env` configuration isolation
-- [ ] Performance optimization, loading states, and error toasts
-- [ ] Automated route & API endpoint testing
+### Stage 5: `polish` (Completed)
+- [x] Security audit & `.env` configuration isolation (v5.1)
+- [x] Performance optimization, loading states, and error toasts (v5.2)
+- [x] Automated route & API endpoint testing with pytest (v5.3)
 
 ### Stage 6: `final` (Pending)
 - [ ] End-to-end 2-minute hackathon demo script verification
@@ -64,10 +64,15 @@ Distress keyword audio detection (Web Speech API + simulation), Multi-factor eme
 9. **Dual-Layer Audio Pipeline**: Continuous Web Speech API recognition for trigger phrases (*"help me"*, *"bachao"*, *"stop"*, etc.) combined with `MediaRecorder` ambient audio evidence buffering and fallback synthesis.
 10. **Dual-Trigger Mode (Auto + Manual)**: Distress Keyword Listener operates both manually (user toggle / voice simulation chips) and automatically engages upon crossing into Red / High-Risk / Critical danger zones alongside Safety Mode.
 11. **Grounded AI Assistant Architecture**: SafeSteps AI operates via a controlled read-only data layer (`ai_tools.py`) strictly grounded in actual Risk Engine, Complaint AI, and Journey metrics. Non-blocking design ensures 100% independence of the emergency/SOS pipeline.
+12. **Automated Endpoint Testing Suite**: Embedded comprehensive `pytest` regression suite verifying health checks, 4-digit PIN verification, dynamic hotspot clusters, 5-factor severity engine escalations, Safe Journey route evaluations, and SafeSteps AI query answering.
 
 ---
 
 ## 5. Session Notes
-- Integrated **SafeSteps AI Assistant** (POST `/api/assistant/chat`, `ai_tools.py`, `ai_assistant.py`, floating 30px glassmorphic button in `assistant.js` / `assistant.css`).
-- Emergency guardrail directly routes users in distress to the SOS countdown interface.
-- Ready to proceed with Stage 5 (`polish`) verification and testing.
+- Completed Part 5 (`polish`) deliverables:
+  - Added automated test suite `tests/test_backend_api.py` covering all core modules (7/7 tests passing).
+  - Added modern glassmorphic styling and animation rules for `.app-toast` notifications (`style.css`).
+  - Isolated environment configuration and confirmed secret containment via `.env.example` and `.gitignore`.
+  - Added `pytest` and `httpx` dependencies to `requirements.txt`.
+- Ready to proceed to final stage: Part 6 (`final`).
+
