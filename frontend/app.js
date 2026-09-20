@@ -298,30 +298,50 @@ async function loadMapRiskZones() {
       state.mapInstance.removeLayer(state.mapLayers.zones);
     }
 
-    state.mapLayers.zones = L.geoJSON(geojson, {
+    // Chaikin spline subdivision to turn angular polygon vertex lines into smooth curved organic water edges
+    function smoothPolygonCoords(ring, iterations = 3) {
+      let coords = ring.slice();
+      for (let it = 0; it < iterations; it++) {
+        const smoothed = [];
+        for (let i = 0; i < coords.length - 1; i++) {
+          const p0 = coords[i];
+          const p1 = coords[i + 1];
+          const q = [0.75 * p0[0] + 0.25 * p1[0], 0.75 * p0[1] + 0.25 * p1[1]];
+          const r = [0.25 * p0[0] + 0.75 * p1[0], 0.25 * p0[1] + 0.75 * p1[1]];
+          smoothed.push(q, r);
+        }
+        smoothed.push(smoothed[0]); // close polygon ring
+        coords = smoothed;
+      }
+      return coords;
+    }
+
+    // Deep copy and smooth GeoJSON polygons into curves
+    const curvedGeojson = JSON.parse(JSON.stringify(geojson));
+    curvedGeojson.features.forEach(f => {
+      if (f.geometry && f.geometry.type === "Polygon") {
+        f.geometry.coordinates = f.geometry.coordinates.map(ring => smoothPolygonCoords(ring, 3));
+      }
+    });
+
+    state.mapLayers.zones = L.geoJSON(curvedGeojson, {
       style: (feature) => {
         const color = feature.properties.color || "#10b981";
         return {
-          color: color,
-          weight: 1.8,
-          opacity: 0.85,
+          stroke: false,
           fillColor: color,
-          fillOpacity: 0.32,
-          lineJoin: "round",
-          lineCap: "round",
-          smoothFactor: 2.0,
-          className: "organic-risk-zone"
+          fillOpacity: 0.38,
+          smoothFactor: 3.0,
+          className: "fluid-water-zone"
         };
       },
       onEachFeature: (feature, layer) => {
-
-        // Subtle hover highlight
+        // Subtle water-glow on hover
         layer.on({
           mouseover: (e) => {
             const l = e.target;
             l.setStyle({
-              weight: 3.5,
-              fillOpacity: 0.55
+              fillOpacity: 0.58
             });
             if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
               l.bringToFront();
@@ -349,6 +369,7 @@ async function loadMapRiskZones() {
     console.warn("Could not load map zones:", err);
   }
 }
+
 
 async function loadMapPois() {
   try {
