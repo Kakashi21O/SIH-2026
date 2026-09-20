@@ -680,7 +680,13 @@ input:checked + .switch-slider:before {
   background: #090c15;
 }
 
+/* Dark mode tactical filter for OpenStreetMap tiles without watermark or API key */
+#leaflet-map .leaflet-tile {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
 .map-overlay-legend {
+
   position: absolute;
   bottom: 12px;
   left: 12px;

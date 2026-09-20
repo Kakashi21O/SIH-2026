@@ -262,9 +262,11 @@ function initOrResizeMap() {
       attributionControl: false
     }).setView([state.currentLocation.lat, state.currentLocation.lng], 14);
 
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      maxZoom: 19
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
     }).addTo(state.mapInstance);
+
 
     // Click anywhere on the map to inspect risk & move GPS beacon
     state.mapInstance.on("click", (e) => {
