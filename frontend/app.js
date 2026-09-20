@@ -200,11 +200,22 @@ async function updateSafetyScore(lat, lng) {
       }
     }
 
+    const isRedZone = (data.overall_score < 40) || (data.risk_level === "CRITICAL") || (data.risk_level === "HIGH");
+
     if (data.auto_safety_mode_recommended && !state.safetyModeActive) {
       state.safetyModeActive = true;
       if (toggle) toggle.checked = true;
       updateStatusPill("High Risk Auto-Mode", "danger");
-      showToastAlert(`⚠️ High Risk Zone: ${state.currentLocation.name}. Safety Mode Auto-Engaged!`, "danger");
+      showToastAlert(`⚠️ Red/High Risk Zone: ${state.currentLocation.name}. Safety Mode & Voice Distress Listener Auto-Engaged!`, "danger");
+
+      // Auto-start Distress Keyword Listener when entering red/high-risk zone
+      if (window.SafeAudioEngine && !window.SafeAudioEngine.isListening) {
+        window.SafeAudioEngine.startSpeechListening(true);
+      }
+    } else if (isRedZone && window.SafeAudioEngine && !window.SafeAudioEngine.isListening) {
+      // Proactively activate listener if user enters red zone even if safety mode was already on
+      window.SafeAudioEngine.startSpeechListening(true);
+      showToastAlert(`🎙️ Distress Voice Listener auto-activated for Red Zone: ${state.currentLocation.name}`, "danger");
     } else if (!data.auto_safety_mode_recommended && state.safetyModeActive) {
       updateStatusPill("Monitoring Active", "safe");
     }

@@ -100,7 +100,7 @@ const SafeAudioEngine = {
     }
   },
 
-  startSpeechListening() {
+  startSpeechListening(isAuto = false) {
     if (this.recognition && !this.isListening) {
       try {
         this.recognition.start();
@@ -108,7 +108,14 @@ const SafeAudioEngine = {
       } catch (err) {
         console.warn("[SafeAudioEngine] Could not start speech recognition:", err);
       }
+    } else if (!this.recognition) {
+      // For demo environments without Web Speech API, still reflect active simulation listening
+      this.isListening = true;
     }
+
+    const stateText = isAuto ? "Auto-Active (Red Zone)" : "Active (Listening for triggers)";
+    this.updateMicStatusBadge(true, stateText, isAuto);
+    console.info(`[SafeAudioEngine] 🎙️ Distress Listener Started [Mode: ${isAuto ? 'AUTO_RED_ZONE' : 'MANUAL'}]`);
   },
 
   stopSpeechListening() {
@@ -118,20 +125,26 @@ const SafeAudioEngine = {
         this.recognition.stop();
       } catch (err) {}
     }
-    this.updateMicStatusBadge(false, "Standby");
+    this.updateMicStatusBadge(false, "Standby", false);
+    console.info("[SafeAudioEngine] 🎙️ Distress Listener Stopped (Standby)");
   },
 
-  updateMicStatusBadge(isActive, text) {
+  updateMicStatusBadge(isActive, text, isAuto = false) {
     const badgeEl = document.getElementById("mic-status-badge");
     const labelEl = document.getElementById("mic-status-label");
     const indicatorEl = document.getElementById("mic-live-dot");
 
     if (labelEl) labelEl.textContent = text;
     if (indicatorEl) {
-      indicatorEl.className = isActive ? "live-dot pulsing-green" : "live-dot standby";
+      if (isActive) {
+        indicatorEl.className = isAuto ? "live-dot pulsing-red" : "live-dot pulsing-green";
+      } else {
+        indicatorEl.className = "live-dot standby";
+      }
     }
     if (badgeEl) {
       badgeEl.classList.toggle("mic-active", isActive);
+      badgeEl.classList.toggle("mic-auto-red", isAuto);
     }
   },
 

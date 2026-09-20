@@ -2349,6 +2349,10 @@ button,
   color: #10b981;
 }
 
+.mic-status-wrap.mic-auto-red {
+  color: #ef4444;
+}
+
 .pulsing-green {
   background: #10b981;
   box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
