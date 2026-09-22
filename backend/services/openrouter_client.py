@@ -78,8 +78,9 @@ class OpenRouterClient:
             {"role": "user",   "content": _trim(user_message, 400)},
         ]
 
+        models_list = getattr(settings, "OPENROUTER_FALLBACK_MODELS", [cls.MODEL])
         payload: Dict[str, Any] = {
-            "model": cls.MODEL,
+            "models": models_list,
             "messages": messages,
             "tools": tools,
             "tool_choice": "auto",
@@ -153,8 +154,9 @@ class OpenRouterClient:
                 "content":      _trim(str(tr["content"]), 600),
             })
 
+        models_list = getattr(settings, "OPENROUTER_FALLBACK_MODELS", [cls.MODEL])
         payload: Dict[str, Any] = {
-            "model":      cls.MODEL,
+            "models":     models_list,
             "messages":   messages,
             "max_tokens": 350,
             "temperature": 0.4,
@@ -187,8 +189,9 @@ class OpenRouterClient:
         if not settings.OPENROUTER_API_KEY:
             return "OpenRouter API key not configured."
 
+        models_list = getattr(settings, "OPENROUTER_FALLBACK_MODELS", [cls.MODEL])
         payload: Dict[str, Any] = {
-            "model": cls.MODEL,
+            "models": models_list,
             "messages": [
                 {"role": "system", "content": _trim(system_prompt, 1600)},
                 {"role": "user",   "content": _trim(user_message, 400)},
