@@ -442,6 +442,7 @@ function initOrResizeMap() {
     state.mapInstance.on("click", (e) => {
       state.currentLocation.lat = e.latlng.lat;
       state.currentLocation.lng = e.latlng.lng;
+      state.currentLocation.name = null; // clear stale name; updated after API responds
       updateSafetyScore(e.latlng.lat, e.latlng.lng);
       updateUserMarkerOnMap();
     });
