@@ -185,16 +185,19 @@ const SafeAssistantUI = {
     const typingId = "ai-typing-" + Date.now();
     this.appendTypingIndicator(typingId);
 
-    // Build context payload — user_id from localStorage, location from window.state
-    const coords = window.state?.currentLocation || { lat: 28.6315, lng: 77.2190 };
+    // Build context payload — read latest live location from window.state
+    const loc = window.state?.currentLocation || { lat: 28.6315, lng: 77.2190, name: "Connaught Place Central Hub" };
+    const areaName = loc.name || null;
     const userId = this._getUserId();
 
     const contextPayload = {
-      screen:      this.activeScreen,
-      user_id:     userId,
-      area_name:   window.state?.currentAreaName || null,
-      origin:      window.state?.journeyOrigin      || "Current Location",
-      destination: window.state?.journeyDestination || null,
+      screen:        this.activeScreen,
+      user_id:       userId,
+      area_name:     areaName,
+      safety_score:  window.state?.safetyScore || null,
+      risk_level:    window.state?.riskLevel || null,
+      origin:        window.state?.journeyOrigin      || "Current Location",
+      destination:   window.state?.journeyDestination || null,
     };
 
     try {
@@ -203,8 +206,8 @@ const SafeAssistantUI = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userText,
-          lat:     coords.lat,
-          lng:     coords.lng,
+          lat:     loc.lat,
+          lng:     loc.lng,
           user_id: userId,
           context: contextPayload,
         })

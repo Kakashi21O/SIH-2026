@@ -50,6 +50,9 @@ const state = {
   mapData: { pois: [], hotspots: [] }
 };
 
+// Expose state globally so assistant and other modules can access live location
+window.state = state;
+
 
 // Preset demo locations
 const DEMO_LOCATIONS = {

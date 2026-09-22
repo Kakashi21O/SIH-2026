@@ -348,29 +348,44 @@ class SafeStepsTools:
     # Dispatcher — single entry point called by the orchestrator
     # -----------------------------------------------------------------------
     @classmethod
-    def dispatch(cls, tool_name: str, args: Dict[str, Any]) -> Any:
+    def dispatch(
+        cls,
+        tool_name: str,
+        args: Dict[str, Any],
+        default_lat: float = 28.6315,
+        default_lng: float = 77.2190,
+        default_area_name: Optional[str] = None,
+    ) -> Any:
         """
         Dispatch a tool call from the LLM to the correct method.
+        Uses default_lat, default_lng, default_area_name if the LLM omitted or defaulted coordinates.
         Any unknown tool name returns an error string (never crashes).
         """
         try:
             if tool_name == "get_area_safety":
+                req_lat = float(args.get("lat") or default_lat)
+                req_lng = float(args.get("lng") or default_lng)
+                req_name = args.get("area_name") or default_area_name
                 return cls.get_area_safety(
-                    lat=float(args.get("lat", 28.6315)),
-                    lng=float(args.get("lng", 77.2190)),
-                    area_name=args.get("area_name"),
+                    lat=req_lat,
+                    lng=req_lng,
+                    area_name=req_name,
                 )
             elif tool_name == "get_nearby_hotspots":
+                req_lat = float(args.get("lat") or default_lat)
+                req_lng = float(args.get("lng") or default_lng)
                 return cls.get_nearby_hotspots(
-                    lat=float(args.get("lat", 28.6315)),
-                    lng=float(args.get("lng", 77.2190)),
+                    lat=req_lat,
+                    lng=req_lng,
                     radius_meters=float(args.get("radius_meters", 1200.0)),
                 )
             elif tool_name == "find_similar_reports":
+                req_lat = float(args.get("lat") or default_lat)
+                req_lng = float(args.get("lng") or default_lng)
                 return cls.find_similar_reports(
                     query=str(args.get("query", "")),
-                    lat=float(args.get("lat", 28.6315)),
-                    lng=float(args.get("lng", 77.2190)),
+                    lat=req_lat,
+                    lng=req_lng,
                 )
             elif tool_name == "get_current_user":
                 return cls.get_current_user(

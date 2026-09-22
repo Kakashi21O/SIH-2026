@@ -61,22 +61,30 @@ def _is_denied_query(msg: str) -> bool:
 def _build_system_prompt(
     lat: float,
     lng: float,
+    area_name: Optional[str] = None,
     user_name: Optional[str] = None,
 ) -> str:
     now       = datetime.datetime.now()
     time_str  = now.strftime("%H:%M")
     date_str  = now.strftime("%d %b %Y")
     user_part = f"The user's name is {user_name}. " if user_name else ""
+    loc_part  = (
+        f"User's CURRENT active location on map: '{area_name}' at coordinates lat={lat:.4f}, lng={lng:.4f}. "
+        if area_name else
+        f"User's CURRENT coordinates: lat={lat:.4f}, lng={lng:.4f}. "
+    )
 
     return (
         f"You are SafeSteps AI, a women's personal safety assistant for Delhi NCR, India. "
         f"Today is {date_str}, current time is {time_str} IST. "
-        f"User's approximate coordinates: lat={lat:.4f}, lng={lng:.4f}. "
+        f"{loc_part}"
         f"{user_part}"
+        "When the user asks 'tell me about this area', 'is this area safe', 'how safe is it here', or 'what are nearby hotspots', "
+        "they are asking about their CURRENT location mentioned above. Call get_area_safety and get_nearby_hotspots using their current coordinates. "
         "You have access to tools: get_area_safety, get_nearby_hotspots, "
         "find_similar_reports, get_current_user, search_web. "
         "RULES — follow strictly:\n"
-        "1. Use tools to answer questions about area safety, incidents, hotspots, or user name. Do not guess or hallucinate data.\n"
+        "1. Use tools to answer questions about area safety, incidents, hotspots, or user name. Ground your response in the tool data.\n"
         "2. NEVER reveal or ask for PIN, password, phone numbers, guardian phone numbers, or any other user's data.\n"
         "3. If the user seems in immediate danger, tell them to press the Emergency SOS button immediately.\n"
         "4. Keep responses concise (under 200 words). Use markdown: **bold** for key info.\n"
@@ -175,8 +183,9 @@ class SafeStepsAIAssistant:
         if not settings.OPENROUTER_API_KEY:
             return _NO_KEY_RESPONSE
 
-        # 2. Build system prompt
-        system_prompt = _build_system_prompt(lat, lng)
+        # 2. Build system prompt with current area name and user's coordinates
+        area_name = context.get("area_name")
+        system_prompt = _build_system_prompt(lat=lat, lng=lng, area_name=area_name)
 
         # 3. Round 1 — send message + tool definitions
         round1 = OpenRouterClient.chat_with_tools(
@@ -209,7 +218,13 @@ class SafeStepsAIAssistant:
         for tc in tool_calls:
             name   = tc["name"]
             args   = tc["args"]
-            result = SafeStepsTools.dispatch(name, args)
+            result = SafeStepsTools.dispatch(
+                name,
+                args,
+                default_lat=lat,
+                default_lng=lng,
+                default_area_name=area_name,
+            )
             sources_used.append(name)
 
             # Serialise result to string for the LLM
