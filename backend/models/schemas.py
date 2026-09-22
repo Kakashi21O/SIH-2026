@@ -201,6 +201,7 @@ class AssistantChatRequest(BaseModel):
     message: str = Field(..., min_length=1, example="Tell me about this area")
     lat: Optional[float] = None
     lng: Optional[float] = None
+    user_id: Optional[str] = "usr_demo"
     context: Optional[Dict[str, Any]] = None
 
 class AssistantChatResponse(BaseModel):
