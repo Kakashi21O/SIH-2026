@@ -35,7 +35,7 @@ from backend.services.web_search import search_web as _search_web
 
 
 # ===========================================================================
-# OpenAI-format tool definitions — sent to the LLM so it knows what to call
+# OpenAI-format tool definitions — compact & token-efficient
 # ===========================================================================
 
 TOOL_DEFINITIONS: List[Dict[str, Any]] = [
@@ -43,28 +43,14 @@ TOOL_DEFINITIONS: List[Dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "get_area_safety",
-            "description": (
-                "Get the current safety score, risk level, incident trend, and primary reported issue "
-                "for a geographic location in Delhi NCR. Use this when the user asks about area safety, "
-                "risk zones, or whether a place is safe to visit."
-            ),
+            "description": "Safety score, risk level, lighting, police presence for location.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "lat": {
-                        "type": "number",
-                        "description": "Latitude of the location to check."
-                    },
-                    "lng": {
-                        "type": "number",
-                        "description": "Longitude of the location to check."
-                    },
-                    "area_name": {
-                        "type": "string",
-                        "description": "Optional area name if the user mentioned a specific place (e.g. 'Paharganj', 'Connaught Place')."
-                    }
-                },
-                "required": ["lat", "lng"]
+                    "lat": {"type": "number"},
+                    "lng": {"type": "number"},
+                    "area_name": {"type": "string"}
+                }
             }
         }
     },
@@ -72,19 +58,13 @@ TOOL_DEFINITIONS: List[Dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "get_nearby_hotspots",
-            "description": (
-                "Get active safety hotspot clusters near given coordinates. "
-                "Returns cluster details including category, severity, and distance. "
-                "Use when the user asks about hotspots, recent incidents, or danger zones nearby."
-            ),
+            "description": "Active hazard clusters nearby.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "lat":            {"type": "number", "description": "Latitude"},
-                    "lng":            {"type": "number", "description": "Longitude"},
-                    "radius_meters":  {"type": "number", "description": "Search radius in metres (default 1200)."}
-                },
-                "required": ["lat", "lng"]
+                    "lat": {"type": "number"},
+                    "lng": {"type": "number"}
+                }
             }
         }
     },
@@ -92,19 +72,15 @@ TOOL_DEFINITIONS: List[Dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "find_similar_reports",
-            "description": (
-                "Search SafeSteps complaint database for reports similar to a query text near given coordinates. "
-                "Returns anonymised report snippets. Use when the user asks about past incidents, "
-                "similar complaints, or what has been reported in an area."
-            ),
+            "description": "Search past community complaint reports.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "The user's question or incident description to match against."},
-                    "lat":   {"type": "number", "description": "Latitude"},
-                    "lng":   {"type": "number", "description": "Longitude"}
+                    "query": {"type": "string"},
+                    "lat": {"type": "number"},
+                    "lng": {"type": "number"}
                 },
-                "required": ["query", "lat", "lng"]
+                "required": ["query"]
             }
         }
     },
@@ -112,17 +88,12 @@ TOOL_DEFINITIONS: List[Dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "get_current_user",
-            "description": (
-                "Get the current logged-in user's name. "
-                "Use ONLY when the user asks about their own profile details like their name. "
-                "NEVER use this to get PIN, phone number, or guardian information."
-            ),
+            "description": "Get logged in user name.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "user_id": {"type": "string", "description": "The authenticated user's ID."}
-                },
-                "required": ["user_id"]
+                    "user_id": {"type": "string"}
+                }
             }
         }
     },
@@ -130,15 +101,11 @@ TOOL_DEFINITIONS: List[Dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "search_web",
-            "description": (
-                "Search the internet for current information. Use when the user asks about recent news, "
-                "current advisories, weather, or general knowledge not in SafeSteps data "
-                "(e.g. 'latest women safety advisory', 'what happened today in Delhi')."
-            ),
+            "description": "Search internet for latest info or news.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "The search query."}
+                    "query": {"type": "string"}
                 },
                 "required": ["query"]
             }
@@ -210,15 +177,12 @@ class SafeStepsTools:
         trend = "increasing" if total_nearby >= 4 else ("low_activity" if total_nearby == 0 else "stable")
 
         return {
-            "area_name":         resolved_name or risk_data.get("active_zone_name", "Delhi NCR"),
-            "safety_score":      risk_data["overall_score"],
-            "risk_level":        risk_data["risk_level"],
-            "total_nearby_reports": total_nearby,
-            "primary_issue":     primary_issue.replace("_", " "),
-            "trend":             trend,
-            "lighting_status":   risk_data["factors"].get("lighting_status", "unknown"),
-            "police_presence":   risk_data["factors"].get("police_presence", "unknown"),
-            "recommended_action": risk_data["recommended_action"],
+            "area": resolved_name or risk_data.get("active_zone_name", "Delhi NCR"),
+            "score": f"{risk_data['overall_score']}/100",
+            "risk": risk_data["risk_level"],
+            "lighting": risk_data["factors"].get("lighting_status", "unknown"),
+            "police": risk_data["factors"].get("police_presence", "unknown"),
+            "issue": primary_issue.replace("_", " "),
         }
 
     # -----------------------------------------------------------------------
@@ -230,7 +194,7 @@ class SafeStepsTools:
         lng: float,
         radius_meters: float = 1200.0,
     ) -> List[Dict[str, Any]]:
-        """Returns nearby complaint clusters. No user-identifying data included."""
+        """Returns top 3 nearby hazard clusters. Token-efficient RAG."""
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -248,17 +212,13 @@ class SafeStepsTools:
             dist = calculate_haversine_meters(lat, lng, c["center_lat"], c["center_lng"])
             if dist <= radius_meters:
                 nearby.append({
-                    "cluster_id":    c["cluster_id"],
-                    "headline":      c["headline"],
-                    "category":      c["category"].replace("_", " "),
-                    "severity":      c["severity"],
-                    "report_count":  c["total_count"],
-                    "distance_m":    round(dist),
+                    "headline": c["headline"],
+                    "severity": c["severity"],
+                    "dist": f"{round(dist)}m",
                 })
 
-        # Sort by distance
-        nearby.sort(key=lambda x: x["distance_m"])
-        return nearby[:6]  # cap at 6 for token budget
+        nearby.sort(key=lambda x: int(x["dist"].replace("m", "")))
+        return nearby[:3]
 
     # -----------------------------------------------------------------------
     # 3. Similar Reports
@@ -355,10 +315,11 @@ class SafeStepsTools:
         default_lat: float = 28.6315,
         default_lng: float = 77.2190,
         default_area_name: Optional[str] = None,
+        default_user_id: Optional[str] = "usr_demo",
     ) -> Any:
         """
         Dispatch a tool call from the LLM to the correct method.
-        Uses default_lat, default_lng, default_area_name if the LLM omitted or defaulted coordinates.
+        Uses default_lat, default_lng, default_area_name, default_user_id if omitted by LLM.
         Any unknown tool name returns an error string (never crashes).
         """
         try:
@@ -388,9 +349,8 @@ class SafeStepsTools:
                     lng=req_lng,
                 )
             elif tool_name == "get_current_user":
-                return cls.get_current_user(
-                    user_id=str(args.get("user_id", "usr_demo")),
-                )
+                target_user = args.get("user_id") or default_user_id or "usr_demo"
+                return cls.get_current_user(user_id=str(target_user))
             elif tool_name == "search_web":
                 return cls.search_web(str(args.get("query", "")))
             else:

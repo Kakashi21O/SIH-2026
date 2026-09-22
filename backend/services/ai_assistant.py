@@ -64,46 +64,33 @@ def _build_system_prompt(
     area_name: Optional[str] = None,
     user_name: Optional[str] = None,
 ) -> str:
-    now       = datetime.datetime.now()
-    time_str  = now.strftime("%H:%M")
-    date_str  = now.strftime("%d %b %Y")
-    user_part = f"The user's name is {user_name}. " if user_name else ""
-    loc_part  = (
-        f"User's CURRENT active location on map: '{area_name}' at coordinates lat={lat:.4f}, lng={lng:.4f}. "
-        if area_name else
-        f"User's CURRENT coordinates: lat={lat:.4f}, lng={lng:.4f}. "
-    )
+    loc = f"User area: '{area_name}' ({lat:.4f}, {lng:.4f})" if area_name else f"User coords: {lat:.4f}, {lng:.4f}"
+    usr = f" User name: {user_name}." if user_name else ""
 
     return (
-        f"You are SafeSteps AI, a women's personal safety assistant for Delhi NCR, India. "
-        f"Today is {date_str}, current time is {time_str} IST. "
-        f"{loc_part}"
-        f"{user_part}"
-        "When the user asks 'tell me about this area', 'is this area safe', 'how safe is it here', or 'what are nearby hotspots', "
-        "they are asking about their CURRENT location mentioned above. Call get_area_safety and get_nearby_hotspots using their current coordinates. "
-        "You have access to tools: get_area_safety, get_nearby_hotspots, "
-        "find_similar_reports, get_current_user, search_web. "
-        "RULES — follow strictly:\n"
-        "1. Use tools to answer questions about area safety, incidents, hotspots, or user name. Ground your response in the tool data.\n"
-        "2. NEVER reveal or ask for PIN, password, phone numbers, guardian phone numbers, or any other user's data.\n"
-        "3. If the user seems in immediate danger, tell them to press the Emergency SOS button immediately.\n"
-        "4. Keep responses concise (under 200 words). Use markdown: **bold** for key info.\n"
-        "5. If asked about things outside SafeSteps data, use search_web or say you don't know.\n"
-        "6. Never invent safety scores or incident data."
+        f"You are SafeSteps AI, Delhi NCR women safety buddy. {loc}.{usr}\n"
+        "Style:\n"
+        "- Casual, natural Hinglish. Direct, realistic, like a helpful friend.\n"
+        "- Give short answers in 2 to 3 sentences. No long bullet lists unless asked. Expand only when user asks.\n"
+        "- Absolutely NO emojis.\n"
+        "- No repetition or generic disclaimers.\n"
+        "- 'this area' / 'here' = user area above. Call get_area_safety and get_nearby_hotspots.\n"
+        "- If user asks about their name or profile, call get_current_user.\n"
+        "- Never share PIN, passwords, phone numbers, or guardian data.\n"
+        "- In immediate danger, tell them to press the SOS button.\n"
+        "- Never make up numbers. Use tool data only."
     )
 
 
 # ---------------------------------------------------------------------------
-# Canned responses
+# Canned responses (no emojis, casual Hinglish, direct)
 # ---------------------------------------------------------------------------
 
 _EMERGENCY_RESPONSE = {
     "reply": (
-        "🚨 **IMMEDIATE ACTION — Press the Emergency SOS button NOW.**\n\n"
-        "The AI assistant cannot dispatch police directly. "
-        "Activating SOS starts a 10-second countdown, streams your live location to your guardians, "
-        "and prepares emergency dispatch to 112.\n\n"
-        "**If you are in immediate danger, do not chat — press SOS.**"
+        "Agar aap abhi danger me hain toh turant SOS button dabaiye. "
+        "AI police dispatch nahi kar sakta. SOS button se 10-second countdown start hoga, "
+        "guardians ko live location jayegi aur 112 emergency dispatch trigger hoga."
     ),
     "sources":         ["emergency_guardrail"],
     "structured_data": {"urgent_action_required": True},
@@ -111,9 +98,8 @@ _EMERGENCY_RESPONSE = {
 
 _DENIED_RESPONSE = {
     "reply": (
-        "I'm not able to share PIN, password, phone numbers, or any other user's personal information. "
-        "This data is protected and never accessible through the AI assistant.\n\n"
-        "If you need to change your PIN or profile details, use the Settings screen."
+        "Security reasons ki wajah se PIN, password, phone number ya personal data share karna allowed nahi hai. "
+        "Settings screen me jakar details check kar sakte hain."
     ),
     "sources":         ["privacy_guardrail"],
     "structured_data": None,
@@ -121,9 +107,8 @@ _DENIED_RESPONSE = {
 
 _NO_KEY_RESPONSE = {
     "reply": (
-        "The AI assistant is not yet configured on this deployment. "
-        "All SafeSteps features (map, journey, emergency, reports) continue working normally. "
-        "Contact the administrator to enable AI chat."
+        "AI assistant currently configured nahi hai. "
+        "Baaki features jaise Map, Journey, aur SOS normally chal rahe hain."
     ),
     "sources":         ["config_error"],
     "structured_data": None,
@@ -164,10 +149,7 @@ class SafeStepsAIAssistant:
 
         if not message:
             return {
-                "reply": (
-                    "Hi! I'm **SafeSteps AI**. Ask me about area safety, "
-                    "nearby hotspots, past reports, safer routes, or how SafeSteps works."
-                ),
+                "reply": "Batao, kahan ki safety check karni hai ya route verify karna hai?",
                 "sources":         ["greeting"],
                 "structured_data": None,
             }
@@ -224,6 +206,7 @@ class SafeStepsAIAssistant:
                 default_lat=lat,
                 default_lng=lng,
                 default_area_name=area_name,
+                default_user_id=user_id,
             )
             sources_used.append(name)
 

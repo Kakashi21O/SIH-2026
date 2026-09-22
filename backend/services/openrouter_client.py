@@ -84,7 +84,7 @@ class OpenRouterClient:
             "messages": messages,
             "tools": tools,
             "tool_choice": "auto",
-            "max_tokens": 350,
+            "max_tokens": 180,
             "temperature": 0.3,
         }
 
@@ -159,7 +159,7 @@ class OpenRouterClient:
             "models":     models_list,
             "messages":   messages,
             "max_tokens": 350,
-            "temperature": 0.4,
+            "temperature": 0.3,
         }
 
         try:
