@@ -3,11 +3,14 @@ SafeSteps — AI Assistant Router (assistant.py)
 Exposes POST /api/assistant/chat
 """
 
+import logging
+
 from fastapi import APIRouter
 from backend.models.schemas import AssistantChatRequest, AssistantChatResponse
 from backend.services.ai_assistant import SafeStepsAIAssistant
 
 router = APIRouter(prefix="/api/assistant", tags=["SafeSteps AI Assistant"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/chat", response_model=AssistantChatResponse)
@@ -25,16 +28,16 @@ def chat_with_assistant(payload: AssistantChatRequest):
             lat=payload.lat,
             lng=payload.lng,
             context=payload.context,
-            user_id=payload.user_id,
         )
         return AssistantChatResponse(**result)
-    except Exception as e:
+    except Exception:
         # Non-blocking graceful failure — app features continue working
+        logger.exception("Assistant request failed")
         return AssistantChatResponse(
             reply=(
                 "I couldn't process that right now. "
                 "All SafeSteps map, journey, and emergency features continue working normally."
             ),
             sources=["fallback_handler"],
-            structured_data={"error": str(e)},
+            structured_data=None,
         )

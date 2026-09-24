@@ -119,8 +119,8 @@ class OpenRouterClient:
             return {"type": "error", "content": "AI response timed out. Please try again."}
         except httpx.HTTPStatusError as e:
             return {"type": "error", "content": f"AI service error ({e.response.status_code})."}
-        except Exception as e:
-            return {"type": "error", "content": f"Unexpected error: {str(e)[:80]}"}
+        except Exception:
+            return {"type": "error", "content": "AI service unavailable. Please try again."}
 
     # ------------------------------------------------------------------
     # Round 2: send tool results → get final natural-language answer
@@ -177,8 +177,8 @@ class OpenRouterClient:
             return "AI response timed out. Please try again."
         except httpx.HTTPStatusError as e:
             return f"AI service error ({e.response.status_code}). Please try again."
-        except Exception as e:
-            return f"Could not generate response: {str(e)[:80]}"
+        except Exception:
+            return "AI service unavailable. Please try again."
 
     # ------------------------------------------------------------------
     # Simple single-turn chat (no tools) — used for fallback
@@ -210,5 +210,5 @@ class OpenRouterClient:
             resp.raise_for_status()
             data = resp.json()
             return (data["choices"][0]["message"].get("content") or "").strip()
-        except Exception as e:
-            return f"Could not reach AI: {str(e)[:80]}"
+        except Exception:
+            return "AI service unavailable. Please try again."

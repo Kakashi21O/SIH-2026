@@ -9,12 +9,10 @@ Tools available to the LLM:
   1. get_area_safety      — risk score, level, trend, primary issue (no user data)
   2. get_nearby_hotspots  — clustered complaint hotspots near coordinates
   3. find_similar_reports — anonymised complaint search by query text
-  4. get_current_user     — name ONLY (never PIN, phone, guardian data)
-  5. search_web           — DuckDuckGo instant answer (current internet info)
+  4. search_web           — DuckDuckGo instant answer (current internet info)
 
 Security guarantees:
   - Never executes arbitrary SQL
-  - get_current_user strips pin_hash, phone, guardian records before returning
   - No cross-user data leakage: each tool scoped to the calling user_id only
   - Does not invent data: returns explicit messages if data is unavailable
 """
@@ -81,19 +79,6 @@ TOOL_DEFINITIONS: List[Dict[str, Any]] = [
                     "lng": {"type": "number"}
                 },
                 "required": ["query"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_current_user",
-            "description": "Get logged in user name.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "user_id": {"type": "string"}
-                }
             }
         }
     },
@@ -271,31 +256,6 @@ class SafeStepsTools:
         }
 
     # -----------------------------------------------------------------------
-    # 4. Current User  — name ONLY, never PIN / phone / guardian data
-    # -----------------------------------------------------------------------
-    @staticmethod
-    def get_current_user(user_id: str) -> Dict[str, Any]:
-        """
-        Returns ONLY the user's name for personalisation.
-        Explicitly excludes: pin_hash, phone, and all guardian records.
-        """
-        if not user_id or user_id.strip() == "":
-            return {"name": "there"}  # graceful anonymous fallback
-
-        try:
-            conn   = get_db_connection()
-            cursor = conn.cursor()
-            # SELECT only name — nothing else
-            cursor.execute("SELECT name FROM users WHERE id = ?", (user_id.strip(),))
-            row = cursor.fetchone()
-            conn.close()
-
-            if row:
-                return {"name": row["name"]}
-            return {"name": "there"}
-        except Exception:
-            return {"name": "there"}
-
     # -----------------------------------------------------------------------
     # 5. Web Search
     # -----------------------------------------------------------------------
@@ -315,11 +275,10 @@ class SafeStepsTools:
         default_lat: float = 28.6315,
         default_lng: float = 77.2190,
         default_area_name: Optional[str] = None,
-        default_user_id: Optional[str] = "usr_demo",
     ) -> Any:
         """
         Dispatch a tool call from the LLM to the correct method.
-        Uses default_lat, default_lng, default_area_name, default_user_id if omitted by LLM.
+        Uses default location context if omitted by the LLM.
         Any unknown tool name returns an error string (never crashes).
         """
         try:
@@ -348,12 +307,9 @@ class SafeStepsTools:
                     lat=req_lat,
                     lng=req_lng,
                 )
-            elif tool_name == "get_current_user":
-                target_user = args.get("user_id") or default_user_id or "usr_demo"
-                return cls.get_current_user(user_id=str(target_user))
             elif tool_name == "search_web":
                 return cls.search_web(str(args.get("query", "")))
             else:
                 return f"Unknown tool: {tool_name}"
-        except Exception as e:
-            return f"Tool error ({tool_name}): {str(e)[:100]}"
+        except Exception:
+            return f"Tool unavailable: {tool_name}"

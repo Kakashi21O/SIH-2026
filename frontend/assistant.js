@@ -4,7 +4,6 @@
  * Handles context-aware questions, area queries, and data rendering.
  *
  * Part 5 changes:
- *  - Sends user_id from localStorage with every chat request
  *  - Passes current area name from window.state if available
  *  - Improved markdown rendering: **bold**, *italic*, `code`, \n→<br>
  *  - Typing indicator updated to "Thinking…"
@@ -166,18 +165,6 @@ const SafeAssistantUI = {
     });
   },
 
-  /** Read the current user_id from localStorage (set during login). */
-  _getUserId() {
-    try {
-      const session = localStorage.getItem("safesteps_session");
-      if (session) {
-        const parsed = JSON.parse(session);
-        return parsed.user_id || parsed.id || "usr_demo";
-      }
-    } catch (_) { /* ignore */ }
-    return "usr_demo";
-  },
-
   async sendMessage(userText) {
     this.appendMessage("user", userText);
 
@@ -188,11 +175,8 @@ const SafeAssistantUI = {
     // Build context payload — read latest live location from window.state
     const loc = window.state?.currentLocation || { lat: 28.6315, lng: 77.2190, name: "Connaught Place Central Hub" };
     const areaName = loc.name || null;
-    const userId = this._getUserId();
-
     const contextPayload = {
       screen:        this.activeScreen,
-      user_id:       userId,
       area_name:     areaName,
       safety_score:  window.state?.safetyScore || null,
       risk_level:    window.state?.riskLevel || null,
@@ -208,7 +192,6 @@ const SafeAssistantUI = {
           message: userText,
           lat:     loc.lat,
           lng:     loc.lng,
-          user_id: userId,
           context: contextPayload,
         })
       });
@@ -235,24 +218,25 @@ const SafeAssistantUI = {
     const msgEl = document.createElement("div");
     msgEl.className = `ai-msg ${sender}`;
 
-    // Markdown: **bold** → <strong>, *italic* → <em>, `code` → <code>, \n → <br>
-    let formatted = text
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.*?)\*/g,     "<em>$1</em>")
-      .replace(/`([^`]+)`/g,     "<code>$1</code>")
-      .replace(/\n/g,            "<br/>");
+    const body = document.createElement("div");
+    body.className = "ai-message-text";
+    body.textContent = String(text ?? "");
+    msgEl.appendChild(body);
 
-    let sourcesHtml = "";
     if (sources && sources.length > 0 && sender === "bot") {
-      sourcesHtml = `
-        <div class="ai-sources-bar">
-          <span>Sources:</span>
-          ${sources.map(s => `<span class="ai-source-tag">${s.replace(/_/g, " ")}</span>`).join("")}
-        </div>
-      `;
+      const sourcesBar = document.createElement("div");
+      sourcesBar.className = "ai-sources-bar";
+      const label = document.createElement("span");
+      label.textContent = "Sources:";
+      sourcesBar.appendChild(label);
+      sources.forEach(source => {
+        const tag = document.createElement("span");
+        tag.className = "ai-source-tag";
+        tag.textContent = String(source).replace(/_/g, " ");
+        sourcesBar.appendChild(tag);
+      });
+      msgEl.appendChild(sourcesBar);
     }
-
-    msgEl.innerHTML = `<div>${formatted}</div>${sourcesHtml}`;
     container.appendChild(msgEl);
     this.scrollToBottom();
   },

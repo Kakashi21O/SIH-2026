@@ -75,7 +75,6 @@ def _build_system_prompt(
         "- Absolutely NO emojis.\n"
         "- No repetition or generic disclaimers.\n"
         "- 'this area' / 'here' = user area above. Call get_area_safety and get_nearby_hotspots.\n"
-        "- If user asks about their name or profile, call get_current_user.\n"
         "- Never share PIN, passwords, phone numbers, or guardian data.\n"
         "- In immediate danger, tell them to press the SOS button.\n"
         "- Never make up numbers. Use tool data only."
@@ -128,7 +127,6 @@ class SafeStepsAIAssistant:
         lat: Optional[float]       = None,
         lng: Optional[float]       = None,
         context: Optional[Dict[str, Any]] = None,
-        user_id: Optional[str]     = None,
     ) -> Dict[str, Any]:
         """
         Process a conversational query through the LLM tool-calling pipeline.
@@ -145,7 +143,6 @@ class SafeStepsAIAssistant:
         context  = context or {}
         lat      = lat  if lat  not in (None, 0.0) else context.get("lat",  28.6315)
         lng      = lng  if lng  not in (None, 0.0) else context.get("lng",  77.2190)
-        user_id  = user_id or context.get("user_id") or "usr_demo"
 
         if not message:
             return {
@@ -206,7 +203,6 @@ class SafeStepsAIAssistant:
                 default_lat=lat,
                 default_lng=lng,
                 default_area_name=area_name,
-                default_user_id=user_id,
             )
             sources_used.append(name)
 
