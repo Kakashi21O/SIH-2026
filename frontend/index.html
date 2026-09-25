@@ -45,8 +45,8 @@
         <span class="status-indicator"></span>
         <span class="status-text" id="header-status-text">Protected</span>
       </div>
-      <button class="btn-logout" id="btn-logout" style="display:none;" title="Logout">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <button class="btn-menu" id="btn-menu" style="display:none;" title="Open menu" aria-label="Open menu">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
       </button>
     </header>
 
@@ -88,6 +88,14 @@
             <label for="auth-google-phone">Mobile Number <span class="auth-optional-badge">Optional</span></label>
             <div class="phone-input"><span class="phone-prefix">+91</span><input type="tel" id="auth-google-phone" placeholder="9876543210" inputmode="numeric" maxlength="10" autocomplete="tel" /></div>
             <span class="helper-text">Phone OTP is not implemented; this number is unverified.</span>
+          </div>
+          <div class="form-group">
+            <label for="auth-google-pin">Create 4-digit Safety PIN</label>
+            <input type="password" id="auth-google-pin" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="new-password" placeholder="••••" />
+          </div>
+          <div class="form-group">
+            <label for="auth-google-pin-confirm">Confirm Safety PIN</label>
+            <input type="password" id="auth-google-pin-confirm" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="new-password" placeholder="••••" />
           </div>
           <p class="auth-error-msg" id="auth-error-profile"></p>
           <button class="action-btn btn-primary" id="btn-save-profile" type="button">Continue</button>
@@ -635,6 +643,106 @@
         </div>
       </section>
 
+      <!-- ================= SETTINGS SCREEN ================= -->
+      <section id="screen-settings" class="view-screen settings-screen">
+        <div class="settings-heading">
+          <button class="back-link" id="btn-settings-back" type="button">← Back</button>
+          <h2>Settings</h2>
+          <span class="settings-heading-spacer"></span>
+        </div>
+
+        <div class="settings-card">
+          <h3><span class="settings-icon purple">●</span> 1. Profile</h3>
+          <div class="settings-profile-row"><div class="profile-avatar" id="settings-avatar">👤</div><div><strong id="settings-profile-name">Your profile</strong><span id="settings-profile-email">Google account</span></div></div>
+          <button class="settings-action" type="button"><span>✎</span> Edit profile <b>›</b></button>
+        </div>
+
+        <div class="settings-card">
+          <h3><span class="settings-icon orange">▣</span> 2. Safety PIN</h3>
+          <button class="settings-action" id="btn-open-change-pin" type="button"><span>⚿</span> Change PIN <b>›</b></button>
+        </div>
+
+        <div class="settings-card">
+          <h3><span class="settings-icon pink">●</span> 3. Emergency Contacts</h3>
+          <button class="settings-action" id="settings-contacts" type="button"><span>♣</span> Add / Edit guardians <b>›</b></button>
+          <button class="settings-action" type="button"><span>★</span> Primary contact <b>›</b></button>
+          <button class="settings-action" type="button"><span>●</span> Test emergency alert <b>›</b></button>
+        </div>
+
+        <div class="settings-card">
+          <h3><span class="settings-icon green">⚙</span> 4. Safety Preferences</h3>
+          <button class="settings-action" type="button"><span>✓</span> Safety Mode <b>›</b></button>
+          <button class="settings-action" type="button"><span>⌁</span> Distress detection <b>›</b></button>
+          <button class="settings-action" type="button"><span>↗</span> Auto-escalation <b>›</b></button>
+          <button class="settings-action" type="button"><span>●</span> Location sharing <b>›</b></button>
+        </div>
+
+        <div class="settings-card">
+          <h3><span class="settings-icon blue">♢</span> 5. Permissions</h3>
+          <button class="settings-action" type="button"><span>●</span> Location <em>On</em><b>›</b></button>
+          <button class="settings-action" type="button"><span>♩</span> Microphone <em>On</em><b>›</b></button>
+          <button class="settings-action" type="button"><span>●</span> Notifications <em>On</em><b>›</b></button>
+        </div>
+
+        <div class="settings-card">
+          <h3><span class="settings-icon yellow">☀</span> 6. Appearance</h3>
+          <button class="settings-action" id="btn-theme-toggle" type="button"><span>☀</span> Theme <em id="theme-label">Dark</em><b>›</b></button>
+        </div>
+
+        <div class="settings-card">
+          <h3><span class="settings-icon teal">◆</span> 7. Privacy &amp; Security</h3>
+          <button class="settings-action" type="button"><span>▣</span> Active sessions <b>›</b></button>
+          <button class="settings-action" type="button"><span>G</span> Google account <b>›</b></button>
+          <button class="settings-action danger" id="btn-delete-account" type="button"><span>▥</span> Delete account <b>›</b></button>
+        </div>
+
+        <div class="settings-card">
+          <h3><span class="settings-icon blue">?</span> 8. Help &amp; Support</h3>
+          <button class="settings-action" type="button"><span>▤</span> How Safety Mode works <b>›</b></button>
+          <button class="settings-action" type="button"><span>▤</span> Emergency instructions <b>›</b></button>
+          <button class="settings-action" type="button"><span>●</span> Report a problem <b>›</b></button>
+          <button class="settings-action" type="button"><span>ⓘ</span> About SafeSteps <b>›</b></button>
+        </div>
+
+        <button class="settings-logout" id="btn-settings-logout" type="button">⇥ &nbsp; Log out</button>
+      </section>
+
+      <div class="profile-edit-modal" id="profile-edit-modal" aria-hidden="true">
+        <div class="profile-edit-card">
+          <div class="settings-heading"><button class="back-link" id="btn-close-profile-edit" type="button">← Cancel</button><h2>Edit Profile</h2><span class="settings-heading-spacer"></span></div>
+          <div class="profile-photo-editor"><div class="profile-avatar profile-avatar-large" id="profile-edit-avatar">👤</div><label class="photo-upload-btn" for="profile-photo-input">Change photo</label><input id="profile-photo-input" type="file" accept="image/*" hidden /></div>
+          <div class="form-group"><label for="profile-edit-name">Full Name</label><input id="profile-edit-name" type="text" autocomplete="name" /></div>
+          <div class="form-group"><label for="profile-edit-email">Email address</label><input id="profile-edit-email" type="email" readonly /></div>
+          <div class="form-group"><label for="profile-edit-phone">Mobile number</label><div class="phone-input"><span class="phone-prefix">+91</span><input id="profile-edit-phone" type="tel" inputmode="numeric" maxlength="10" /></div></div>
+          <p class="auth-error-msg" id="profile-edit-error"></p>
+          <button class="action-btn btn-primary" id="btn-save-profile-edit" type="button">Save changes</button>
+        </div>
+      </div>
+      <div class="profile-edit-modal" id="change-pin-modal" aria-hidden="true">
+        <div class="profile-edit-card">
+          <div class="settings-heading"><button class="back-link" id="btn-close-change-pin" type="button">← Cancel</button><h2>Change PIN</h2><span class="settings-heading-spacer"></span></div>
+          <p class="auth-guardian-hint">Enter your current PIN, then create a new 4-digit Safety PIN.</p>
+          <div class="form-group"><label for="current-pin">Current PIN</label><input id="current-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" /></div>
+          <div class="form-group"><label for="new-pin">New PIN</label><input id="new-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" /></div>
+          <div class="form-group"><label for="confirm-new-pin">Confirm new PIN</label><input id="confirm-new-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" /></div>
+          <button class="auth-back-btn" id="btn-forgot-pin" type="button">Forgot PIN?</button>
+          <p class="auth-error-msg" id="change-pin-error"></p>
+          <button class="action-btn btn-primary" id="btn-submit-change-pin" type="button">Change PIN</button>
+        </div>
+      </div>
+      <div class="profile-edit-modal" id="forgot-pin-modal" aria-hidden="true">
+        <div class="profile-edit-card">
+          <div class="settings-heading"><button class="back-link" id="btn-close-forgot-pin" type="button">← Back</button><h2>Forgot PIN</h2><span class="settings-heading-spacer"></span></div>
+          <p class="auth-guardian-hint">We’ll verify your email before allowing a new Safety PIN.</p>
+          <div class="form-group"><label for="forgot-pin-email">Email address</label><input id="forgot-pin-email" type="email" autocomplete="email" /></div>
+          <button class="action-btn btn-ghost" id="btn-send-pin-otp" type="button">Send email OTP</button>
+          <div class="form-group"><label for="forgot-pin-otp">Email OTP</label><input id="forgot-pin-otp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" /></div>
+          <div class="form-group"><label for="forgot-new-pin">New PIN</label><input id="forgot-new-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" /></div>
+          <div class="form-group"><label for="forgot-confirm-pin">Confirm new PIN</label><input id="forgot-confirm-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" /></div>
+          <p class="auth-error-msg" id="forgot-pin-error"></p>
+          <button class="action-btn btn-primary" id="btn-submit-forgot-pin" type="button">Verify OTP &amp; Save PIN</button>
+        </div>
+      </div>
     </main>
 
     <!-- Native-Style 4-Digit PIN Keypad Overlay -->
