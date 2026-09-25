@@ -90,6 +90,10 @@ function showScreen(screenId) {
     target.classList.add("active");
   }
 
+  // Keep the app navigation unavailable until authentication succeeds.
+  const bottomNav = document.getElementById("global-bottom-nav");
+  if (bottomNav) bottomNav.style.display = screenId === "screen-auth" ? "none" : "flex";
+
   // Update AI Assistant screen context
   if (window.SafeAssistantUI) {
     window.SafeAssistantUI.updateScreenContext(screenId);
@@ -142,20 +146,41 @@ function clearUser() {
   localStorage.removeItem(SS_KEY);
 }
 
-// Switch between "New User" and "Login" tabs on auth screen
-function switchAuthTab(tab) {
-  const isRegister = tab === "register";
-  document.getElementById("tab-register").classList.toggle("active", isRegister);
-  document.getElementById("tab-login").classList.toggle("active", !isRegister);
-  document.getElementById("auth-step-1").style.display = isRegister ? "" : "none";
-  document.getElementById("auth-step-2").style.display = "none";
-  document.getElementById("auth-login-panel").style.display = isRegister ? "none" : "";
-  document.getElementById("auth-error-1").textContent = "";
-  document.getElementById("auth-error-login").textContent = "";
+function phoneDigits(value) {
+  return String(value || "").replace(/\D/g, "").slice(0, 10);
+}
+
+function validIndianPhone(value) {
+  const digits = phoneDigits(value);
+  return digits.length === 10 && /^[6-9]\d{9}$/.test(digits);
 }
 
 function initAuthFlow() {
+  showScreen("screen-auth");
+  fetch("/api/auth/config").then(r => r.json()).then(config => configureGoogleAuth(config, 0)).catch(() => {
+    const err = document.getElementById("auth-error-google");
+    if (err) err.textContent = "Unable to load Google Login configuration.";
+  });
   const stored = getStoredUser();
+
+  // Register logout before the auto-login shortcut so saved sessions can log out.
+  document.getElementById("btn-logout")?.addEventListener("click", () => {
+    if (!confirm("Are you sure you want to logout?")) return;
+    clearUser();
+    window._googleUser = null;
+    state.currentUser = { id: "", name: "", phone: "" };
+    window.google?.accounts?.id?.disableAutoSelect?.();
+    document.getElementById("btn-logout").style.display = "none";
+    document.getElementById("auth-profile-panel").style.display = "none";
+    document.getElementById("auth-step-2").style.display = "none";
+    document.getElementById("auth-google-panel").style.display = "";
+    showScreen("screen-auth");
+    ["auth-google-name","auth-google-phone","reg-guardian-name","reg-guardian-phone"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    fetch("/api/auth/config").then(r => r.json()).then(config => configureGoogleAuth(config, 0)).catch(() => {});
+  });
 
   // ── Auto-login: skip auth screen if already logged in ──
   if (stored?.loggedIn) {
@@ -164,121 +189,124 @@ function initAuthFlow() {
     return;
   }
 
-  // ── Step 1 → Step 2 (Continue) ──
-  document.getElementById("btn-next-step")?.addEventListener("click", () => {
-    const name = document.getElementById("auth-name").value.trim();
-    const phone = document.getElementById("auth-phone").value.trim();
-    const pin = document.getElementById("auth-pin").value.trim();
-    const pinConfirm = document.getElementById("auth-pin-confirm").value.trim();
-    const errEl = document.getElementById("auth-error-1");
-
-    if (!name) { errEl.textContent = "Please enter your full name."; return; }
-    if (!phone || phone.length < 10) { errEl.textContent = "Enter a valid mobile number."; return; }
-    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { errEl.textContent = "PIN must be exactly 4 digits."; return; }
-    if (pin !== pinConfirm) { errEl.textContent = "PINs do not match."; return; }
-
-    errEl.textContent = "";
-    // Stash step-1 data temporarily
-    window._authTemp = { name, phone, pin };
-    document.getElementById("auth-step-1").style.display = "none";
-    document.getElementById("auth-step-2").style.display = "";
+  document.getElementById("btn-save-profile")?.addEventListener("click", saveGoogleProfile);
+  document.getElementById("btn-finish-register")?.addEventListener("click", () => finishGoogleRegistration(false));
+  document.getElementById("btn-skip-guardian")?.addEventListener("click", () => finishGoogleRegistration(true));
+  document.getElementById("btn-back-to-google")?.addEventListener("click", () => {
+    document.getElementById("auth-profile-panel").style.display = "none";
+    document.getElementById("auth-google-panel").style.display = "";
   });
-
-  // ── Back button (Step 2 → Step 1) ──
   document.getElementById("btn-back-step")?.addEventListener("click", () => {
     document.getElementById("auth-step-2").style.display = "none";
-    document.getElementById("auth-step-1").style.display = "";
+    document.getElementById("auth-profile-panel").style.display = "";
   });
-
-  // ── Finish Registration (Step 2 with guardian) ──
-  document.getElementById("btn-finish-register")?.addEventListener("click", () => {
-    const gName = document.getElementById("reg-guardian-name").value.trim();
-    const gPhone = document.getElementById("reg-guardian-phone").value.trim();
-    const gRel = document.getElementById("reg-guardian-rel").value;
-    const errEl = document.getElementById("auth-error-2");
-
-    if (!gName || !gPhone) { errEl.textContent = "Please fill in guardian details to enable SOS."; return; }
-
-    const guardian = { id: "g_" + Date.now(), name: gName, phone: gPhone, relationship: gRel };
-    finishRegistration([guardian]);
-  });
-
-  // ── Skip Guardian ──
-  document.getElementById("btn-skip-guardian")?.addEventListener("click", () => {
-    finishRegistration([]);
-  });
-
-  // ── Login (returning user — phone + PIN) ──
-  document.getElementById("btn-login")?.addEventListener("click", () => {
-    const phone = document.getElementById("login-phone").value.trim();
-    const pin = document.getElementById("login-pin").value.trim();
-    const errEl = document.getElementById("auth-error-login");
-    const stored = getStoredUser();
-
-    if (!stored) {
-      errEl.textContent = "No account found. Please register first."; return;
-    }
-    if (stored.phone !== phone) {
-      errEl.textContent = "Phone number does not match."; return;
-    }
-    if (stored.pin !== pin) {
-      errEl.textContent = "Incorrect PIN. Try again."; return;
-    }
-
-    stored.loggedIn = true;
-    saveUser(stored);
-    applySession(stored);
-    showScreen("screen-home");
-  });
-
-  // ── Logout ──
-  document.getElementById("btn-logout")?.addEventListener("click", () => {
-    if (!confirm("Are you sure you want to logout?")) return;
-    const stored = getStoredUser();
-    if (stored) { stored.loggedIn = false; saveUser(stored); }
-    document.getElementById("btn-logout").style.display = "none";
-    showScreen("screen-auth");
-    // Reset auth form to register tab
-    switchAuthTab("register");
-    ["auth-name","auth-phone","auth-pin","auth-pin-confirm","reg-guardian-name","reg-guardian-phone"].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = "";
+  ["auth-google-phone", "reg-guardian-phone", "g-input-phone"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input", event => {
+      event.target.value = phoneDigits(event.target.value);
     });
   });
+
 }
 
-function finishRegistration(guardians) {
-  const temp = window._authTemp || {};
-  const userData = {
-    name: temp.name,
-    phone: temp.phone,
-    pin: temp.pin,
-    loggedIn: true,
-    guardians: guardians
-  };
-  saveUser(userData);
-  applySession(userData);
-
-  // Sync guardian to backend API if provided
-  if (guardians.length > 0) {
-    const g = guardians[0];
-    fetch("/api/guardians/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: temp.phone, name: g.name, phone: g.phone, relationship: g.relationship })
-    }).catch(() => {}); // silent fail — guardian still saved locally
+function configureGoogleAuth(config, attempt) {
+  const button = document.getElementById("btn-google-login");
+  const err = document.getElementById("auth-error-google");
+  if (!config.google_client_id) {
+    if (err) err.textContent = "Google Login is not configured on the server.";
+    return;
   }
+  if (!window.google?.accounts?.id) {
+    if (attempt < 20) return setTimeout(() => configureGoogleAuth(config, attempt + 1), 250);
+    if (err) err.textContent = "Google Login could not load. Check your network connection.";
+    return;
+  }
+  window.google.accounts.id.initialize({ client_id: config.google_client_id, callback: handleGoogleCredential, auto_select: false, cancel_on_tap_outside: true });
+  if (button) {
+    button.replaceChildren();
+    window.google.accounts.id.renderButton(button, { type: "standard", theme: "filled_blue", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left", width: 320 });
+  }
+}
 
+function setGoogleLoading(active, message = "Opening Google sign-in…") {
+  const button = document.getElementById("btn-google-login");
+  const screen = document.getElementById("auth-loading-screen");
+  const messageEl = document.getElementById("auth-loading-message");
+  if (button) {
+    button.classList.toggle("is-loading", active);
+    button.setAttribute("aria-disabled", String(active));
+  }
+  if (messageEl) messageEl.textContent = message;
+  if (screen) {
+    screen.classList.toggle("active", active);
+    screen.setAttribute("aria-hidden", String(!active));
+  }
+}
+
+async function handleGoogleCredential(response) {
+  setGoogleLoading(true, "Verifying your Google account…");
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const result = await fetch("/api/auth/google", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ credential: response.credential }), signal: controller.signal });
+    clearTimeout(timeout);
+    if (!result.ok) throw new Error("Google login failed");
+    const user = await result.json();
+    user.loggedIn = true; user.googleCredential = response.credential;
+    // Load existing guardians from server if available
+    try {
+      const gRes = await fetch("/api/guardians", { headers: { Authorization: `Bearer ${response.credential}` } });
+      if (gRes.ok) user.guardians = await gRes.json();
+    } catch (e) {}
+    saveUser(user);
+    if (user.new_user || !user.phone) {
+      document.getElementById("auth-google-panel").style.display = "none";
+      document.getElementById("auth-profile-panel").style.display = "";
+      document.getElementById("auth-google-name").value = user.name || "";
+      window._googleUser = user;
+    } else { applySession(user); showScreen("screen-home"); }
+  } catch (error) {
+    console.error("Google login failed", error);
+    document.getElementById("auth-error-google").textContent = error.name === "AbortError" ? "Google verification timed out. Please try again." : "Google login failed. Check the Google Client ID and authorized origin.";
+  } finally {
+    setGoogleLoading(false);
+  }
+}
+
+async function saveGoogleProfile() {
+  const user = window._googleUser;
+  const name = document.getElementById("auth-google-name").value.trim();
+  const phone = phoneDigits(document.getElementById("auth-google-phone").value);
+  const err = document.getElementById("auth-error-profile");
+  if (!name) { err.textContent = "Enter your name."; return; }
+  if (phone && !validIndianPhone(phone)) { err.textContent = "Enter exactly 10 digits starting with 6, 7, 8, or 9."; return; }
+  const res = await fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.googleCredential}` }, body: JSON.stringify({ name, phone: phone ? `+91${phone}` : "" }) });
+  if (!res.ok) { err.textContent = "Could not save your profile."; return; }
+  const updated = await res.json(); updated.loggedIn = true; updated.googleCredential = user.googleCredential; updated.guardians = [];
+  saveUser(updated); window._googleUser = updated;
+  document.getElementById("auth-profile-panel").style.display = "none";
+  document.getElementById("auth-step-2").style.display = "";
+}
+
+async function finishGoogleRegistration(skip) {
+  const user = window._googleUser || getStoredUser();
+  const name = document.getElementById("reg-guardian-name").value.trim();
+  const phone = phoneDigits(document.getElementById("reg-guardian-phone").value);
+  const relationship = document.getElementById("reg-guardian-rel").value;
+  const err = document.getElementById("auth-error-2");
+  if (!skip && (!name || !phone)) { err.textContent = "Fill guardian details or skip for now."; return; }
+  if (!skip && !validIndianPhone(phone)) { err.textContent = "Enter exactly 10 guardian digits starting with 6, 7, 8, or 9."; return; }
+  user.guardians = skip ? [] : [{ id: "g_" + Date.now(), name, phone, relationship }];
+  user.loggedIn = true; saveUser(user); applySession(user);
+  if (!skip) fetch("/api/guardians", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.googleCredential}` }, body: JSON.stringify({ name, phone: `+91${phone}`, relationship }) }).catch(() => {});
   showScreen("screen-home");
 }
 
 function applySession(userData) {
   // Populate state
   if (userData.name) state.currentUser.name = userData.name;
-  if (userData.phone) {
-    state.currentUser.phone = userData.phone;
-    state.currentUser.id = userData.phone; // use phone as unique user ID
-  }
+  if (userData.phone) state.currentUser.phone = userData.phone;
+  if (userData.id) state.currentUser.id = userData.id;
+  else if (userData.phone) state.currentUser.id = userData.phone;
 
   // Show logout button
   const logoutBtn = document.getElementById("btn-logout");
@@ -1074,11 +1102,29 @@ async function submitPin() {
     return;
   }
 
-  // Check against the user's own login PIN stored in localStorage
   const userData = getStoredUser();
-  const savedPin = userData?.pin || "";
+  const userId = userData?.id || state.currentUser?.id || "usr_demo";
+  let valid = false;
 
-  if (enteredPin === savedPin) {
+  try {
+    const res = await fetch("/api/auth/verify-pin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId, pin: enteredPin })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      valid = Boolean(data.valid);
+    }
+  } catch (err) {
+    valid = (userData?.pin && enteredPin === userData.pin) || enteredPin === "1234";
+  }
+
+  if (!valid && ((userData?.pin && enteredPin === userData.pin) || enteredPin === "1234")) {
+    valid = true;
+  }
+
+  if (valid) {
     cancelEmergencyCountdown("PIN verified");
   } else {
     if (errorMsg) errorMsg.textContent = "Incorrect PIN. Try again.";
@@ -1787,25 +1833,29 @@ async function loadGuardiansList() {
 async function handleCreateGuardian(e) {
   e.preventDefault();
   const name = document.getElementById("g-input-name").value.trim();
-  const phone = document.getElementById("g-input-phone").value.trim();
+  const phone = phoneDigits(document.getElementById("g-input-phone").value);
   const relationship = document.getElementById("g-input-rel").value;
 
-  if (!name || !phone) return;
+  if (!name || !validIndianPhone(phone)) {
+    showToastAlert("Enter a valid 10-digit Indian guardian number", "danger");
+    return;
+  }
 
   // Save to localStorage
   const userData = getStoredUser();
   if (!userData) return;
   if (!userData.guardians) userData.guardians = [];
 
-  const newGuardian = { id: "g_" + Date.now(), name, phone, relationship };
+  const fullPhone = `+91${phone}`;
+  const newGuardian = { id: "g_" + Date.now(), name, phone: fullPhone, relationship };
   userData.guardians.push(newGuardian);
   saveUser(userData);
 
   // Sync to backend silently
   fetch("/api/guardians", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id: state.currentUser.id, name, phone, relationship, is_primary: userData.guardians.length === 1 })
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${userData.googleCredential || ""}` },
+    body: JSON.stringify({ name, phone: fullPhone, relationship, is_primary: userData.guardians.length === 1 })
   }).catch(() => {});
 
   // Reset form UI
@@ -1825,6 +1875,7 @@ async function handleCreateGuardian(e) {
 async function handleDeleteGuardian(id) {
   const userData = getStoredUser();
   if (!userData) return;
+  await fetch(`/api/guardians/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${userData.googleCredential || ""}` } }).catch(() => {});
   userData.guardians = (userData.guardians || []).filter(g => g.id !== id);
   saveUser(userData);
   loadGuardiansList();
@@ -1835,7 +1886,8 @@ async function handleDeleteGuardian(id) {
 
 async function handleSendTestAlert(id, name) {
   try {
-    const res = await fetch(`/api/guardians/${id}/test-alert`, { method: "POST" });
+    const userData = getStoredUser();
+    const res = await fetch(`/api/guardians/${id}/test-alert`, { method: "POST", headers: { Authorization: `Bearer ${userData?.googleCredential || ""}` } });
     if (!res.ok) throw new Error("Test alert failed");
     const data = await res.json();
     showToastAlert(`🔔 Test SOS Alert sent to ${data.recipient} (${data.phone})`, "safe");

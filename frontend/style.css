@@ -255,6 +255,33 @@ body {
   border-color: var(--border-focus);
 }
 
+.phone-input {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.phone-prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--text-muted);
+  border-right: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+}
+
+.phone-input input,
+.phone-input input:focus {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .pin-field {
   font-family: var(--font-mono) !important;
   font-size: 1.25rem !important;
@@ -344,6 +371,51 @@ body {
   flex-direction: column;
   gap: 14px;
   margin-top: 8px;
+}
+
+.auth-loading-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(7, 9, 15, 0.96);
+  color: var(--text-main);
+}
+
+.auth-loading-screen.active { display: flex; }
+.auth-loading-screen span { color: var(--text-muted); font-size: 0.8rem; }
+.auth-loader-ring {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(56, 189, 248, 0.2);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: authSpin 0.8s linear infinite;
+}
+@keyframes authSpin { to { transform: rotate(360deg); } }
+
+#btn-google-login:disabled {
+  opacity: 0.48;
+  cursor: wait;
+  filter: grayscale(0.35);
+}
+
+.google-login-wrap {
+  min-height: 44px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  transition: opacity .2s ease;
+}
+.google-login-wrap.is-loading {
+  opacity: 0.48;
+  pointer-events: none;
 }
 
 /* Register / Login tab row */
