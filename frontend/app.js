@@ -50,6 +50,9 @@ const state = {
   mapData: { pois: [], hotspots: [] }
 };
 
+// Expose state globally so assistant and other modules can access live location
+window.state = state;
+
 
 // Preset demo locations
 const DEMO_LOCATIONS = {
@@ -61,6 +64,7 @@ const DEMO_LOCATIONS = {
 
 // ================= INITIALIZATION & NAVIGATION =================
 document.addEventListener("DOMContentLoaded", () => {
+  initTheme();
   initNavigation();
   initAuthFlow();
   initScoreAndToggle();
@@ -86,6 +90,10 @@ function showScreen(screenId) {
   if (target) {
     target.classList.add("active");
   }
+
+  // Keep the app navigation unavailable until authentication succeeds.
+  const bottomNav = document.getElementById("global-bottom-nav");
+  if (bottomNav) bottomNav.style.display = screenId === "screen-auth" ? "none" : "flex";
 
   // Update AI Assistant screen context
   if (window.SafeAssistantUI) {
@@ -139,147 +147,245 @@ function clearUser() {
   localStorage.removeItem(SS_KEY);
 }
 
-// Switch between "New User" and "Login" tabs on auth screen
-function switchAuthTab(tab) {
-  const isRegister = tab === "register";
-  document.getElementById("tab-register").classList.toggle("active", isRegister);
-  document.getElementById("tab-login").classList.toggle("active", !isRegister);
-  document.getElementById("auth-step-1").style.display = isRegister ? "" : "none";
-  document.getElementById("auth-step-2").style.display = "none";
-  document.getElementById("auth-login-panel").style.display = isRegister ? "none" : "";
-  document.getElementById("auth-error-1").textContent = "";
-  document.getElementById("auth-error-login").textContent = "";
+function phoneDigits(value) {
+  return String(value || "").replace(/\D/g, "").slice(0, 10);
+}
+
+function validIndianPhone(value) {
+  const digits = phoneDigits(value);
+  return digits.length === 10 && /^[6-9]\d{9}$/.test(digits);
 }
 
 function initAuthFlow() {
+  showScreen("screen-auth");
+  fetch("/api/auth/config").then(r => r.json()).then(config => configureGoogleAuth(config, 0)).catch(() => {
+    const err = document.getElementById("auth-error-google");
+    if (err) err.textContent = "Unable to load Google Login configuration.";
+  });
   const stored = getStoredUser();
 
-  // ── Auto-login: skip auth screen if already logged in ──
-  if (stored?.loggedIn) {
-    applySession(stored);
-    showScreen("screen-home");
-    return;
-  }
+  // Bind profile actions before the saved-session shortcut below. A returning
+  // user may still need to complete a missing profile PIN.
+  document.getElementById("btn-save-profile")?.addEventListener("click", saveGoogleProfile);
 
-  // ── Step 1 → Step 2 (Continue) ──
-  document.getElementById("btn-next-step")?.addEventListener("click", () => {
-    const name = document.getElementById("auth-name").value.trim();
-    const phone = document.getElementById("auth-phone").value.trim();
-    const pin = document.getElementById("auth-pin").value.trim();
-    const pinConfirm = document.getElementById("auth-pin-confirm").value.trim();
-    const errEl = document.getElementById("auth-error-1");
-
-    if (!name) { errEl.textContent = "Please enter your full name."; return; }
-    if (!phone || phone.length < 10) { errEl.textContent = "Enter a valid mobile number."; return; }
-    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { errEl.textContent = "PIN must be exactly 4 digits."; return; }
-    if (pin !== pinConfirm) { errEl.textContent = "PINs do not match."; return; }
-
-    errEl.textContent = "";
-    // Stash step-1 data temporarily
-    window._authTemp = { name, phone, pin };
-    document.getElementById("auth-step-1").style.display = "none";
-    document.getElementById("auth-step-2").style.display = "";
-  });
-
-  // ── Back button (Step 2 → Step 1) ──
-  document.getElementById("btn-back-step")?.addEventListener("click", () => {
+  // Register logout before the auto-login shortcut so saved sessions can log out.
+  const performLogout = () => {
+    clearUser();
+    window._googleUser = null;
+    state.currentUser = { id: "", name: "", phone: "" };
+    window.google?.accounts?.id?.disableAutoSelect?.();
+    document.getElementById("btn-menu").style.display = "none";
+    document.getElementById("auth-profile-panel").style.display = "none";
     document.getElementById("auth-step-2").style.display = "none";
-    document.getElementById("auth-step-1").style.display = "";
-  });
-
-  // ── Finish Registration (Step 2 with guardian) ──
-  document.getElementById("btn-finish-register")?.addEventListener("click", () => {
-    const gName = document.getElementById("reg-guardian-name").value.trim();
-    const gPhone = document.getElementById("reg-guardian-phone").value.trim();
-    const gRel = document.getElementById("reg-guardian-rel").value;
-    const errEl = document.getElementById("auth-error-2");
-
-    if (!gName || !gPhone) { errEl.textContent = "Please fill in guardian details to enable SOS."; return; }
-
-    const guardian = { id: "g_" + Date.now(), name: gName, phone: gPhone, relationship: gRel };
-    finishRegistration([guardian]);
-  });
-
-  // ── Skip Guardian ──
-  document.getElementById("btn-skip-guardian")?.addEventListener("click", () => {
-    finishRegistration([]);
-  });
-
-  // ── Login (returning user — phone + PIN) ──
-  document.getElementById("btn-login")?.addEventListener("click", () => {
-    const phone = document.getElementById("login-phone").value.trim();
-    const pin = document.getElementById("login-pin").value.trim();
-    const errEl = document.getElementById("auth-error-login");
-    const stored = getStoredUser();
-
-    if (!stored) {
-      errEl.textContent = "No account found. Please register first."; return;
-    }
-    if (stored.phone !== phone) {
-      errEl.textContent = "Phone number does not match."; return;
-    }
-    if (stored.pin !== pin) {
-      errEl.textContent = "Incorrect PIN. Try again."; return;
-    }
-
-    stored.loggedIn = true;
-    saveUser(stored);
-    applySession(stored);
-    showScreen("screen-home");
-  });
-
-  // ── Logout ──
-  document.getElementById("btn-logout")?.addEventListener("click", () => {
-    if (!confirm("Are you sure you want to logout?")) return;
-    const stored = getStoredUser();
-    if (stored) { stored.loggedIn = false; saveUser(stored); }
-    document.getElementById("btn-logout").style.display = "none";
+    document.getElementById("auth-google-panel").style.display = "";
     showScreen("screen-auth");
-    // Reset auth form to register tab
-    switchAuthTab("register");
-    ["auth-name","auth-phone","auth-pin","auth-pin-confirm","reg-guardian-name","reg-guardian-phone"].forEach(id => {
+    ["auth-google-name","auth-google-phone","reg-guardian-name","reg-guardian-phone"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
-  });
-}
-
-function finishRegistration(guardians) {
-  const temp = window._authTemp || {};
-  const userData = {
-    name: temp.name,
-    phone: temp.phone,
-    pin: temp.pin,
-    loggedIn: true,
-    guardians: guardians
+    fetch("/api/auth/config").then(r => r.json()).then(config => configureGoogleAuth(config, 0)).catch(() => {});
   };
-  saveUser(userData);
-  applySession(userData);
 
-  // Sync guardian to backend API if provided
-  if (guardians.length > 0) {
-    const g = guardians[0];
-    fetch("/api/guardians/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: temp.phone, name: g.name, phone: g.phone, relationship: g.relationship })
-    }).catch(() => {}); // silent fail — guardian still saved locally
+  document.getElementById("btn-finish-register")?.addEventListener("click", () => finishGoogleRegistration(false));
+  document.getElementById("btn-skip-guardian")?.addEventListener("click", () => finishGoogleRegistration(true));
+  document.getElementById("btn-back-to-google")?.addEventListener("click", () => {
+    document.getElementById("auth-profile-panel").style.display = "none";
+    document.getElementById("auth-google-panel").style.display = "";
+  });
+  document.getElementById("btn-back-step")?.addEventListener("click", () => {
+    document.getElementById("auth-step-2").style.display = "none";
+    document.getElementById("auth-profile-panel").style.display = "";
+  });
+  ["auth-google-phone", "reg-guardian-phone", "g-input-phone"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input", event => {
+      event.target.value = phoneDigits(event.target.value);
+    });
+  });
+  document.getElementById("btn-menu")?.addEventListener("click", () => showScreen("screen-settings"));
+  document.getElementById("btn-settings-logout")?.addEventListener("click", performLogout);
+  document.getElementById("btn-settings-back")?.addEventListener("click", () => showScreen("screen-home"));
+  document.getElementById("settings-contacts")?.addEventListener("click", () => openGuardiansModal());
+  document.getElementById("btn-theme-toggle")?.addEventListener("click", toggleTheme);
+  document.getElementById("btn-delete-account")?.addEventListener("click", () => window.alert("Account deletion will be available after email verification is enabled."));
+  document.getElementById("btn-open-change-pin")?.addEventListener("click", openChangePin);
+  document.getElementById("btn-close-change-pin")?.addEventListener("click", closeChangePin);
+  document.getElementById("btn-forgot-pin")?.addEventListener("click", openForgotPin);
+  document.getElementById("btn-close-forgot-pin")?.addEventListener("click", closeForgotPin);
+  document.getElementById("btn-submit-change-pin")?.addEventListener("click", submitChangePin);
+  document.getElementById("btn-send-pin-otp")?.addEventListener("click", () => showToastAlert("Email OTP delivery must be connected to an email provider.", "info"));
+  document.getElementById("btn-submit-forgot-pin")?.addEventListener("click", submitForgotPin);
+  document.querySelectorAll(".settings-action").forEach(button => {
+    if (button.textContent.includes("Edit profile")) button.addEventListener("click", openProfileEditor);
+  });
+  document.getElementById("btn-close-profile-edit")?.addEventListener("click", closeProfileEditor);
+  document.getElementById("btn-save-profile-edit")?.addEventListener("click", saveProfileEditor);
+  document.getElementById("profile-photo-input")?.addEventListener("change", previewProfilePhoto);
+  initSettingsActions();
+
+  // ── Auto-login only after every auth control has been wired ──
+  if (stored?.loggedIn) {
+    applySession(stored);
+    showScreen("screen-home");
   }
 
+}
+
+function configureGoogleAuth(config, attempt) {
+  const button = document.getElementById("btn-google-login");
+  const err = document.getElementById("auth-error-google");
+  if (!config.google_client_id) {
+    if (err) err.textContent = "Google Login is not configured on the server.";
+    return;
+  }
+  if (!window.google?.accounts?.id) {
+    if (attempt < 20) return setTimeout(() => configureGoogleAuth(config, attempt + 1), 250);
+    if (err) err.textContent = "Google Login could not load. Check your network connection.";
+    return;
+  }
+  if (!window._googleAuthInitialized) {
+    window.google.accounts.id.initialize({ client_id: config.google_client_id, callback: handleGoogleCredential, auto_select: false, cancel_on_tap_outside: true });
+    window._googleAuthInitialized = true;
+  }
+  if (button) {
+    button.replaceChildren();
+    window.google.accounts.id.renderButton(button, {
+      type: "standard",
+      theme: "filled_black",
+      size: "large",
+      text: "continue_with",
+      shape: "rectangular",
+      logo_alignment: "left",
+      width: 340
+    });
+  }
+}
+
+function setGoogleLoading(active, message = "Opening Google sign-in…") {
+  const button = document.getElementById("btn-google-login");
+  const screen = document.getElementById("auth-loading-screen");
+  const messageEl = document.getElementById("auth-loading-message");
+  if (button) {
+    button.classList.toggle("is-loading", active);
+    button.setAttribute("aria-disabled", String(active));
+  }
+  if (messageEl) messageEl.textContent = message;
+  if (screen) {
+    screen.classList.toggle("active", active);
+    screen.setAttribute("aria-hidden", String(!active));
+  }
+}
+
+async function handleGoogleCredential(response) {
+  setGoogleLoading(true, "Verifying your Google account…");
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const result = await fetch("/api/auth/google", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ credential: response.credential }), signal: controller.signal });
+    clearTimeout(timeout);
+    if (!result.ok) {
+      let detail = "";
+      try {
+        const errorBody = await result.json();
+        detail = typeof errorBody.detail === "string" ? errorBody.detail : "";
+      } catch (e) {}
+      throw new Error(detail || `Google login failed (HTTP ${result.status})`);
+    }
+    const user = await result.json();
+    user.loggedIn = true; user.googleCredential = response.credential;
+    // Load existing guardians from server if available
+    try {
+      const gRes = await fetch("/api/guardians", { headers: { Authorization: `Bearer ${response.credential}` } });
+      if (gRes.ok) user.guardians = await gRes.json();
+    } catch (e) {}
+    saveUser(user);
+    if (user.new_user || !user.phone || !user.pin_set) {
+      document.getElementById("auth-google-panel").style.display = "none";
+      document.getElementById("auth-profile-panel").style.display = "";
+      document.getElementById("auth-google-name").value = user.name || "";
+      window._googleUser = user;
+    } else { applySession(user); showScreen("screen-home"); }
+  } catch (error) {
+    console.error("Google login failed", error);
+    document.getElementById("auth-error-google").textContent = error.name === "AbortError"
+      ? "Google verification timed out. Please try again."
+      : error.message || "Google login failed. Check the Google Client ID and authorized origin.";
+  } finally {
+    setGoogleLoading(false);
+  }
+}
+
+async function saveGoogleProfile() {
+  const user = window._googleUser || getStoredUser();
+  if (!user?.googleCredential) {
+    document.getElementById("auth-error-profile").textContent = "Google session expired. Please sign in again.";
+    return;
+  }
+  const name = document.getElementById("auth-google-name").value.trim();
+  const phone = phoneDigits(document.getElementById("auth-google-phone").value);
+  const pin = document.getElementById("auth-google-pin").value.trim();
+  const pinConfirmation = document.getElementById("auth-google-pin-confirm").value.trim();
+  const err = document.getElementById("auth-error-profile");
+  if (!name) { err.textContent = "Enter your name."; return; }
+  if (phone && !validIndianPhone(phone)) { err.textContent = "Enter exactly 10 digits starting with 6, 7, 8, or 9."; return; }
+  if (!/^\d{4}$/.test(pin)) { err.textContent = "Create a 4-digit PIN."; return; }
+  if (pin !== pinConfirmation) { err.textContent = "PIN and confirmation PIN must match."; return; }
+  const saveButton = document.getElementById("btn-save-profile");
+  if (saveButton) {
+    saveButton.disabled = true;
+    saveButton.dataset.originalLabel = saveButton.textContent;
+    saveButton.textContent = "Saving…";
+  }
+  try {
+    const res = await fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.googleCredential}` }, body: JSON.stringify({ name, phone: phone ? `+91${phone}` : "", pin, pin_confirmation: pinConfirmation }) });
+    if (!res.ok) {
+      let detail = "Could not save your profile.";
+      try { detail = (await res.json()).detail || detail; } catch (e) {}
+      err.textContent = detail;
+      return;
+    }
+    const updated = await res.json(); updated.loggedIn = true; updated.googleCredential = user.googleCredential; updated.guardians = [];
+    saveUser(updated); window._googleUser = updated;
+    document.getElementById("auth-profile-panel").style.display = "none";
+    document.getElementById("auth-step-2").style.display = "";
+  } catch (error) {
+    console.error("Profile save failed", error);
+    err.textContent = "Could not connect to the server. Make sure the backend is running.";
+  } finally {
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.textContent = saveButton.dataset.originalLabel || "Continue";
+    }
+  }
+}
+
+async function finishGoogleRegistration(skip) {
+  const user = window._googleUser || getStoredUser();
+  const name = document.getElementById("reg-guardian-name").value.trim();
+  const phone = phoneDigits(document.getElementById("reg-guardian-phone").value);
+  const relationship = document.getElementById("reg-guardian-rel").value;
+  const err = document.getElementById("auth-error-2");
+  if (!skip && (!name || !phone)) { err.textContent = "Fill guardian details or skip for now."; return; }
+  if (!skip && !validIndianPhone(phone)) { err.textContent = "Enter exactly 10 guardian digits starting with 6, 7, 8, or 9."; return; }
+  user.guardians = skip ? [] : [{ id: "g_" + Date.now(), name, phone, relationship }];
+  user.loggedIn = true; saveUser(user); applySession(user);
+  if (!skip) fetch("/api/guardians", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.googleCredential}` }, body: JSON.stringify({ name, phone: `+91${phone}`, relationship }) }).catch(() => {});
   showScreen("screen-home");
 }
 
 function applySession(userData) {
   // Populate state
   if (userData.name) state.currentUser.name = userData.name;
-  if (userData.phone) {
-    state.currentUser.phone = userData.phone;
-    state.currentUser.id = userData.phone; // use phone as unique user ID
-  }
+  if (userData.phone) state.currentUser.phone = userData.phone;
+  if (userData.id) state.currentUser.id = userData.id;
+  else if (userData.phone) state.currentUser.id = userData.phone;
 
   // Show logout button
-  const logoutBtn = document.getElementById("btn-logout");
-  if (logoutBtn) logoutBtn.style.display = "flex";
+  const menuBtn = document.getElementById("btn-menu");
+  if (menuBtn) menuBtn.style.display = "flex";
+  const nameEl = document.getElementById("settings-profile-name");
+  if (nameEl) nameEl.textContent = userData.name || "Your profile";
+  const emailEl = document.getElementById("settings-profile-email");
+  if (emailEl) emailEl.textContent = userData.email || "Google account";
 
   // Update emergency guardian status with real name
   const guardians = userData.guardians || [];
@@ -289,6 +395,117 @@ function applySession(userData) {
   } else if (statusEl) {
     statusEl.textContent = "No guardian set — add one in Contacts for SOS alerts.";
   }
+}
+
+function toggleTheme() {
+  const light = document.body.classList.toggle("light-theme");
+  localStorage.setItem("ss_theme", light ? "light" : "dark");
+  const label = document.getElementById("theme-label");
+  if (label) label.textContent = light ? "Light" : "Dark";
+}
+
+function initTheme() {
+  const light = localStorage.getItem("ss_theme") === "light";
+  document.body.classList.toggle("light-theme", light);
+  const label = document.getElementById("theme-label");
+  if (label) label.textContent = light ? "Light" : "Dark";
+}
+
+function openChangePin() { document.getElementById("change-pin-modal")?.classList.add("active"); }
+function closeChangePin() { document.getElementById("change-pin-modal")?.classList.remove("active"); }
+function openForgotPin() { closeChangePin(); document.getElementById("forgot-pin-modal")?.classList.add("active"); }
+function closeForgotPin() { document.getElementById("forgot-pin-modal")?.classList.remove("active"); }
+
+async function submitChangePin() {
+  const user = window._googleUser || getStoredUser();
+  const error = document.getElementById("change-pin-error");
+  const currentPin = document.getElementById("current-pin").value;
+  const newPin = document.getElementById("new-pin").value;
+  const confirmPin = document.getElementById("confirm-new-pin").value;
+  if (!user?.googleCredential) { error.textContent = "Please sign in again."; return; }
+  if (!/^\d{4}$/.test(currentPin) || !/^\d{4}$/.test(newPin)) { error.textContent = "All PINs must contain exactly 4 digits."; return; }
+  if (newPin !== confirmPin) { error.textContent = "New PIN and confirmation PIN must match."; return; }
+  try {
+    const res = await fetch("/api/auth/change-pin", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.googleCredential}` }, body: JSON.stringify({ current_pin: currentPin, new_pin: newPin, new_pin_confirmation: confirmPin }) });
+    if (!res.ok) { error.textContent = (await res.json()).detail || "Unable to change PIN."; return; }
+    closeChangePin(); showToastAlert("Safety PIN changed successfully.", "safe");
+  } catch (e) { error.textContent = "Could not connect to the server."; }
+}
+
+function submitForgotPin() {
+  document.getElementById("forgot-pin-error").textContent = "Email OTP verification is not connected yet. Configure an email provider to enable this flow.";
+}
+
+function initSettingsActions() {
+  document.querySelectorAll(".settings-action").forEach(button => {
+    if (button.id === "btn-theme-toggle" || button.id === "settings-contacts" || button.id === "btn-delete-account" || button.id === "btn-open-change-pin") return;
+    const label = button.textContent.replace(/›/g, "").trim();
+    button.addEventListener("click", async () => {
+      if (label.includes("Edit profile")) {
+        openProfileEditor();
+        return;
+      }
+      if (label.includes("Safety Mode")) {
+        const toggle = document.getElementById("toggle-safety-mode");
+        if (toggle) { toggle.checked = !toggle.checked; toggle.dispatchEvent(new Event("change")); }
+        showScreen("screen-home");
+        return;
+      }
+      if (label.includes("Location sharing") || label === "Location") {
+        if (navigator.geolocation) navigator.geolocation.getCurrentPosition(() => showToastAlert("Location access is enabled.", "safe"), () => showToastAlert("Location access was not granted.", "danger"));
+        return;
+      }
+      if (label === "Microphone") {
+        if (navigator.mediaDevices?.getUserMedia) navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => { stream.getTracks().forEach(track => track.stop()); showToastAlert("Microphone access is enabled.", "safe"); }).catch(() => showToastAlert("Microphone access was not granted.", "danger"));
+        return;
+      }
+      if (label === "Notifications") {
+        if ("Notification" in window) Notification.requestPermission().then(permission => showToastAlert(`Notifications: ${permission}.`, permission === "granted" ? "safe" : "danger"));
+        return;
+      }
+      if (label.includes("Google account")) { showToastAlert("Google account details are managed by Google.", "info"); return; }
+      if (label.includes("Active sessions")) { showToastAlert("This device is the active session.", "info"); return; }
+      if (label.includes("How Safety Mode") || label.includes("Emergency instructions") || label.includes("Report a problem") || label.includes("About SafeSteps")) {
+        showToastAlert(`${label}: SafeSteps safety guidance is available from the Home and SOS screens.`, "info");
+        return;
+      }
+      showToastAlert(`${label} is ready to configure.`, "info");
+    });
+  });
+}
+
+function openProfileEditor() {
+  const user = window._googleUser || getStoredUser() || {};
+  document.getElementById("profile-edit-name").value = user.name || state.currentUser.name || "";
+  document.getElementById("profile-edit-email").value = user.email || "";
+  document.getElementById("profile-edit-phone").value = phoneDigits(user.phone || state.currentUser.phone || "");
+  const avatar = document.getElementById("profile-edit-avatar");
+  if (avatar) avatar.innerHTML = user.profile_photo ? `<img src="${user.profile_photo}" alt="Profile photo">` : "👤";
+  document.getElementById("profile-edit-modal")?.classList.add("active");
+}
+
+function closeProfileEditor() { document.getElementById("profile-edit-modal")?.classList.remove("active"); }
+
+function previewProfilePhoto(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => { document.getElementById("profile-edit-avatar").innerHTML = `<img src="${reader.result}" alt="Profile photo">`; };
+  reader.readAsDataURL(file);
+}
+
+async function saveProfileEditor() {
+  const user = window._googleUser || getStoredUser() || {};
+  const name = document.getElementById("profile-edit-name").value.trim();
+  const phone = phoneDigits(document.getElementById("profile-edit-phone").value);
+  const error = document.getElementById("profile-edit-error");
+  if (name.length < 2) { error.textContent = "Enter your full name."; return; }
+  if (phone && !validIndianPhone(phone)) { error.textContent = "Enter a valid 10-digit mobile number."; return; }
+  const avatar = document.querySelector("#profile-edit-avatar img")?.src || user.profile_photo || "";
+  const updated = { ...user, name, phone: phone ? `+91${phone}` : "", profile_photo: avatar };
+  saveUser(updated); window._googleUser = updated;
+  applySession(updated); closeProfileEditor();
+  showToastAlert("Profile updated successfully.", "safe");
 }
 
 
@@ -439,6 +656,7 @@ function initOrResizeMap() {
     state.mapInstance.on("click", (e) => {
       state.currentLocation.lat = e.latlng.lat;
       state.currentLocation.lng = e.latlng.lng;
+      state.currentLocation.name = null; // clear stale name; updated after API responds
       updateSafetyScore(e.latlng.lat, e.latlng.lng);
       updateUserMarkerOnMap();
     });
@@ -1070,11 +1288,25 @@ async function submitPin() {
     return;
   }
 
-  // Check against the user's own login PIN stored in localStorage
   const userData = getStoredUser();
-  const savedPin = userData?.pin || "";
+  const userId = userData?.id || state.currentUser?.id || "usr_demo";
+  let valid = false;
 
-  if (enteredPin === savedPin) {
+  try {
+    const res = await fetch("/api/auth/verify-pin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId, pin: enteredPin })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      valid = Boolean(data.valid);
+    }
+  } catch (err) {
+    valid = false;
+  }
+
+  if (valid) {
     cancelEmergencyCountdown("PIN verified");
   } else {
     if (errorMsg) errorMsg.textContent = "Incorrect PIN. Try again.";
@@ -1783,25 +2015,29 @@ async function loadGuardiansList() {
 async function handleCreateGuardian(e) {
   e.preventDefault();
   const name = document.getElementById("g-input-name").value.trim();
-  const phone = document.getElementById("g-input-phone").value.trim();
+  const phone = phoneDigits(document.getElementById("g-input-phone").value);
   const relationship = document.getElementById("g-input-rel").value;
 
-  if (!name || !phone) return;
+  if (!name || !validIndianPhone(phone)) {
+    showToastAlert("Enter a valid 10-digit Indian guardian number", "danger");
+    return;
+  }
 
   // Save to localStorage
   const userData = getStoredUser();
   if (!userData) return;
   if (!userData.guardians) userData.guardians = [];
 
-  const newGuardian = { id: "g_" + Date.now(), name, phone, relationship };
+  const fullPhone = `+91${phone}`;
+  const newGuardian = { id: "g_" + Date.now(), name, phone: fullPhone, relationship };
   userData.guardians.push(newGuardian);
   saveUser(userData);
 
   // Sync to backend silently
   fetch("/api/guardians", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id: state.currentUser.id, name, phone, relationship, is_primary: userData.guardians.length === 1 })
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${userData.googleCredential || ""}` },
+    body: JSON.stringify({ name, phone: fullPhone, relationship, is_primary: userData.guardians.length === 1 })
   }).catch(() => {});
 
   // Reset form UI
@@ -1821,6 +2057,7 @@ async function handleCreateGuardian(e) {
 async function handleDeleteGuardian(id) {
   const userData = getStoredUser();
   if (!userData) return;
+  await fetch(`/api/guardians/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${userData.googleCredential || ""}` } }).catch(() => {});
   userData.guardians = (userData.guardians || []).filter(g => g.id !== id);
   saveUser(userData);
   loadGuardiansList();
@@ -1831,7 +2068,8 @@ async function handleDeleteGuardian(id) {
 
 async function handleSendTestAlert(id, name) {
   try {
-    const res = await fetch(`/api/guardians/${id}/test-alert`, { method: "POST" });
+    const userData = getStoredUser();
+    const res = await fetch(`/api/guardians/${id}/test-alert`, { method: "POST", headers: { Authorization: `Bearer ${userData?.googleCredential || ""}` } });
     if (!res.ok) throw new Error("Test alert failed");
     const data = await res.json();
     showToastAlert(`🔔 Test SOS Alert sent to ${data.recipient} (${data.phone})`, "safe");

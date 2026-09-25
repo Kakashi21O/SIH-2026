@@ -1,4 +1,4 @@
-﻿# Environment variables & secrets
+# Environment variables & secrets
 .env
 .env.local
 
@@ -20,3 +20,12 @@ __pycache__/
 
 # SafeSteps Docs / Presentation (if excluded)
 SAFE-STEPS.pptx
+
+Project Architecture Infographic.png
+
+# Frontend files ONLY live in frontend/ — never in root
+# The backend serves static files from frontend/ (see backend/main.py line 50)
+# Root-level *.js / *.css / *.html are always duplicate orphans
+/*.js
+/*.css
+/*.html

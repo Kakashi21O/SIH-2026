@@ -104,6 +104,23 @@ def init_db():
     if "audio_data" not in columns:
         cursor.execute("ALTER TABLE incidents ADD COLUMN audio_data TEXT;")
 
+    # Google authentication fields. Existing demo rows remain readable.
+    cursor.execute("PRAGMA table_info(users);")
+    user_columns = {col[1] for col in cursor.fetchall()}
+    migrations = {
+        "google_uid": "ALTER TABLE users ADD COLUMN google_uid TEXT",
+        "email": "ALTER TABLE users ADD COLUMN email TEXT",
+        "phone_verified": "ALTER TABLE users ADD COLUMN phone_verified INTEGER NOT NULL DEFAULT 0",
+        "auth_provider": "ALTER TABLE users ADD COLUMN auth_provider TEXT NOT NULL DEFAULT 'google'",
+        "profile_photo": "ALTER TABLE users ADD COLUMN profile_photo TEXT",
+        "updated_at": "ALTER TABLE users ADD COLUMN updated_at TIMESTAMP",
+    }
+    for column, statement in migrations.items():
+        if column not in user_columns:
+            cursor.execute(statement)
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_uid ON users(google_uid) WHERE google_uid IS NOT NULL")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL")
+
     # 6. Journeys table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS journeys (

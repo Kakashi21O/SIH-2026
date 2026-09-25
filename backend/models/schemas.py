@@ -2,15 +2,31 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 
 # ================= AUTH & USER SCHEMAS =================
-class UserLoginRequest(BaseModel):
-    phone: str = Field(..., example="+919876543210")
-    pin: str = Field(..., min_length=4, max_length=4, example="1234")
+class GoogleLoginRequest(BaseModel):
+    credential: str = Field(..., min_length=20)
+
+class UserProfileUpdateRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    phone: Optional[str] = None
+    pin: str = Field(..., min_length=4, max_length=4, pattern=r"^\d{4}$")
+    pin_confirmation: str = Field(..., min_length=4, max_length=4, pattern=r"^\d{4}$")
+
+class PinChangeRequest(BaseModel):
+    current_pin: str = Field(..., min_length=4, max_length=4, pattern=r"^\d{4}$")
+    new_pin: str = Field(..., min_length=4, max_length=4, pattern=r"^\d{4}$")
+    new_pin_confirmation: str = Field(..., min_length=4, max_length=4, pattern=r"^\d{4}$")
 
 class UserResponse(BaseModel):
     id: str
     name: str
-    phone: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    profile_photo: Optional[str] = None
+    phone_verified: bool = False
+    auth_provider: str = "google"
     created_at: str
+    new_user: bool = False
+    pin_set: bool = False
 
 class PinVerifyRequest(BaseModel):
     pin: str = Field(..., min_length=4, max_length=4, example="1234")

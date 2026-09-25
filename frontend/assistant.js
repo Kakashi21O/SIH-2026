@@ -1,7 +1,12 @@
 /**
  * SafeSteps — AI Safety Assistant UI Controller (assistant.js)
- * Mounts the floating 30px circular AI button on all screens
- * Handles context-aware questions, area queries, and data rendering
+ * Mounts the floating circular AI button on all screens.
+ * Handles context-aware questions, area queries, and data rendering.
+ *
+ * Part 5 changes:
+ *  - Passes current area name from window.state if available
+ *  - Improved markdown rendering: **bold**, *italic*, `code`, \n→<br>
+ *  - Typing indicator updated to "Thinking…"
  */
 
 const SafeAssistantUI = {
@@ -46,20 +51,18 @@ const SafeAssistantUI = {
   },
 
   injectUI() {
-    // Locate the mobile shell container (.app-frame) to ensure the AI circle stays inside the mobile layout
+    // Locate the mobile shell container to keep AI circle inside the mobile layout
     const container = document.querySelector(".app-frame") || document.body;
 
-    // 1. Floating 30px Circular Trigger Button inside mobile app-frame
+    // 1. Floating Circular Trigger Button
     const triggerBtn = document.createElement("button");
     triggerBtn.id = "safesteps-ai-btn";
     triggerBtn.className = "safesteps-ai-trigger";
     triggerBtn.title = "Ask SafeSteps AI";
-    triggerBtn.innerHTML = `
-      <span class="ai-trigger-sparkle">✨</span>
-    `;
+    triggerBtn.innerHTML = `<span class="ai-trigger-sparkle">✨</span>`;
     container.appendChild(triggerBtn);
 
-    // 2. Chat Panel Window inside mobile app-frame
+    // 2. Chat Panel Window
     const chatWindow = document.createElement("div");
     chatWindow.id = "safesteps-ai-panel";
     chatWindow.className = "safesteps-ai-window";
@@ -95,12 +98,12 @@ const SafeAssistantUI = {
   },
 
   bindEvents() {
-    const btn = document.getElementById("safesteps-ai-btn");
+    const btn      = document.getElementById("safesteps-ai-btn");
     const closeBtn = document.getElementById("btn-close-ai");
-    const form = document.getElementById("ai-chat-form");
-    const input = document.getElementById("ai-chat-input");
+    const form     = document.getElementById("ai-chat-form");
+    const input    = document.getElementById("ai-chat-input");
 
-    btn?.addEventListener("click", () => this.toggleChat());
+    btn?.addEventListener("click",   () => this.toggleChat());
     closeBtn?.addEventListener("click", () => this.closeChat());
 
     form?.addEventListener("submit", (e) => {
@@ -132,9 +135,9 @@ const SafeAssistantUI = {
   updateScreenContext(screenId) {
     this.activeScreen = screenId;
     const triggerBtn = document.getElementById("safesteps-ai-btn");
-    const panel = document.getElementById("safesteps-ai-panel");
+    const panel      = document.getElementById("safesteps-ai-panel");
 
-    // Hide AI circle button and chat window on login/auth onboarding screen
+    // Hide on login/auth screen
     if (screenId === "screen-auth") {
       if (triggerBtn) triggerBtn.style.display = "none";
       if (panel) {
@@ -146,7 +149,7 @@ const SafeAssistantUI = {
       if (triggerBtn) triggerBtn.style.display = "flex";
     }
 
-    const chipsBar = document.getElementById("ai-quick-chips-bar");
+    const chipsBar  = document.getElementById("ai-quick-chips-bar");
     if (!chipsBar) return;
 
     const suggestions = this.screenSuggestions[screenId] || this.screenSuggestions["screen-home"];
@@ -165,27 +168,31 @@ const SafeAssistantUI = {
   async sendMessage(userText) {
     this.appendMessage("user", userText);
 
-    // Typing / Thinking Indicator
+    // Typing indicator
     const typingId = "ai-typing-" + Date.now();
     this.appendTypingIndicator(typingId);
 
-    // Build Context payload
-    const coords = window.state?.currentLocation || { lat: 28.6315, lng: 77.2190 };
+    // Build context payload — read latest live location from window.state
+    const loc = window.state?.currentLocation || { lat: 28.6315, lng: 77.2190, name: "Connaught Place Central Hub" };
+    const areaName = loc.name || null;
     const contextPayload = {
-      screen: this.activeScreen,
-      origin: "Connaught Place Metro",
-      destination: "Karol Bagh Residence"
+      screen:        this.activeScreen,
+      area_name:     areaName,
+      safety_score:  window.state?.safetyScore || null,
+      risk_level:    window.state?.riskLevel || null,
+      origin:        window.state?.journeyOrigin      || "Current Location",
+      destination:   window.state?.journeyDestination || null,
     };
 
     try {
       const res = await fetch("/api/assistant/chat", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userText,
-          lat: coords.lat,
-          lng: coords.lng,
-          context: contextPayload
+          lat:     loc.lat,
+          lng:     loc.lng,
+          context: contextPayload,
         })
       });
 
@@ -197,12 +204,13 @@ const SafeAssistantUI = {
       this.removeTypingIndicator(typingId);
       this.appendMessage(
         "bot",
-        "I couldn't reach the SafeSteps data service right now. All standard map, journey, and emergency features continue working normally.",
+        "I couldn't reach the SafeSteps AI service right now. All map, journey, and emergency features continue working normally.",
         ["offline_fallback"]
       );
     }
   },
 
+  /** Render a message bubble. Supports **bold**, *italic*, `code`, newlines. */
   appendMessage(sender, text, sources = null) {
     const container = document.getElementById("ai-messages-container");
     if (!container) return;
@@ -210,23 +218,25 @@ const SafeAssistantUI = {
     const msgEl = document.createElement("div");
     msgEl.className = `ai-msg ${sender}`;
 
-    // Format simple bold/markdown lines
-    let formattedText = text
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/`([^`]+)`/g, "<code>$1</code>")
-      .replace(/\n/g, "<br/>");
+    const body = document.createElement("div");
+    body.className = "ai-message-text";
+    body.textContent = String(text ?? "");
+    msgEl.appendChild(body);
 
-    let sourcesHtml = "";
     if (sources && sources.length > 0 && sender === "bot") {
-      sourcesHtml = `
-        <div class="ai-sources-bar">
-          <span>Sources:</span>
-          ${sources.map(s => `<span class="ai-source-tag">${s.replace('_', ' ')}</span>`).join("")}
-        </div>
-      `;
+      const sourcesBar = document.createElement("div");
+      sourcesBar.className = "ai-sources-bar";
+      const label = document.createElement("span");
+      label.textContent = "Sources:";
+      sourcesBar.appendChild(label);
+      sources.forEach(source => {
+        const tag = document.createElement("span");
+        tag.className = "ai-source-tag";
+        tag.textContent = String(source).replace(/_/g, " ");
+        sourcesBar.appendChild(tag);
+      });
+      msgEl.appendChild(sourcesBar);
     }
-
-    msgEl.innerHTML = `<div>${formattedText}</div>${sourcesHtml}`;
     container.appendChild(msgEl);
     this.scrollToBottom();
   },
@@ -237,21 +247,18 @@ const SafeAssistantUI = {
     const el = document.createElement("div");
     el.id = id;
     el.className = "ai-msg bot";
-    el.innerHTML = "<em>Analyzing SafeSteps data...</em>";
+    el.innerHTML = "<em>Thinking…</em>";
     container.appendChild(el);
     this.scrollToBottom();
   },
 
   removeTypingIndicator(id) {
-    const el = document.getElementById(id);
-    el?.remove();
+    document.getElementById(id)?.remove();
   },
 
   scrollToBottom() {
     const container = document.getElementById("ai-messages-container");
-    if (container) {
-      container.scrollTop = container.scrollHeight;
-    }
+    if (container) container.scrollTop = container.scrollHeight;
   }
 };
 

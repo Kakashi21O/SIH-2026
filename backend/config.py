@@ -1,4 +1,4 @@
-﻿import os
+import os
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -22,6 +22,14 @@ class Settings:
     
     # Default 4-digit Safety PIN for quick demo verification
     DEFAULT_PIN: str = os.getenv("DEFAULT_PIN", "1234")
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    AUTH_PROVIDER: str = os.getenv("AUTH_PROVIDER", "google")
+
+    # OpenRouter AI — LLM provider for SafeSteps AI Assistant
+    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
+    OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "qwen/qwen3.8-27b:free")
+    OPENROUTER_FALLBACK_MODELS: list = ["qwen/qwen3.8-27b:free", "inclusionai/ling-3.0-flash-vl:free", "liquid/lfm-2.5-2.6b:free"]
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     
     # Pre-configured seed data paths
     RISK_ZONES_SEED: str = str(BASE_DIR / "data" / "risk_zones.json")

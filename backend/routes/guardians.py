@@ -1,14 +1,17 @@
 import uuid
 from typing import List
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Header, HTTPException, status
 from backend.models.schemas import GuardianCreateRequest, GuardianUpdateRequest, GuardianResponse
 from backend.database.database import get_db_connection
+from backend.routes.auth import authenticated_user_id
+from backend.routes.auth import normalize_indian_phone
 
 router = APIRouter(prefix="/api/guardians", tags=["Guardians"])
 
 @router.get("", response_model=List[GuardianResponse])
-def list_guardians(user_id: str = "usr_demo"):
+def list_guardians(authorization: str | None = Header(default=None)):
     """Get registered emergency guardians for the user."""
+    user_id = authenticated_user_id(authorization)
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -30,23 +33,25 @@ def list_guardians(user_id: str = "usr_demo"):
     ]
 
 @router.post("", response_model=GuardianResponse, status_code=status.HTTP_201_CREATED)
-def create_guardian(payload: GuardianCreateRequest):
+def create_guardian(payload: GuardianCreateRequest, authorization: str | None = Header(default=None)):
     """Add a new emergency contact / guardian."""
+    user_id = authenticated_user_id(authorization)
     conn = get_db_connection()
     cursor = conn.cursor()
 
     guardian_id = f"g_{uuid.uuid4().hex[:6]}"
+    guardian_phone = normalize_indian_phone(payload.phone)
 
     # If this guardian is marked primary, demote other guardians
     if payload.is_primary:
-        cursor.execute("UPDATE guardians SET is_primary = 0 WHERE user_id = ?", (payload.user_id,))
+        cursor.execute("UPDATE guardians SET is_primary = 0 WHERE user_id = ?", (user_id,))
 
     cursor.execute(
         """
         INSERT INTO guardians (id, user_id, name, phone, relationship, is_primary)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (guardian_id, payload.user_id, payload.name, payload.phone, payload.relationship, int(payload.is_primary))
+        (guardian_id, user_id, payload.name, guardian_phone, payload.relationship, int(payload.is_primary))
     )
     conn.commit()
     conn.close()
@@ -54,17 +59,18 @@ def create_guardian(payload: GuardianCreateRequest):
     return GuardianResponse(
         id=guardian_id,
         name=payload.name,
-        phone=payload.phone,
+        phone=guardian_phone,
         relationship=payload.relationship,
         is_primary=payload.is_primary
     )
 
 @router.put("/{guardian_id}", response_model=GuardianResponse)
-def update_guardian(guardian_id: str, payload: GuardianUpdateRequest):
+def update_guardian(guardian_id: str, payload: GuardianUpdateRequest, authorization: str | None = Header(default=None)):
     """Update guardian details or primary contact status."""
+    user_id = authenticated_user_id(authorization)
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, user_id, name, phone, relationship, is_primary FROM guardians WHERE id = ?", (guardian_id,))
+    cursor.execute("SELECT id, user_id, name, phone, relationship, is_primary FROM guardians WHERE id = ? AND user_id = ?", (guardian_id, user_id))
     row = cursor.fetchone()
 
     if not row:
@@ -72,7 +78,7 @@ def update_guardian(guardian_id: str, payload: GuardianUpdateRequest):
         raise HTTPException(status_code=404, detail="Guardian not found")
 
     new_name = payload.name if payload.name is not None else row["name"]
-    new_phone = payload.phone if payload.phone is not None else row["phone"]
+    new_phone = normalize_indian_phone(payload.phone) if payload.phone is not None else row["phone"]
     new_rel = payload.relationship if payload.relationship is not None else row["relationship"]
     new_primary = payload.is_primary if payload.is_primary is not None else bool(row["is_primary"])
 
@@ -99,11 +105,12 @@ def update_guardian(guardian_id: str, payload: GuardianUpdateRequest):
     )
 
 @router.delete("/{guardian_id}")
-def delete_guardian(guardian_id: str):
+def delete_guardian(guardian_id: str, authorization: str | None = Header(default=None)):
     """Remove a guardian from the emergency contact list."""
+    user_id = authenticated_user_id(authorization)
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM guardians WHERE id = ?", (guardian_id,))
+    cursor.execute("DELETE FROM guardians WHERE id = ? AND user_id = ?", (guardian_id, user_id))
     deleted = cursor.rowcount > 0
     conn.commit()
     conn.close()
@@ -114,11 +121,12 @@ def delete_guardian(guardian_id: str):
     return {"message": "Guardian removed successfully", "id": guardian_id}
 
 @router.post("/{guardian_id}/test-alert")
-def send_test_alert(guardian_id: str):
+def send_test_alert(guardian_id: str, authorization: str | None = Header(default=None)):
     """Simulate sending a test alert/SMS to verify contact connectivity."""
+    user_id = authenticated_user_id(authorization)
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT name, phone FROM guardians WHERE id = ?", (guardian_id,))
+    cursor.execute("SELECT name, phone FROM guardians WHERE id = ? AND user_id = ?", (guardian_id, user_id))
     row = cursor.fetchone()
     conn.close()
 

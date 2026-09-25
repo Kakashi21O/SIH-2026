@@ -255,6 +255,33 @@ body {
   border-color: var(--border-focus);
 }
 
+.phone-input {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.phone-prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--text-muted);
+  border-right: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+}
+
+.phone-input input,
+.phone-input input:focus {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .pin-field {
   font-family: var(--font-mono) !important;
   font-size: 1.25rem !important;
@@ -344,6 +371,70 @@ body {
   flex-direction: column;
   gap: 14px;
   margin-top: 8px;
+}
+
+.auth-loading-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(7, 9, 15, 0.96);
+  color: var(--text-main);
+}
+
+.auth-loading-screen.active { display: flex; }
+.auth-loading-screen span { color: var(--text-muted); font-size: 0.8rem; }
+.auth-loader-ring {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(56, 189, 248, 0.2);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: authSpin 0.8s linear infinite;
+}
+@keyframes authSpin { to { transform: rotate(360deg); } }
+
+#btn-google-login:disabled {
+  opacity: 0.48;
+  cursor: wait;
+  filter: grayscale(0.35);
+}
+
+.google-login-wrap {
+  min-height: 48px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: opacity .2s ease;
+}
+
+body.light-theme {
+  --bg-app: #f4f7fb;
+  --bg-card: #ffffff;
+  --bg-card-subtle: #eef3f9;
+  --bg-input: #e8eef7;
+  --border-subtle: rgba(15, 23, 42, 0.12);
+  --text-main: #172033;
+  --text-muted: #5d6b82;
+  --text-dim: #8190a6;
+}
+
+body.light-theme .app-frame { box-shadow: 0 20px 60px rgba(30, 64, 100, 0.18); }
+body.light-theme .top-nav { background: #ffffff; }
+.google-login-wrap.is-loading {
+  opacity: 0.48;
+  pointer-events: none;
 }
 
 /* Register / Login tab row */
@@ -462,7 +553,7 @@ body {
 }
 
 /* Logout button in header */
-.btn-logout {
+.btn-menu {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -478,11 +569,35 @@ body {
   flex-shrink: 0;
 }
 
-.btn-logout:hover {
+.btn-menu:hover {
   background: rgba(239,68,68,0.12);
   color: #ef4444;
   border-color: rgba(239,68,68,0.3);
 }
+
+/* ================= SETTINGS ================= */
+.settings-screen { gap: 12px; }
+.settings-heading { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 4px; }
+.settings-heading h2 { font-size: 1.1rem; }
+.settings-heading-spacer { width: 42px; }
+.settings-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; }
+.settings-card h3 { padding: 13px 14px 10px; font-size: .9rem; }
+.settings-icon { display: inline-grid; place-items: center; width: 22px; margin-right: 4px; }
+.settings-icon.purple { color: #8b5cf6; }.settings-icon.orange { color: #f59e0b; }.settings-icon.pink { color: #ec4899; }.settings-icon.green { color: #10b981; }.settings-icon.blue { color: #3b82f6; }.settings-icon.yellow { color: #fbbf24; }.settings-icon.teal { color: #14b8a6; }
+.settings-profile-row { display: flex; gap: 12px; align-items: center; padding: 8px 14px 14px; }
+.settings-profile-row strong, .settings-profile-row span { display: block; }.settings-profile-row span { color: var(--text-muted); font-size: .76rem; margin-top: 3px; }
+.profile-avatar { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 50%; background: var(--bg-card-subtle); font-size: 1.7rem; }
+.settings-action { width: 100%; display: flex; align-items: center; gap: 12px; padding: 11px 14px; border: 0; border-top: 1px solid var(--border-subtle); background: transparent; color: var(--text-main); text-align: left; font: inherit; font-size: .8rem; cursor: pointer; }
+.settings-action:hover { background: var(--bg-card-subtle); }.settings-action b { margin-left: auto; color: var(--text-muted); font-size: 1.2rem; font-weight: 400; }.settings-action em { margin-left: auto; color: var(--accent-safe); font-style: normal; font-size: .75rem; }.settings-action em + b { margin-left: 4px; }
+.settings-action.danger { color: var(--accent-danger); }
+.settings-logout { width: 100%; margin: 4px 0 10px; padding: 13px; border: 0; border-radius: 999px; background: var(--accent-danger); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.profile-edit-modal { display: none; position: absolute; inset: 0; z-index: 40; padding: 16px; background: var(--bg-app); overflow-y: auto; }
+.profile-edit-modal.active { display: block; }
+.profile-edit-card { display: flex; flex-direction: column; gap: 14px; }
+.profile-photo-editor { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px 0; }
+.profile-avatar-large { width: 88px; height: 88px; font-size: 2.4rem; overflow: hidden; }
+.profile-avatar img, .profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; }
+.photo-upload-btn { color: var(--accent-primary); font-size: .8rem; font-weight: 700; cursor: pointer; }
 
 /* ================= 2. DASHBOARD / HOME ================= */
 .location-bar {

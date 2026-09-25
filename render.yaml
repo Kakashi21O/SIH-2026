@@ -13,6 +13,10 @@ services:
         value: "False"
       - key: DEFAULT_PIN
         value: "1234"
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: "qwen/qwen3-30b-a3b:free"
       - key: DATABASE_PATH
         value: /opt/render/project/src/data/safesteps.db
     disk:
