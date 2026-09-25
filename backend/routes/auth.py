@@ -40,6 +40,9 @@ def normalize_indian_phone(phone: str | None) -> str | None:
 
 
 def verify_google_credential(credential: str) -> dict:
+    if not settings.GOOGLE_CLIENT_ID:
+        logger.error("GOOGLE_CLIENT_ID is not configured on the server")
+        raise HTTPException(status_code=500, detail="Google Login is not configured on this server")
     try:
         from google.auth.transport import requests as google_requests
         from google.oauth2 import id_token
@@ -49,14 +52,22 @@ def verify_google_credential(credential: str) -> dict:
         claims = id_token.verify_oauth2_token(
             credential,
             google_request,
-            settings.GOOGLE_CLIENT_ID or None,
-            clock_skew_in_seconds=5,
+            settings.GOOGLE_CLIENT_ID,
+            clock_skew_in_seconds=10,
         )
     except Exception as exc:
-        logger.warning("Google token verification failed: %s", exc)
-        detail = "Invalid Google login"
+        exc_str = str(exc).lower()
         if settings.ENVIRONMENT == "development":
             detail = f"Invalid Google login: {exc}"
+        elif "token expired" in exc_str or "expiry" in exc_str:
+            detail = "Google sign-in token has expired. Please try again."
+        elif "audience" in exc_str or "client_id" in exc_str:
+            detail = "Google login failed: client ID mismatch. Contact support."
+        elif "unable to fetch" in exc_str or "connection" in exc_str:
+            detail = "Google login failed: could not reach Google servers. Try again."
+        else:
+            detail = "Google sign-in failed. Please try again."
+        logger.warning("Google token verification failed [%s]: %s", type(exc).__name__, exc)
         raise HTTPException(status_code=401, detail=detail)
     if claims.get("iss") not in {"accounts.google.com", "https://accounts.google.com"}:
         raise HTTPException(status_code=401, detail="Invalid Google login")
