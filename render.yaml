@@ -11,6 +11,10 @@ services:
         value: production
       - key: DEBUG
         value: "False"
+      - key: AUTH_PROVIDER
+        value: google
+      - key: GOOGLE_CLIENT_ID
+        sync: false
       - key: DEFAULT_PIN
         value: "1234"
       - key: OPENROUTER_API_KEY

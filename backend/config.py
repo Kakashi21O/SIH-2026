@@ -22,8 +22,8 @@ class Settings:
     
     # Default 4-digit Safety PIN for quick demo verification
     DEFAULT_PIN: str = os.getenv("DEFAULT_PIN", "1234")
-    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
-    AUTH_PROVIDER: str = os.getenv("AUTH_PROVIDER", "google")
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "").strip().strip('"').strip("'")
+    AUTH_PROVIDER: str = os.getenv("AUTH_PROVIDER", "google").strip().lower()
 
     # OpenRouter AI — LLM provider for SafeSteps AI Assistant
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
