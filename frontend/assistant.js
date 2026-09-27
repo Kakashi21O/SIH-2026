@@ -113,6 +113,16 @@ const SafeAssistantUI = {
       input.value = "";
       this.sendMessage(text);
     });
+
+    const chipsBar = document.getElementById("ai-quick-chips-bar");
+    if (chipsBar) {
+      chipsBar.addEventListener("wheel", (e) => {
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          chipsBar.scrollLeft += e.deltaY;
+        }
+      }, { passive: false });
+    }
   },
 
   toggleChat() {

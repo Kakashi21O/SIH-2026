@@ -45,8 +45,8 @@
         <span class="status-indicator"></span>
         <span class="status-text" id="header-status-text">Protected</span>
       </div>
-      <button class="btn-menu" id="btn-menu" style="display:none;" title="Open menu" aria-label="Open menu">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      <button class="btn-menu" id="btn-menu" style="display:none;" title="Open settings and profile" aria-label="Open settings and profile">
+        <div class="profile-avatar profile-avatar-nav" id="nav-avatar" aria-hidden="true"></div>
       </button>
     </header>
 
@@ -253,10 +253,10 @@
             <div class="mic-status-wrap" id="mic-status-badge">
               <span class="live-dot standby" id="mic-live-dot"></span>
               <span class="mic-label-title">Distress Keyword Listener:</span>
-              <span class="mic-label-state" id="mic-status-label">Standby</span>
             </div>
             <button class="mic-toggle-btn" id="btn-toggle-mic-listen" title="Toggle Voice Recognition">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              <svg class="mic-icon mic-icon-on" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              <svg class="mic-icon mic-icon-off" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9V4a3 3 0 0 0-5.83-1"/><path d="M19 10v2a7 7 0 0 1-11.9 4.9M5 10v2a7 7 0 0 0 7 7v4M12 23h4"/><line x1="3" y1="3" x2="21" y2="21"/></svg>
               <span>Mic</span>
             </button>
           </div>
@@ -651,7 +651,7 @@
 
         <div class="settings-card">
           <h3><span class="settings-icon purple">●</span> 1. Profile</h3>
-          <div class="settings-profile-row"><div class="profile-avatar" id="settings-avatar">👤</div><div><strong id="settings-profile-name">Your profile</strong><span id="settings-profile-email">Google account</span></div></div>
+          <div class="settings-profile-row"><div class="profile-avatar" id="settings-avatar" aria-label="Profile picture">👤</div><div><strong id="settings-profile-name">Your profile</strong><span id="settings-profile-email">Google account</span></div></div>
           <button class="settings-action" type="button"><span>✎</span> Edit profile <b>›</b></button>
         </div>
 
@@ -708,12 +708,67 @@
       <div class="profile-edit-modal" id="profile-edit-modal" aria-hidden="true">
         <div class="profile-edit-card">
           <div class="settings-heading"><button class="back-link" id="btn-close-profile-edit" type="button">← Cancel</button><h2>Edit Profile</h2><span class="settings-heading-spacer"></span></div>
-          <div class="profile-photo-editor"><div class="profile-avatar profile-avatar-large" id="profile-edit-avatar">👤</div><label class="photo-upload-btn" for="profile-photo-input">Change photo</label><input id="profile-photo-input" type="file" accept="image/*" hidden /></div>
+          <div class="profile-photo-editor">
+            <div class="profile-avatar profile-avatar-large" id="profile-edit-avatar">👤</div>
+            <div class="profile-photo-actions">
+              <label class="photo-upload-btn" for="profile-photo-input">Change photo</label>
+              <button class="photo-remove-btn" id="btn-remove-profile-photo" type="button" style="display:none;">Remove</button>
+            </div>
+            <input id="profile-photo-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+          </div>
           <div class="form-group"><label for="profile-edit-name">Full Name</label><input id="profile-edit-name" type="text" autocomplete="name" /></div>
           <div class="form-group"><label for="profile-edit-email">Email address</label><input id="profile-edit-email" type="email" readonly /></div>
           <div class="form-group"><label for="profile-edit-phone">Mobile number</label><div class="phone-input"><span class="phone-prefix">+91</span><input id="profile-edit-phone" type="tel" inputmode="numeric" maxlength="10" /></div></div>
           <p class="auth-error-msg" id="profile-edit-error"></p>
           <button class="action-btn btn-primary" id="btn-save-profile-edit" type="button">Save changes</button>
+        </div>
+      </div>
+
+      <!-- Circular Photo Crop Modal -->
+      <div class="profile-edit-modal crop-modal" id="crop-modal" aria-hidden="true">
+        <div class="profile-edit-card crop-card">
+          <div class="settings-heading">
+            <button class="back-link" id="btn-close-crop" type="button">← Cancel</button>
+            <h2>Crop Photo</h2>
+            <span class="settings-heading-spacer"></span>
+          </div>
+          <p class="crop-hint">Position and scale your photo inside the circular frame.</p>
+          
+          <div class="crop-viewport-wrap">
+            <div class="crop-viewport" id="crop-viewport">
+              <canvas id="crop-canvas" width="280" height="280"></canvas>
+              <div class="crop-circular-overlay">
+                <div class="crop-circular-hole"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="crop-controls-wrap">
+            <div class="crop-zoom-row">
+              <button class="crop-step-btn" id="btn-zoom-out" type="button" title="Zoom out">−</button>
+              <input type="range" class="crop-range" id="crop-zoom" min="1" max="3" step="0.01" value="1" aria-label="Zoom photo" />
+              <button class="crop-step-btn" id="btn-zoom-in" type="button" title="Zoom in">+</button>
+            </div>
+            <div class="crop-actions-row">
+              <button class="crop-tool-btn" id="btn-crop-rotate" type="button" title="Rotate 90 degrees">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                <span>Rotate</span>
+              </button>
+              <button class="crop-tool-btn" id="btn-crop-reset" type="button" title="Reset crop position">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                <span>Reset</span>
+              </button>
+              <div class="crop-preview-wrap">
+                <span class="crop-preview-label">Preview</span>
+                <div class="profile-avatar crop-live-preview" id="crop-preview-avatar"></div>
+              </div>
+            </div>
+          </div>
+
+          <p class="auth-error-msg" id="crop-error-msg"></p>
+          <div class="crop-footer-btns">
+            <button class="action-btn btn-primary" id="btn-apply-crop" type="button">Apply Crop</button>
+          </div>
         </div>
       </div>
       <div class="profile-edit-modal" id="change-pin-modal" aria-hidden="true">

@@ -16,6 +16,21 @@ class PinChangeRequest(BaseModel):
     new_pin: str = Field(..., min_length=4, max_length=4, pattern=r"^\d{4}$")
     new_pin_confirmation: str = Field(..., min_length=4, max_length=4, pattern=r"^\d{4}$")
 
+class UserProfileDetailsUpdateRequest(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    phone: Optional[str] = None
+    profile_photo: Optional[str] = None
+
+class AvatarUploadBase64Request(BaseModel):
+    photo_base64: str
+    user_id: Optional[str] = None
+
+class AvatarUploadResponse(BaseModel):
+    ok: bool = True
+    profile_photo: Optional[str] = None
+    message: str = "Profile photo updated successfully."
+    user: Optional[Dict[str, Any]] = None
+
 class UserResponse(BaseModel):
     id: str
     name: str

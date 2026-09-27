@@ -19,6 +19,7 @@ class Settings:
     
     # Path to SQLite database file
     DATABASE_PATH: str = os.getenv("DATABASE_PATH", str(BASE_DIR / "data" / "safesteps.db"))
+    AVATARS_DIR: Path = Path(os.getenv("AVATARS_DIR", str(BASE_DIR / "data" / "uploads" / "avatars")))
     
     # Default 4-digit Safety PIN for quick demo verification
     DEFAULT_PIN: str = os.getenv("DEFAULT_PIN", "1234")

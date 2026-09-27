@@ -6,6 +6,7 @@
 data/*.db
 *.db
 *.sqlite3
+data/uploads/
 
 # Python cache & artifacts
 __pycache__/

@@ -209,7 +209,14 @@
   display: flex;
   gap: 6px;
   overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  box-sizing: border-box;
   scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
   background: rgba(11, 15, 25, 0.6);
   border-top: 1px solid rgba(36, 50, 82, 0.5);
 }
@@ -283,6 +290,39 @@
   background: #38bdf8;
   transform: scale(1.05);
 }
+
+/* The assistant needs its own light surfaces because it is layered above the app. */
+body.light-theme .safesteps-ai-window {
+  background: rgba(226, 240, 248, 0.97);
+  border-color: #cbdbea;
+  box-shadow: 0 16px 42px rgba(31, 65, 100, 0.18), 0 0 0 1px rgba(8, 126, 164, 0.12);
+}
+
+body.light-theme .ai-header,
+body.light-theme .ai-input-bar {
+  background: rgba(213, 234, 246, 0.97);
+  border-color: #d8e3ef;
+}
+
+body.light-theme .ai-header-title { color: #142238; }
+body.light-theme .ai-header-subtitle { color: #087ea4; background: #e5f6fa; }
+body.light-theme .ai-close-btn { color: #64748b; }
+body.light-theme .ai-close-btn:hover { color: #142238; background: #e8f0f7; }
+body.light-theme .ai-msg.bot {
+  background: #d9edf7;
+  border-color: #d5e2ee;
+  color: #24364d;
+}
+body.light-theme .ai-msg strong { color: #087ea4; }
+body.light-theme .ai-sources-bar { color: #64748b; border-color: #d8e3ef; }
+body.light-theme .ai-source-tag { background: #eaf1f8; border-color: #d5e2ee; }
+body.light-theme .ai-quick-chips { background: #d5eaf6; border-color: #bfd8e8; }
+body.light-theme .ai-chip { background: #c7e4f2; color: #254b67; border-color: #9fcfe2; }
+body.light-theme .ai-chip:hover { background: #dff4f8; color: #075e78; }
+body.light-theme .ai-input-field { background: #eaf5fb; border-color: #b7d4e5; color: #142238; }
+body.light-theme .ai-input-field:focus { border-color: #087ea4; }
+body.light-theme .ai-send-btn { color: #ffffff; background: #087ea4; }
+body.light-theme .ai-send-btn:hover { background: #0a9bbd; }
 
 /* Responsive Mobile bottom sheet adaptation */
 @media (max-width: 480px) {

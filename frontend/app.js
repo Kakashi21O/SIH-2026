@@ -183,6 +183,9 @@ function initAuthFlow() {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
+    window._pendingAvatarPhoto = null;
+    renderProfileAvatar(document.getElementById("settings-avatar"), null);
+    renderProfileAvatar(document.getElementById("nav-avatar"), null);
     fetch("/api/auth/config").then(r => r.json()).then(config => configureGoogleAuth(config, 0)).catch(() => {});
   };
 
@@ -220,6 +223,8 @@ function initAuthFlow() {
   document.getElementById("btn-close-profile-edit")?.addEventListener("click", closeProfileEditor);
   document.getElementById("btn-save-profile-edit")?.addEventListener("click", saveProfileEditor);
   document.getElementById("profile-photo-input")?.addEventListener("change", previewProfilePhoto);
+  document.getElementById("btn-remove-profile-photo")?.addEventListener("click", handleRemoveProfilePhoto);
+  CropController.init();
   initSettingsActions();
 
   // ── Auto-login only after every auth control has been wired ──
@@ -386,6 +391,8 @@ function applySession(userData) {
   if (nameEl) nameEl.textContent = userData.name || "Your profile";
   const emailEl = document.getElementById("settings-profile-email");
   if (emailEl) emailEl.textContent = userData.email || "Google account";
+  renderProfileAvatar(document.getElementById("settings-avatar"), userData.profile_photo, userData.name);
+  renderProfileAvatar(document.getElementById("nav-avatar"), userData.profile_photo, userData.name);
 
   // Update emergency guardian status with real name
   const guardians = userData.guardians || [];
@@ -394,6 +401,67 @@ function applySession(userData) {
     statusEl.textContent = `Alert will be sent to ${guardians[0].name} (${guardians[0].phone})`;
   } else if (statusEl) {
     statusEl.textContent = "No guardian set — add one in Contacts for SOS alerts.";
+  }
+}
+
+function getInitials(name) {
+  if (!name || typeof name !== "string") return "";
+  const cleaned = name.replace(/[^a-zA-Z0-9\s]/g, "").trim();
+  if (!cleaned) return "";
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) {
+    return parts[0].substring(0, Math.min(2, parts[0].length)).toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function getAvatarColor(name) {
+  const gradients = [
+    "linear-gradient(135deg, #0284c7, #0369a1)",
+    "linear-gradient(135deg, #7c3aed, #5b21b6)",
+    "linear-gradient(135deg, #059669, #047857)",
+    "linear-gradient(135deg, #d97706, #b45309)",
+    "linear-gradient(135deg, #db2777, #be185d)",
+    "linear-gradient(135deg, #4f46e5, #3730a3)",
+    "linear-gradient(135deg, #0d9488, #0f766e)",
+  ];
+  if (!name) return gradients[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i);
+    hash |= 0;
+  }
+  return gradients[Math.abs(hash) % gradients.length];
+}
+
+function renderProfileAvatar(element, photo, name) {
+  if (!element) return;
+  const userName = name || state.currentUser?.name || getStoredUser()?.name || "";
+  
+  const renderFallback = () => {
+    element.classList.remove("has-photo");
+    const initials = getInitials(userName);
+    if (initials) {
+      element.style.background = getAvatarColor(userName);
+      element.innerHTML = `<span class="avatar-initials">${initials}</span>`;
+    } else {
+      element.style.background = "var(--bg-card-subtle, #1c2744)";
+      element.innerHTML = `<svg class="avatar-silhouette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+    }
+  };
+
+  if (photo && typeof photo === "string" && photo.trim()) {
+    element.style.background = "transparent";
+    const img = document.createElement("img");
+    img.src = photo;
+    img.alt = userName ? `${userName}'s avatar` : "Profile photo";
+    img.onerror = () => {
+      renderFallback();
+    };
+    element.replaceChildren(img);
+    element.classList.add("has-photo");
+  } else {
+    renderFallback();
   }
 }
 
@@ -480,18 +548,77 @@ function openProfileEditor() {
   document.getElementById("profile-edit-email").value = user.email || "";
   document.getElementById("profile-edit-phone").value = phoneDigits(user.phone || state.currentUser.phone || "");
   const avatar = document.getElementById("profile-edit-avatar");
-  if (avatar) avatar.innerHTML = user.profile_photo ? `<img src="${user.profile_photo}" alt="Profile photo">` : "👤";
+  renderProfileAvatar(avatar, user.profile_photo, user.name);
+
+  const removeBtn = document.getElementById("btn-remove-profile-photo");
+  if (removeBtn) {
+    removeBtn.style.display = user.profile_photo ? "inline-flex" : "none";
+  }
+  const error = document.getElementById("profile-edit-error");
+  if (error) error.textContent = "";
+  window._pendingAvatarPhoto = null;
   document.getElementById("profile-edit-modal")?.classList.add("active");
 }
 
-function closeProfileEditor() { document.getElementById("profile-edit-modal")?.classList.remove("active"); }
+function closeProfileEditor() {
+  window._pendingAvatarPhoto = null;
+  document.getElementById("profile-edit-modal")?.classList.remove("active");
+}
 
 function previewProfilePhoto(event) {
   const file = event.target.files?.[0];
   if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    showToastAlert("Please select an image file (PNG, JPG, WEBP).", "warn");
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    showToastAlert("Image size exceeds 10MB limit.", "warn");
+    return;
+  }
   const reader = new FileReader();
-  reader.onload = () => { document.getElementById("profile-edit-avatar").innerHTML = `<img src="${reader.result}" alt="Profile photo">`; };
+  reader.onload = () => {
+    CropController.open(reader.result);
+  };
   reader.readAsDataURL(file);
+}
+
+async function handleRemoveProfilePhoto() {
+  const user = window._googleUser || getStoredUser() || {};
+  window._pendingAvatarPhoto = null;
+  const editAvatar = document.getElementById("profile-edit-avatar");
+  renderProfileAvatar(editAvatar, null, user.name);
+  const removeBtn = document.getElementById("btn-remove-profile-photo");
+  if (removeBtn) removeBtn.style.display = "none";
+
+  try {
+    const headers = {};
+    if (user.googleCredential) {
+      headers["Authorization"] = `Bearer ${user.googleCredential}`;
+    } else {
+      headers["Authorization"] = "Bearer demo";
+    }
+    const res = await fetch(`/api/auth/profile-photo?user_id=${encodeURIComponent(user.id || "usr_demo")}`, {
+      method: "DELETE",
+      headers,
+    });
+    if (res.ok) {
+      const updated = { ...user, profile_photo: null };
+      saveUser(updated);
+      window._googleUser = updated;
+      applySession(updated);
+      showToastAlert("Profile picture removed.", "safe");
+      return;
+    }
+  } catch (err) {
+    console.warn("Failed to remove photo on server:", err);
+  }
+
+  const updated = { ...user, profile_photo: null };
+  saveUser(updated);
+  window._googleUser = updated;
+  applySession(updated);
+  showToastAlert("Profile picture removed.", "safe");
 }
 
 async function saveProfileEditor() {
@@ -499,14 +626,364 @@ async function saveProfileEditor() {
   const name = document.getElementById("profile-edit-name").value.trim();
   const phone = phoneDigits(document.getElementById("profile-edit-phone").value);
   const error = document.getElementById("profile-edit-error");
-  if (name.length < 2) { error.textContent = "Enter your full name."; return; }
-  if (phone && !validIndianPhone(phone)) { error.textContent = "Enter a valid 10-digit mobile number."; return; }
-  const avatar = document.querySelector("#profile-edit-avatar img")?.src || user.profile_photo || "";
-  const updated = { ...user, name, phone: phone ? `+91${phone}` : "", profile_photo: avatar };
-  saveUser(updated); window._googleUser = updated;
-  applySession(updated); closeProfileEditor();
+  error.textContent = "";
+
+  if (name.length < 2) {
+    error.textContent = "Enter your full name.";
+    return;
+  }
+  if (phone && !validIndianPhone(phone)) {
+    error.textContent = "Enter a valid 10-digit mobile number.";
+    return;
+  }
+
+  const saveBtn = document.getElementById("btn-save-profile-edit");
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving…";
+  }
+
+  let finalPhotoUrl = user.profile_photo || "";
+
+  // 1. If user cropped a new photo, upload to backend storage
+  if (window._pendingAvatarPhoto) {
+    try {
+      const uploadHeaders = { "Content-Type": "application/json" };
+      if (user.googleCredential) {
+        uploadHeaders["Authorization"] = `Bearer ${user.googleCredential}`;
+      } else {
+        uploadHeaders["Authorization"] = "Bearer demo";
+      }
+      const uploadRes = await fetch("/api/auth/profile-photo", {
+        method: "POST",
+        headers: uploadHeaders,
+        body: JSON.stringify({
+          photo_base64: window._pendingAvatarPhoto,
+          user_id: user.id || "usr_demo",
+        }),
+      });
+      if (uploadRes.ok) {
+        const uploadData = await uploadRes.json();
+        if (uploadData.profile_photo) {
+          finalPhotoUrl = uploadData.profile_photo;
+        }
+      } else {
+        console.warn("Avatar upload failed with status:", uploadRes.status);
+      }
+    } catch (err) {
+      console.warn("Network error during avatar upload:", err);
+    }
+    window._pendingAvatarPhoto = null;
+  } else {
+    const domImg = document.querySelector("#profile-edit-avatar img");
+    if (!domImg) {
+      finalPhotoUrl = "";
+    }
+  }
+
+  // 2. Persist updated name, phone, and profile_photo to backend DB
+  try {
+    const detailsHeaders = { "Content-Type": "application/json" };
+    if (user.googleCredential) {
+      detailsHeaders["Authorization"] = `Bearer ${user.googleCredential}`;
+    } else {
+      detailsHeaders["Authorization"] = "Bearer demo";
+    }
+    const patchRes = await fetch(`/api/auth/profile-details?user_id=${encodeURIComponent(user.id || "usr_demo")}`, {
+      method: "PATCH",
+      headers: detailsHeaders,
+      body: JSON.stringify({
+        name,
+        phone: phone ? `+91${phone}` : "",
+        profile_photo: finalPhotoUrl || null,
+      }),
+    });
+    if (patchRes.ok) {
+      const serverUser = await patchRes.json();
+      finalPhotoUrl = serverUser.profile_photo || finalPhotoUrl;
+    }
+  } catch (err) {
+    console.warn("Failed to persist profile details to backend:", err);
+  }
+
+  // 3. Update client cache and session
+  const updated = {
+    ...user,
+    name,
+    phone: phone ? `+91${phone}` : "",
+    profile_photo: finalPhotoUrl || null,
+  };
+  saveUser(updated);
+  window._googleUser = updated;
+  applySession(updated);
+  closeProfileEditor();
   showToastAlert("Profile updated successfully.", "safe");
+
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Save changes";
+  }
 }
+
+const CropController = {
+  active: false,
+  rawImage: null,
+  canvas: null,
+  ctx: null,
+  scale: 1,
+  minScale: 1,
+  maxScale: 3,
+  rotation: 0,
+  posX: 140,
+  posY: 140,
+  isDragging: false,
+  dragStartX: 0,
+  dragStartY: 0,
+  dragInitialPosX: 0,
+  dragInitialPosY: 0,
+  viewportRadius: 110,
+
+  init() {
+    this.canvas = document.getElementById("crop-canvas");
+    if (!this.canvas) return;
+    this.ctx = this.canvas.getContext("2d");
+
+    const viewport = document.getElementById("crop-viewport");
+    if (viewport) {
+      viewport.addEventListener("pointerdown", (e) => this.onPointerDown(e));
+      window.addEventListener("pointermove", (e) => this.onPointerMove(e));
+      window.addEventListener("pointerup", (e) => this.onPointerUp(e));
+      window.addEventListener("pointercancel", (e) => this.onPointerUp(e));
+      viewport.addEventListener("wheel", (e) => this.onWheel(e), { passive: false });
+    }
+
+    const slider = document.getElementById("crop-zoom");
+    if (slider) {
+      slider.addEventListener("input", (e) => {
+        this.scale = parseFloat(e.target.value);
+        this.clampPosition();
+        this.draw();
+      });
+    }
+
+    document.getElementById("btn-zoom-in")?.addEventListener("click", () => this.zoomStep(0.25));
+    document.getElementById("btn-zoom-out")?.addEventListener("click", () => this.zoomStep(-0.25));
+    document.getElementById("btn-crop-rotate")?.addEventListener("click", () => this.rotate());
+    document.getElementById("btn-crop-reset")?.addEventListener("click", () => this.reset());
+    document.getElementById("btn-close-crop")?.addEventListener("click", () => this.close());
+    document.getElementById("btn-apply-crop")?.addEventListener("click", () => this.apply());
+  },
+
+  open(imageSrc) {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      this.rawImage = img;
+      this.rotation = 0;
+      this.calculateFit();
+      this.active = true;
+      document.getElementById("crop-modal")?.classList.add("active");
+      this.draw();
+    };
+    img.onerror = () => {
+      showToastAlert("Failed to load image for cropping.", "danger");
+    };
+    img.src = imageSrc;
+  },
+
+  calculateFit() {
+    if (!this.rawImage) return;
+    const isRotated90 = (this.rotation % 180 !== 0);
+    const imgW = isRotated90 ? this.rawImage.naturalHeight : this.rawImage.naturalWidth;
+    const imgH = isRotated90 ? this.rawImage.naturalWidth : this.rawImage.naturalHeight;
+
+    const targetDiameter = this.viewportRadius * 2;
+    this.minScale = Math.max(targetDiameter / imgW, targetDiameter / imgH);
+    this.maxScale = this.minScale * 3.5;
+    this.scale = this.minScale;
+    this.posX = 140;
+    this.posY = 140;
+
+    const slider = document.getElementById("crop-zoom");
+    if (slider) {
+      slider.min = this.minScale;
+      slider.max = this.maxScale;
+      slider.step = (this.maxScale - this.minScale) / 100;
+      slider.value = this.minScale;
+    }
+  },
+
+  clampPosition() {
+    if (!this.rawImage) return;
+    const isRotated90 = (this.rotation % 180 !== 0);
+    const imgW = (isRotated90 ? this.rawImage.naturalHeight : this.rawImage.naturalWidth) * this.scale;
+    const imgH = (isRotated90 ? this.rawImage.naturalWidth : this.rawImage.naturalHeight) * this.scale;
+
+    const centerX = 140;
+    const centerY = 140;
+    const r = this.viewportRadius;
+
+    const minX = centerX + r - imgW / 2;
+    const maxX = centerX - r + imgW / 2;
+    const minY = centerY + r - imgH / 2;
+    const maxY = centerY - r + imgH / 2;
+
+    this.posX = Math.min(Math.max(this.posX, Math.min(minX, maxX)), Math.max(minX, maxX));
+    this.posY = Math.min(Math.max(this.posY, Math.min(minY, maxY)), Math.max(minY, maxY));
+  },
+
+  draw() {
+    if (!this.ctx || !this.rawImage) return;
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+
+    this.ctx.clearRect(0, 0, w, h);
+    this.ctx.fillStyle = "#050811";
+    this.ctx.fillRect(0, 0, w, h);
+
+    this.ctx.save();
+    this.ctx.translate(this.posX, this.posY);
+    this.ctx.rotate((this.rotation * Math.PI) / 180);
+    this.ctx.scale(this.scale, this.scale);
+    this.ctx.drawImage(
+      this.rawImage,
+      -this.rawImage.naturalWidth / 2,
+      -this.rawImage.naturalHeight / 2
+    );
+    this.ctx.restore();
+
+    this.updateLivePreview();
+  },
+
+  updateLivePreview() {
+    const previewEl = document.getElementById("crop-preview-avatar");
+    if (!previewEl || !this.rawImage) return;
+
+    const thumbCanvas = document.createElement("canvas");
+    thumbCanvas.width = 88;
+    thumbCanvas.height = 88;
+    const tCtx = thumbCanvas.getContext("2d");
+
+    tCtx.beginPath();
+    tCtx.arc(44, 44, 44, 0, Math.PI * 2);
+    tCtx.clip();
+
+    tCtx.drawImage(
+      this.canvas,
+      140 - this.viewportRadius,
+      140 - this.viewportRadius,
+      this.viewportRadius * 2,
+      this.viewportRadius * 2,
+      0,
+      0,
+      88,
+      88
+    );
+
+    previewEl.innerHTML = `<img src="${thumbCanvas.toDataURL("image/png")}" alt="Preview" />`;
+  },
+
+  onPointerDown(e) {
+    if (!this.active || !this.rawImage) return;
+    this.isDragging = true;
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
+    this.dragInitialPosX = this.posX;
+    this.dragInitialPosY = this.posY;
+    try {
+      e.target.setPointerCapture?.(e.pointerId);
+    } catch {}
+  },
+
+  onPointerMove(e) {
+    if (!this.isDragging) return;
+    const dx = e.clientX - this.dragStartX;
+    const dy = e.clientY - this.dragStartY;
+    this.posX = this.dragInitialPosX + dx;
+    this.posY = this.dragInitialPosY + dy;
+    this.clampPosition();
+    this.draw();
+  },
+
+  onPointerUp() {
+    this.isDragging = false;
+  },
+
+  onWheel(e) {
+    if (!this.active || !this.rawImage) return;
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.08 : -0.08;
+    this.zoomStep(delta);
+  },
+
+  zoomStep(delta) {
+    const newScale = Math.min(Math.max(this.scale + delta * this.minScale, this.minScale), this.maxScale);
+    this.scale = newScale;
+    const slider = document.getElementById("crop-zoom");
+    if (slider) slider.value = this.scale;
+    this.clampPosition();
+    this.draw();
+  },
+
+  rotate() {
+    this.rotation = (this.rotation + 90) % 360;
+    this.calculateFit();
+    this.draw();
+  },
+
+  reset() {
+    this.rotation = 0;
+    this.calculateFit();
+    this.draw();
+  },
+
+  getCroppedDataUrl() {
+    if (!this.rawImage) return null;
+    const exportSize = 320;
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = exportSize;
+    exportCanvas.height = exportSize;
+    const eCtx = exportCanvas.getContext("2d");
+
+    eCtx.beginPath();
+    eCtx.arc(exportSize / 2, exportSize / 2, exportSize / 2, 0, Math.PI * 2);
+    eCtx.closePath();
+    eCtx.clip();
+
+    const srcX = 140 - this.viewportRadius;
+    const srcY = 140 - this.viewportRadius;
+    const srcD = this.viewportRadius * 2;
+
+    eCtx.drawImage(this.canvas, srcX, srcY, srcD, srcD, 0, 0, exportSize, exportSize);
+    return exportCanvas.toDataURL("image/png");
+  },
+
+  apply() {
+    const croppedUrl = this.getCroppedDataUrl();
+    if (!croppedUrl) {
+      const err = document.getElementById("crop-error-msg");
+      if (err) err.textContent = "Could not crop image.";
+      return;
+    }
+    window._pendingAvatarPhoto = croppedUrl;
+    const editAvatar = document.getElementById("profile-edit-avatar");
+    if (editAvatar) {
+      editAvatar.innerHTML = `<img src="${croppedUrl}" alt="Profile photo" />`;
+      editAvatar.classList.add("has-photo");
+    }
+    const removeBtn = document.getElementById("btn-remove-profile-photo");
+    if (removeBtn) removeBtn.style.display = "inline-flex";
+    this.close();
+    showToastAlert("Photo cropped! Click 'Save changes' to update your profile.", "safe");
+  },
+
+  close() {
+    this.active = false;
+    document.getElementById("crop-modal")?.classList.remove("active");
+    const input = document.getElementById("profile-photo-input");
+    if (input) input.value = "";
+  }
+};
 
 
 // ================= DASHBOARD & SAFETY SCORE =================

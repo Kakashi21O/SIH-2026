@@ -131,10 +131,9 @@ const SafeAudioEngine = {
 
   updateMicStatusBadge(isActive, text, isAuto = false) {
     const badgeEl = document.getElementById("mic-status-badge");
-    const labelEl = document.getElementById("mic-status-label");
     const indicatorEl = document.getElementById("mic-live-dot");
+    const toggleEl = document.getElementById("btn-toggle-mic-listen");
 
-    if (labelEl) labelEl.textContent = text;
     if (indicatorEl) {
       if (isActive) {
         indicatorEl.className = isAuto ? "live-dot pulsing-red" : "live-dot pulsing-green";
@@ -145,6 +144,11 @@ const SafeAudioEngine = {
     if (badgeEl) {
       badgeEl.classList.toggle("mic-active", isActive);
       badgeEl.classList.toggle("mic-auto-red", isAuto);
+    }
+    if (toggleEl) {
+      toggleEl.classList.toggle("is-listening", isActive);
+      toggleEl.setAttribute("aria-pressed", String(isActive));
+      toggleEl.title = isActive ? "Stop voice recognition" : "Start voice recognition";
     }
   },
 

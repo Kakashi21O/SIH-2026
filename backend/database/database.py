@@ -21,6 +21,7 @@ def init_db():
     Ensures zero-setup onboarding during judging and automated test runs.
     """
     os.makedirs(os.path.dirname(settings.DATABASE_PATH), exist_ok=True)
+    os.makedirs(settings.AVATARS_DIR, exist_ok=True)
     conn = get_db_connection()
     cursor = conn.cursor()
 

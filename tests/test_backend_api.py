@@ -121,3 +121,47 @@ def test_assistant_chat(client):
     chat_data = res_chat.json()
     assert "reply" in chat_data
     assert len(chat_data["reply"]) > 0
+
+
+def test_profile_photo_and_details_storage(client):
+    """Verify backend storage for user profile picture, static retrieval, and details updates."""
+    # 1x1 transparent PNG as base64
+    sample_png_b64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    
+    # 1. Upload base64 cropped avatar
+    headers = {"Authorization": "Bearer demo"}
+    res_upload = client.post("/api/auth/profile-photo", json={"photo_base64": sample_png_b64}, headers=headers)
+    assert res_upload.status_code == 200
+    upload_data = res_upload.json()
+    assert upload_data["ok"] is True
+    avatar_url = upload_data["profile_photo"]
+    assert avatar_url.startswith("/api/auth/avatar/")
+
+    # 2. Retrieve avatar via static file serving endpoint
+    res_file = client.get(avatar_url)
+    assert res_file.status_code == 200
+    assert res_file.headers.get("content-type") == "image/png"
+    assert len(res_file.content) > 0
+
+    # 3. Update profile details (name, phone)
+    res_patch = client.patch(
+        "/api/auth/profile-details",
+        json={"name": "Ananya Updated", "phone": "9876543210"},
+        headers=headers
+    )
+    assert res_patch.status_code == 200
+    user_data = res_patch.json()
+    assert user_data["name"] == "Ananya Updated"
+    assert user_data["phone"] == "+919876543210"
+    assert user_data["profile_photo"] == avatar_url
+
+    # 4. Remove profile photo
+    res_del = client.delete("/api/auth/profile-photo", headers=headers)
+    assert res_del.status_code == 200
+    del_data = res_del.json()
+    assert del_data["ok"] is True
+    assert del_data["profile_photo"] is None
+
+    # Reset user name back to default Ananya Sharma
+    client.patch("/api/auth/profile-details", json={"name": "Ananya Sharma"}, headers=headers)
+
