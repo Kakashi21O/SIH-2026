@@ -260,6 +260,69 @@ const SafeAudioEngine = {
     }
   },
 
+  // Noise & Voice Activity Analysis State (Part 3)
+  noiseFloor: 0.015,
+  lastAudioAnalysis: {
+    rms: 0,
+    noiseFloor: 0.015,
+    isVoiceActive: false,
+    isSilence: true,
+    isSuddenLoud: false
+  },
+
+  /**
+   * Calculate RMS (Root Mean Square) volume level from time-domain audio samples
+   */
+  calculateRMS(samples) {
+    if (!samples || samples.length === 0) return 0;
+    let sumSquares = 0;
+    for (let i = 0; i < samples.length; i++) {
+      // If byte array (0-255, center 128) normalize to -1.0 .. 1.0
+      const norm = (samples[i] - 128) / 128;
+      sumSquares += norm * norm;
+    }
+    return Math.sqrt(sumSquares / samples.length);
+  },
+
+  /**
+   * Smooth dynamic noise floor estimation
+   */
+  estimateNoiseFloor(rms) {
+    if (rms < 0.001) return this.noiseFloor;
+    // Slowly follow background floor, decay faster upwards than downwards
+    if (rms < this.noiseFloor) {
+      this.noiseFloor = this.noiseFloor * 0.9 + rms * 0.1;
+    } else {
+      this.noiseFloor = this.noiseFloor * 0.98 + rms * 0.02;
+    }
+    this.noiseFloor = Math.max(0.005, Math.min(0.1, this.noiseFloor));
+    return this.noiseFloor;
+  },
+
+  /**
+   * Analyze audio frame for voice activity, silence, and sudden intensity
+   * NOTE: This feeds signals into the confidence engine and does NOT directly trigger SOS.
+   */
+  analyzeAudioFrame(samples) {
+    const rms = this.calculateRMS(samples);
+    const noiseFloor = this.estimateNoiseFloor(rms);
+
+    const voiceThreshold = Math.max(0.025, noiseFloor * 2.2);
+    const isSilence = rms < voiceThreshold;
+    const isVoiceActive = rms >= voiceThreshold;
+    const isSuddenLoud = rms > 0.35 && rms > noiseFloor * 4.5;
+
+    this.lastAudioAnalysis = {
+      rms,
+      noiseFloor,
+      isVoiceActive,
+      isSilence,
+      isSuddenLoud
+    };
+
+    return this.lastAudioAnalysis;
+  },
+
   /**
    * Initialize Web Speech API continuous recognition if supported by browser
    */
