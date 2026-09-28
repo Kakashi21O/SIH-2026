@@ -26,7 +26,7 @@ const SafeAudioEngine = {
   currentVolume: 0,
   audioContext: null,
 
-  // Bilingual distress triggers
+  // Bilingual distress triggers (Part 4)
   distressKeywords: [
     "help me",
     "help",
@@ -36,7 +36,6 @@ const SafeAudioEngine = {
     "stop",
     "leave me",
     "leave me alone",
-    "chhod luggage",
     "chhod mujhe",
     "chodo",
     "police",
@@ -44,6 +43,123 @@ const SafeAudioEngine = {
     "khatra",
     "danger"
   ],
+
+  /**
+   * Normalize transcript text: lowercase, punctuation, whitespace, and excessive repeated chars
+   */
+  normalizeText(text) {
+    if (!text || typeof text !== "string") return "";
+    return text
+      .toLowerCase()
+      .replace(/['".,\/#!$%\^&\*;:{}=\-_`~()?’]/g, " ")
+      .replace(/(.)\1{2,}/g, "$1$1") // collapse "heeeelp" -> "heelp", "bachaaao" -> "bachaao"
+      .replace(/\s+/g, " ")
+      .trim();
+  },
+
+  /**
+   * Lightweight standard Levenshtein distance
+   */
+  levenshteinDistance(s1, s2) {
+    if (s1 === s2) return 0;
+    if (!s1.length) return s2.length;
+    if (!s2.length) return s1.length;
+
+    const row = [];
+    for (let i = 0; i <= s2.length; i++) row[i] = i;
+
+    for (let i = 1; i <= s1.length; i++) {
+      let prev = i;
+      for (let j = 1; j <= s2.length; j++) {
+        let val;
+        if (s1[i - 1] === s2[j - 1]) {
+          val = row[j - 1];
+        } else {
+          val = Math.min(row[j - 1] + 1, prev + 1, row[j] + 1);
+        }
+        row[j - 1] = prev;
+        prev = val;
+      }
+      row[s2.length] = prev;
+    }
+    return row[s2.length];
+  },
+
+  /**
+   * Fuzzy keyword matcher with typo tolerance for speech recognition mistakes
+   * (e.g. "hep", "help mi", "bachaoo", "bachaao")
+   */
+  matchFuzzyKeywords(rawTranscript) {
+    const norm = this.normalizeText(rawTranscript);
+    if (!norm) return { matches: [], hasMatch: false };
+
+    const matches = [];
+    const tokens = norm.split(" ");
+
+    // 1. Multi-word phrase check (exact & minor typo e.g. "help mi" for "help me")
+    const multiWordKeywords = this.distressKeywords.filter((k) => k.includes(" "));
+    for (const phrase of multiWordKeywords) {
+      if (norm.includes(phrase)) {
+        matches.push({ keyword: phrase, raw: phrase, confidence: 1.0, exact: true });
+      } else {
+        // Test 2-word window fuzzy match (e.g. "help mi")
+        const phraseWords = phrase.split(" ");
+        for (let i = 0; i <= tokens.length - phraseWords.length; i++) {
+          const windowPhrase = tokens.slice(i, i + phraseWords.length).join(" ");
+          const dist = this.levenshteinDistance(windowPhrase, phrase);
+          if (dist === 1) {
+            matches.push({ keyword: phrase, raw: windowPhrase, confidence: 0.88, exact: false });
+          }
+        }
+      }
+    }
+
+    // 2. Single-word keyword check
+    const singleWordKeywords = this.distressKeywords.filter((k) => !k.includes(" "));
+    for (const token of tokens) {
+      if (token.length < 3) continue;
+
+      for (const kw of singleWordKeywords) {
+        if (token === kw) {
+          matches.push({ keyword: kw, raw: token, confidence: 1.0, exact: true });
+          continue;
+        }
+
+        // Collapse repeated characters to 1 for phonetic variant check (e.g., "bachaao" -> "bachao")
+        const deduplicatedToken = token.replace(/(.)\1+/g, "$1");
+        const deduplicatedKw = kw.replace(/(.)\1+/g, "$1");
+        if (deduplicatedToken === deduplicatedKw) {
+          matches.push({ keyword: kw, raw: token, confidence: 0.95, exact: false });
+          continue;
+        }
+
+        // Levenshtein distance check for speech recognition typos (e.g. "hep" -> "help")
+        const dist = this.levenshteinDistance(token, kw);
+        const maxDist = kw.length >= 6 ? 2 : kw.length >= 4 ? 1 : 0;
+        if (dist > 0 && dist <= maxDist) {
+          const sim = 1.0 - dist / Math.max(token.length, kw.length);
+          if (sim >= 0.75) {
+            matches.push({ keyword: kw, raw: token, confidence: sim, exact: false });
+          }
+        }
+      }
+    }
+
+    // Deduplicate by keyword preserving highest confidence
+    const uniqueMap = new Map();
+    for (const m of matches) {
+      if (!uniqueMap.has(m.keyword) || uniqueMap.get(m.keyword).confidence < m.confidence) {
+        uniqueMap.set(m.keyword, m);
+      }
+    }
+
+    const uniqueMatches = Array.from(uniqueMap.values());
+    return {
+      matches: uniqueMatches,
+      hasMatch: uniqueMatches.length > 0,
+      bestMatch: uniqueMatches[0] || null
+    };
+  },
 
   /**
    * Safe Audio Constraints with echo cancellation, noise suppression, and auto gain control
