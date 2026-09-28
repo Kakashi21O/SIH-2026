@@ -20,6 +20,8 @@ const state = {
   safetyModeActive: false,
   emergencyState: {
     active: false,
+    isVerifying: false,
+    lastTriggerTime: 0,
     countdownInterval: null,
     countdownSeconds: 10,
     verificationToken: null,
@@ -1555,6 +1557,32 @@ function initEmergencyVerification() {
 }
 
 async function triggerEmergencyWorkflow(source = "manual_sos", keyword = null) {
+  const now = Date.now();
+
+  // 1. Duplicate Verification Guard (Part 8)
+  // Prevent duplicate countdown timers during the same active distress event
+  if (state.emergencyState.isVerifying) {
+    console.info(`[SafeSteps Emergency] Verification countdown already running. Suppressing duplicate trigger (${source}).`);
+    if (source === "manual_sos") {
+      state.emergencyState.tapCount += 1;
+      state.emergencyState.repeatedSignal = true;
+      state.emergencyState.lastTapTime = now;
+      const triggerTag = document.getElementById("verify-trigger-tag");
+      if (triggerTag) {
+        triggerTag.textContent = `Repeated Manual SOS (${state.emergencyState.tapCount}x)`;
+      }
+    }
+    return;
+  }
+
+  // 2. Cooldown / Debounce window (3 seconds between distinct triggers)
+  if (now - state.emergencyState.lastTriggerTime < 3000) {
+    console.info("[SafeSteps Emergency] Trigger event suppressed by cooldown debounce window (3s).");
+    return;
+  }
+
+  state.emergencyState.lastTriggerTime = now;
+  state.emergencyState.isVerifying = true;
   state.emergencyState.active = true;
   state.emergencyState.countdownSeconds = 10;
   state.emergencyState.triggerSource = source;
@@ -1611,6 +1639,8 @@ async function triggerEmergencyWorkflow(source = "manual_sos", keyword = null) {
 
     if (state.emergencyState.countdownSeconds <= 0) {
       clearInterval(state.emergencyState.countdownInterval);
+      state.emergencyState.countdownInterval = null;
+      state.emergencyState.isVerifying = false;
       escalateToActiveEmergency(source);
     }
   }, 1000);
@@ -1629,6 +1659,8 @@ function updateCountdownUI() {
 
 function cancelEmergencyCountdown(reason) {
   clearInterval(state.emergencyState.countdownInterval);
+  state.emergencyState.countdownInterval = null;
+  state.emergencyState.isVerifying = false;
   state.emergencyState.active = false;
   state.emergencyState.repeatedSignal = false;
   state.emergencyState.tapCount = 0;
@@ -1649,6 +1681,8 @@ function cancelEmergencyCountdown(reason) {
 
 async function escalateToActiveEmergency(source) {
   clearInterval(state.emergencyState.countdownInterval);
+  state.emergencyState.countdownInterval = null;
+  state.emergencyState.isVerifying = false;
   closePinModal();
 
   // Stop recording to finalize audio chunks & blob
