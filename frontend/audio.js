@@ -610,10 +610,46 @@ const SafeAudioEngine = {
     }, delay);
   },
 
+  onDistressDetected: null,
+
+  /**
+   * Multi-Layer Distress Processing Pipeline (Part 7)
+   * Microphone -> Audio Preprocessing -> [Speech + VAD/Intensity] -> Confidence Engine -> Verification
+   * Guarantees no single raw detector triggers emergency workflow unilaterally.
+   */
+  processAudioStreamFrame(transcript, audioData = null) {
+    if (audioData) {
+      this.analyzeAudioFrame(audioData);
+    }
+
+    const confidenceReport = this.evaluateDistressConfidence({
+      transcript,
+      audioAnalysis: this.lastAudioAnalysis
+    });
+
+    console.info(
+      `[SafeAudioEngine] Multi-Layer Score: ${confidenceReport.score} (${confidenceReport.confidence})`,
+      confidenceReport.signals
+    );
+
+    // Multi-Layer Verification Gate:
+    // Only proceed to verification if confidence engine confirms high/critical distress
+    if (confidenceReport.isDistressConfirmed || confidenceReport.confidence === "HIGH" || confidenceReport.confidence === "CRITICAL") {
+      const primaryKeyword = confidenceReport.matchedKeywords[0] || "voice_distress";
+      console.warn(`[SafeAudioEngine] 🚨 Multi-layer verified distress confirmed: "${primaryKeyword}" (Score: ${confidenceReport.score})`);
+      if (typeof this.onDistressDetected === "function") {
+        this.onDistressDetected(primaryKeyword, confidenceReport);
+      }
+    }
+
+    return confidenceReport;
+  },
+
   /**
    * Initialize Web Speech API with capability detection and error resilience
    */
   initSpeechRecognition(onKeywordDetected) {
+    this.onDistressDetected = onKeywordDetected;
     const SpeechRecognition = typeof window !== "undefined" ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
     if (!SpeechRecognition) {
       this.isSpeechSupported = false;
@@ -641,15 +677,8 @@ const SafeAudioEngine = {
           const transcript = event.results[i][0].transcript.trim().toLowerCase();
           console.log("[SafeAudioEngine] Audio transcript stream:", transcript);
 
-          for (const keyword of this.distressKeywords) {
-            if (transcript.includes(keyword)) {
-              console.warn(`[SafeAudioEngine] 🚨 DISTRESS KEYWORD DETECTED: "${keyword}"`);
-              if (typeof onKeywordDetected === "function") {
-                onKeywordDetected(keyword, transcript);
-              }
-              break;
-            }
-          }
+          // Route exclusively through multi-layer verification pipeline
+          this.processAudioStreamFrame(transcript);
         }
       };
 
