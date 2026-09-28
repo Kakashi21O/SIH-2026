@@ -161,6 +161,133 @@ const SafeAudioEngine = {
     };
   },
 
+  // Centralized Distress Confidence Scoring Configuration (Part 5)
+  CONFIDENCE_CONFIG: {
+    WEIGHTS: {
+      KEYWORD_MATCH: 50,
+      REPEATED_DISTRESS: 20,
+      MULTIPLE_KEYWORDS: 20,
+      VOICE_ACTIVITY: 10,
+      HIGH_INTENSITY: 15
+    },
+    THRESHOLDS: {
+      LOW: 30,
+      MEDIUM: 50,
+      HIGH: 70,
+      CRITICAL: 85
+    },
+    CONVERSATIONAL_PHRASES: [
+      "help me understand",
+      "help with homework",
+      "can you help me with",
+      "stop the video",
+      "stop the music",
+      "stop playing",
+      "police station",
+      "police station nearby",
+      "police department"
+    ]
+  },
+
+  recentDistressHistory: [],
+
+  /**
+   * Multi-signal distress confidence scoring engine
+   * Evaluates keywords, voice activity, intensity, and historical recurrence
+   * Returns structured confidence payload
+   */
+  evaluateDistressConfidence({ transcript = "", audioAnalysis = null, now = Date.now() }) {
+    const config = this.CONFIDENCE_CONFIG;
+    const fuzzyResult = this.matchFuzzyKeywords(transcript);
+    const matchedKeywords = fuzzyResult.matches.map((m) => m.keyword);
+    const norm = this.normalizeText(transcript);
+
+    // Prune events older than 20 seconds from history
+    this.recentDistressHistory = this.recentDistressHistory.filter((t) => now - t < 20000);
+
+    const signals = {
+      keywordMatch: false,
+      repeatedDistress: false,
+      multipleKeywords: false,
+      voiceActivity: false,
+      highIntensity: false,
+      conversationalFilterApplied: false
+    };
+
+    let score = 0;
+
+    // 1. Keyword match (+50 weighted by match quality)
+    if (fuzzyResult.hasMatch) {
+      signals.keywordMatch = true;
+      const bestConfidence = fuzzyResult.bestMatch ? fuzzyResult.bestMatch.confidence : 1.0;
+      score += Math.round(config.WEIGHTS.KEYWORD_MATCH * bestConfidence);
+    }
+
+    // 2. Multiple distinct distress keywords (+20)
+    // Filter out sub-words that are contained in longer matched phrases (e.g. "help" inside "help me")
+    const nonOverlappingKeywords = matchedKeywords.filter(
+      (kw, _, arr) => !arr.some((other) => other !== kw && other.includes(kw))
+    );
+    if (nonOverlappingKeywords.length >= 2) {
+      signals.multipleKeywords = true;
+      score += config.WEIGHTS.MULTIPLE_KEYWORDS;
+    }
+
+    // 3. Repeated distress across consecutive frames/transcripts (+20)
+    if (this.recentDistressHistory.length > 0 && fuzzyResult.hasMatch) {
+      signals.repeatedDistress = true;
+      score += config.WEIGHTS.REPEATED_DISTRESS;
+    }
+
+    // 4. Voice Activity Detection (+10)
+    const analysis = audioAnalysis || this.lastAudioAnalysis;
+    if (analysis && analysis.isVoiceActive) {
+      signals.voiceActivity = true;
+      score += config.WEIGHTS.VOICE_ACTIVITY;
+    }
+
+    // 5. High vocal intensity / sudden distress scream (+15)
+    if (analysis && (analysis.isSuddenLoud || analysis.rms > 0.25)) {
+      signals.highIntensity = true;
+      score += config.WEIGHTS.HIGH_INTENSITY;
+    }
+
+    // 6. Conversational false-positive guard
+    // E.g. "help me understand this" or "stop the video" without high vocal intensity
+    const isConversational = config.CONVERSATIONAL_PHRASES.some((phrase) => norm.includes(phrase));
+    if (isConversational && !signals.highIntensity) {
+      signals.conversationalFilterApplied = true;
+      score = Math.min(25, Math.max(10, score - 55)); // heavily down-rank benign conversational mentions
+    }
+
+    score = Math.max(0, Math.min(100, score));
+
+    // Map to discrete confidence level
+    let confidence = "LOW";
+    if (score >= config.THRESHOLDS.CRITICAL) {
+      confidence = "CRITICAL";
+    } else if (score >= config.THRESHOLDS.HIGH) {
+      confidence = "HIGH";
+    } else if (score >= config.THRESHOLDS.MEDIUM) {
+      confidence = "MEDIUM";
+    } else {
+      confidence = "LOW";
+    }
+
+    // Log history if keyword detected
+    if (fuzzyResult.hasMatch && score >= config.THRESHOLDS.MEDIUM) {
+      this.recentDistressHistory.push(now);
+    }
+
+    return {
+      score,
+      confidence,
+      matchedKeywords,
+      signals,
+      isDistressConfirmed: score >= config.THRESHOLDS.HIGH
+    };
+  },
+
   /**
    * Safe Audio Constraints with echo cancellation, noise suppression, and auto gain control
    */
