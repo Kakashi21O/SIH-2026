@@ -99,13 +99,50 @@ Example request: `Review SafeSteps with beautiful-ui and ponytail. Preserve the 
 
 ---
 
+## 🎙️ Voice Distress Detection V2 Architecture
+
+SafeSteps features a multi-layer client-side audio intelligence and evidence recording engine (`SafeAudioEngine` in `frontend/audio.js`).
+
+```text
+              MICROPHONE
+                  ↓
+          Audio Preprocessing (Echo Cancellation, Noise Suppression, AGC)
+                  ↓
+       ┌──────────┴──────────┐
+       ↓                     ↓
+ Speech Recognition      Audio Analysis (Web Audio API)
+       ↓                     ↓
+ Fuzzy Keyword Match    VAD / Noise Floor / Vocal Intensity
+       └──────────┬──────────┘
+                  ↓
+          Confidence Engine (Multi-Signal Scoring: 0-100)
+                  ↓
+       Distress Confirmation (Score ≥ 70 / HIGH / CRITICAL)
+                  ↓
+          10-Second Verification Flow & Debounced Escalation
+```
+
+### Key Technical Capabilities:
+- **Microphone Quality & Constraints**: Requests native audio stream with `echoCancellation: true`, `noiseSuppression: true`, and `autoGainControl: true`, tracking hardware permission and availability states (`'granted'`, `'denied'`, `'unavailable'`).
+- **Adaptive Gain Normalization**: Uses Web Audio API `DynamicsCompressorNode` and adaptive gain to amplify weak microphone inputs (up to 2.5x) while preventing clipping on sudden loud signals.
+- **Voice Activity (VAD) & Noise Analysis**: Local RMS calculation and dynamic noise floor tracking distinguish background noise from active speech and high vocal intensity screams.
+- **Fuzzy Distress Keyword Matching**: 14+ bilingual English and Hindi triggers (`"help"`, `"bachao"`, `"stop"`, `"chhod mujhe"`, `"police"`, etc.) with text normalization and Levenshtein typo tolerance (`"hep"` → `"help"`, `"bachaaao"` → `"bachao"`).
+- **Multi-Signal Confidence Engine**: Combines keyword match (+50), repeated distress (+20), multiple keywords (+20), voice activity (+10), and vocal intensity (+15). Benign conversational mentions (e.g., *"help me understand this"*, *"stop the video"*, *"police station"*) are heavily down-ranked to prevent false triggers.
+- **Speech Recognition Fallback**: Resilient `SpeechRecognition` / `webkitSpeechRecognition` listener with bounded exponential backoff (max 5 restarts in 15s) and automatic fallback to local audio VAD analysis.
+- **Verification Hardening**: 10-second countdown alert debounces duplicate events and includes a 3-second cooldown window to prevent duplicate intervals.
+- **Emergency Audio Evidence Recording**: Captures ambient sound via `MediaRecorder` using runtime format detection (`MediaRecorder.isTypeSupported` across WebM/Opus, MP4, AAC, WAV). Encoded to Base64 and stored in SQLite `incidents` table for verified guardian and 112 CAD review.
+- **Privacy & Security**: Zero continuous audio streaming or uploading during idle listening. If user enters their PIN within the 10-second window, the temporary audio buffer is dropped immediately from browser memory.
+- **Capability Matrix**: Runtime degradation across 4 tiers (`FULL_SUPPORT`, `AUDIO_ONLY`, `LIMITED_AUDIO`, `MANUAL_SOS_ONLY`) ensuring zero application crashes on any device.
+
+---
+
 ## 🛠️ Technology Stack
 - **Frontend**: Zero-build Vanilla HTML5, CSS3, ES6+, Leaflet.js 1.9.4
 - **Backend**: Python 3.10+, FastAPI, Uvicorn, Pydantic v2
 - **Database**: SQLite with auto-initializing schema and pre-seeded demo datasets
 - **AI / NLP**: In-memory TF-IDF + lexicon semantic classifier (`backend/services/complaint_ai.py`)
-- **Audio / Media**: Continuous Web Speech API distress detection & MediaStream audio evidence buffering
-- **Testing**: Automated `pytest` suite with `httpx` TestClient
+- **Audio / Media**: Continuous Web Speech API distress detection & MediaStream audio evidence buffering (`frontend/audio.js`)
+- **Testing**: Automated `pytest` suite and Node.js voice detection test suite (`tests/test_voice_distress_v2.js`)
 
 ---
 
