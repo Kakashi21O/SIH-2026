@@ -160,6 +160,106 @@ const SafeAudioEngine = {
     }
   },
 
+  // Adaptive audio pipeline state (Part 2)
+  audioPipeline: null,
+
+  /**
+   * Setup adaptive Web Audio pipeline:
+   * Microphone -> MediaStream -> AudioContext -> GainNode -> DynamicsCompressor -> AnalyserNode
+   */
+  setupAdaptivePipeline(stream) {
+    if (!stream || typeof window === "undefined") return null;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+
+    try {
+      this.teardownAdaptivePipeline();
+      const audioCtx = new AudioCtx();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.setValueAtTime(1.0, audioCtx.currentTime);
+
+      // Safe compressor to eliminate clipping on sudden loud signals
+      const compressor = audioCtx.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-24, audioCtx.currentTime);
+      compressor.knee.setValueAtTime(30, audioCtx.currentTime);
+      compressor.ratio.setValueAtTime(12, audioCtx.currentTime);
+      compressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
+      compressor.release.setValueAtTime(0.25, audioCtx.currentTime);
+
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.8;
+
+      // Pipeline chain
+      source.connect(gainNode);
+      gainNode.connect(compressor);
+      compressor.connect(analyser);
+
+      this.audioPipeline = {
+        audioCtx,
+        source,
+        gainNode,
+        compressor,
+        analyser,
+        currentGain: 1.0,
+        isRunning: true
+      };
+
+      console.info("[SafeAudioEngine] 🎛️ Adaptive microphone gain & normalization pipeline initialized.");
+      return this.audioPipeline;
+    } catch (err) {
+      console.warn("[SafeAudioEngine] Could not initialize Web Audio pipeline:", err);
+      return null;
+    }
+  },
+
+  /**
+   * Adaptively adjusts gain based on incoming RMS level:
+   * Quiet -> amplified (up to 2.5x)
+   * Normal -> unchanged (~1.0x)
+   * Loud -> scaled down & clamped by DynamicsCompressor to avoid clipping
+   */
+  adjustAdaptiveGain(rms) {
+    if (!this.audioPipeline || !this.audioPipeline.gainNode) return 1.0;
+    const { audioCtx, gainNode } = this.audioPipeline;
+    let targetGain = 1.0;
+
+    if (rms < 0.04) {
+      // Quiet microphone: boost smoothly up to 2.5x
+      targetGain = Math.min(2.5, 1.0 + (0.04 - rms) * 35);
+    } else if (rms > 0.3) {
+      // Very loud input: attenuate slightly, compressor handles the peak
+      targetGain = Math.max(0.6, 1.0 - (rms - 0.3) * 1.5);
+    } else {
+      targetGain = 1.0;
+    }
+
+    try {
+      gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(targetGain, audioCtx.currentTime + 0.15);
+      this.audioPipeline.currentGain = targetGain;
+    } catch (e) {
+      gainNode.gain.value = targetGain;
+    }
+
+    return targetGain;
+  },
+
+  /**
+   * Teardown audio pipeline and release resources
+   */
+  teardownAdaptivePipeline() {
+    if (this.audioPipeline) {
+      try {
+        if (this.audioPipeline.audioCtx && this.audioPipeline.audioCtx.state !== "closed") {
+          this.audioPipeline.audioCtx.close();
+        }
+      } catch (e) {}
+      this.audioPipeline = null;
+    }
+  },
+
   /**
    * Initialize Web Speech API continuous recognition if supported by browser
    */
@@ -447,4 +547,9 @@ const SafeAudioEngine = {
   }
 };
 
-window.SafeAudioEngine = SafeAudioEngine;
+if (typeof window !== "undefined") {
+  window.SafeAudioEngine = SafeAudioEngine;
+}
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = SafeAudioEngine;
+}
