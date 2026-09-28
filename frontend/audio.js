@@ -773,6 +773,31 @@ const SafeAudioEngine = {
   },
 
   /**
+   * Determine best supported audio MIME type across browsers (Chrome, Firefox, Safari, Edge)
+   */
+  getSupportedAudioMimeType() {
+    if (typeof MediaRecorder === "undefined" || typeof MediaRecorder.isTypeSupported !== "function") {
+      return "";
+    }
+    const candidates = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/ogg;codecs=opus",
+      "audio/mp4",
+      "audio/aac",
+      "audio/wav"
+    ];
+    for (const type of candidates) {
+      try {
+        if (MediaRecorder.isTypeSupported(type)) {
+          return type;
+        }
+      } catch (e) {}
+    }
+    return "";
+  },
+
+  /**
    * Start MediaRecorder to capture ambient audio evidence during emergency verification/escalation
    */
   async startEvidenceRecording() {
@@ -792,7 +817,10 @@ const SafeAudioEngine = {
         this.createSynthesizedEvidenceBuffer();
         return;
       }
-      this.mediaRecorder = new MediaRecorder(stream);
+
+      const mimeType = this.getSupportedAudioMimeType();
+      const recorderOptions = mimeType ? { mimeType } : {};
+      this.mediaRecorder = new MediaRecorder(stream, recorderOptions);
       this.isRecordingEvidence = true;
 
       this.mediaRecorder.ondataavailable = (e) => {
@@ -803,11 +831,12 @@ const SafeAudioEngine = {
 
       this.mediaRecorder.onstop = async () => {
         this.isRecordingEvidence = false;
-        // Stop all tracks to release hardware
+        // Stop all tracks to release hardware immediately
         stream.getTracks().forEach((track) => track.stop());
 
         if (this.audioChunks.length > 0) {
-          const audioBlob = new Blob(this.audioChunks, { type: "audio/webm;codecs=opus" });
+          const finalMime = mimeType || (this.audioChunks[0] && this.audioChunks[0].type) || "audio/webm";
+          const audioBlob = new Blob(this.audioChunks, { type: finalMime });
           this.recordedAudioBlobUrl = URL.createObjectURL(audioBlob);
           this.recordedAudioBase64 = await this.blobToBase64(audioBlob);
           this.renderAudioEvidenceWidget(this.recordedAudioBlobUrl);
@@ -817,7 +846,7 @@ const SafeAudioEngine = {
       };
 
       this.mediaRecorder.start(1000); // Collect data every 1s
-      console.info("[SafeAudioEngine] 🎙️ Emergency ambient evidence recording active...");
+      console.info(`[SafeAudioEngine] 🎙️ Emergency ambient evidence recording active (Format: ${mimeType || 'browser default'}).`);
     } catch (err) {
       console.warn("[SafeAudioEngine] Microphone stream permission denied or unavailable:", err);
       // Seamless graceful fallback: synthesize audio evidence buffer for demo verification
