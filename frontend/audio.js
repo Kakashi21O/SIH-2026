@@ -26,6 +26,53 @@ const SafeAudioEngine = {
   currentVolume: 0,
   audioContext: null,
 
+  // Runtime Device & Browser Capability Matrix (Part 10)
+  capabilities: null,
+
+  /**
+   * Evaluates browser and device capabilities at runtime:
+   * FULL_SUPPORT -> Speech + Audio Detection
+   * AUDIO_ONLY -> VAD & Intensity Audio Analysis (Speech unavailable)
+   * LIMITED_AUDIO -> Recording only
+   * MANUAL_SOS_ONLY -> Hardware unavailable, graceful fallback
+   */
+  getDeviceCapabilities() {
+    const hasGetUserMedia = !!(typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    const hasMediaRecorder = !!(typeof MediaRecorder !== "undefined");
+    const hasAudioContext = !!(typeof window !== "undefined" && (window.AudioContext || window.webkitAudioContext));
+    const hasSpeechRecognition = !!(typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition));
+    const hasWebkitSpeech = !!(typeof window !== "undefined" && window.webkitSpeechRecognition);
+
+    let tier = "MANUAL_SOS_ONLY";
+    let summary = "Manual SOS Only (Microphone APIs Unavailable)";
+
+    if (hasGetUserMedia && hasAudioContext && hasSpeechRecognition) {
+      tier = "FULL_SUPPORT";
+      summary = "Full Support: Continuous Speech + Adaptive Audio Detection Active";
+    } else if (hasGetUserMedia && hasAudioContext) {
+      tier = "AUDIO_ONLY";
+      summary = "Audio Detection Only (VAD & Intensity Active, Speech Unavailable)";
+    } else if (hasGetUserMedia) {
+      tier = "LIMITED_AUDIO";
+      summary = "Limited Audio (Evidence Recording Available, Real-time Analysis Restricted)";
+    }
+
+    const caps = {
+      tier,
+      summary,
+      apis: {
+        getUserMedia: hasGetUserMedia,
+        MediaRecorder: hasMediaRecorder,
+        AudioContext: hasAudioContext,
+        SpeechRecognition: hasSpeechRecognition,
+        webkitSpeechRecognition: hasWebkitSpeech
+      }
+    };
+
+    this.capabilities = caps;
+    return caps;
+  },
+
   // Bilingual distress triggers (Part 4)
   distressKeywords: [
     "help me",
