@@ -566,16 +566,63 @@ const SafeAudioEngine = {
     return this.lastAudioAnalysis;
   },
 
+  // Speech Recognition Resilience State (Part 6)
+  isSpeechSupported: true,
+  recognitionRestarts: 0,
+  lastRestartAttempt: 0,
+  restartTimer: null,
+
   /**
-   * Initialize Web Speech API continuous recognition if supported by browser
+   * Schedule resilient speech recognition restart with backoff and infinite-loop guard
    */
-  initSpeechRecognition(onKeywordDetected) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      console.info("[SafeAudioEngine] Web Speech API not natively supported; manual simulation enabled.");
-      this.updateMicStatusBadge(false, "Speech API Not Available (Use Simulation)");
+  scheduleSpeechRestart() {
+    if (!this.isListening || !this.recognition) return;
+    if (this.micPermissionState === "denied") {
+      console.warn("[SafeAudioEngine] Microphone permission denied; halting recognition restart.");
       return;
     }
+
+    const now = Date.now();
+    if (now - this.lastRestartAttempt > 15000) {
+      this.recognitionRestarts = 0;
+    }
+
+    this.lastRestartAttempt = now;
+    this.recognitionRestarts++;
+
+    if (this.recognitionRestarts > 5) {
+      console.warn("[SafeAudioEngine] ⚠️ Speech recognition restart threshold exceeded. Falling back smoothly to local audio & VAD detection.");
+      this.updateMicStatusBadge(true, "Speech Degraded (Local Audio Fallback)");
+      return;
+    }
+
+    const delay = Math.min(3000, 400 * Math.pow(1.5, this.recognitionRestarts));
+    clearTimeout(this.restartTimer);
+    this.restartTimer = setTimeout(() => {
+      if (this.isListening && this.recognition) {
+        try {
+          this.recognition.start();
+          console.info(`[SafeAudioEngine] 🔄 Speech listener restarted (attempt ${this.recognitionRestarts})`);
+        } catch (e) {
+          // Already running or busy
+        }
+      }
+    }, delay);
+  },
+
+  /**
+   * Initialize Web Speech API with capability detection and error resilience
+   */
+  initSpeechRecognition(onKeywordDetected) {
+    const SpeechRecognition = typeof window !== "undefined" ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+    if (!SpeechRecognition) {
+      this.isSpeechSupported = false;
+      console.info("[SafeAudioEngine] Web Speech API not natively supported; local audio detection & simulation fallback active.");
+      this.updateMicStatusBadge(false, "Speech API Unavailable (Local Audio Fallback)");
+      return;
+    }
+
+    this.isSpeechSupported = true;
 
     try {
       this.recognition = new SpeechRecognition();
@@ -598,7 +645,7 @@ const SafeAudioEngine = {
             if (transcript.includes(keyword)) {
               console.warn(`[SafeAudioEngine] 🚨 DISTRESS KEYWORD DETECTED: "${keyword}"`);
               if (typeof onKeywordDetected === "function") {
-                onKeywordDetected(keyword);
+                onKeywordDetected(keyword, transcript);
               }
               break;
             }
@@ -607,20 +654,35 @@ const SafeAudioEngine = {
       };
 
       this.recognition.onerror = (event) => {
-        console.warn("[SafeAudioEngine] Speech recognition error/silence:", event.error);
-        if (event.error === "not-allowed") {
+        console.warn("[SafeAudioEngine] Speech recognition event status:", event.error);
+
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          this.micPermissionState = "denied";
           this.updateMicStatusBadge(false, "Microphone Access Blocked");
+          return;
+        }
+
+        if (event.error === "network") {
+          console.warn("[SafeAudioEngine] Network speech recognition failure; scheduling backoff retry.");
+          this.scheduleSpeechRestart();
+          return;
+        }
+
+        if (event.error === "no-speech") {
+          // Normal expected ambient silence; no error escalation needed
+          return;
+        }
+
+        if (event.error === "audio-capture") {
+          this.micAvailable = false;
+          this.updateMicStatusBadge(false, "Audio Capture Hardware Error");
         }
       };
 
       this.recognition.onend = () => {
-        // Auto-restart listener if Safety Mode is still active
-        if (this.isListening) {
-          try {
-            this.recognition.start();
-          } catch (e) {
-            // Already started or busy
-          }
+        // Resilient restart if still listening and permission not blocked
+        if (this.isListening && this.micPermissionState !== "denied") {
+          this.scheduleSpeechRestart();
         }
       };
     } catch (err) {
