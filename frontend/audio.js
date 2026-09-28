@@ -19,6 +19,13 @@ const SafeAudioEngine = {
   recordedAudioBlobUrl: null,
   isRecordingEvidence: false,
 
+  // Microphone quality & health state (Part 1)
+  micPermissionState: "unknown", // 'unknown', 'granted', 'denied', 'unavailable'
+  micAvailable: false,
+  isWeakMic: false,
+  currentVolume: 0,
+  audioContext: null,
+
   // Bilingual distress triggers
   distressKeywords: [
     "help me",
@@ -29,6 +36,7 @@ const SafeAudioEngine = {
     "stop",
     "leave me",
     "leave me alone",
+    "chhod luggage",
     "chhod mujhe",
     "chodo",
     "police",
@@ -36,6 +44,121 @@ const SafeAudioEngine = {
     "khatra",
     "danger"
   ],
+
+  /**
+   * Safe Audio Constraints with echo cancellation, noise suppression, and auto gain control
+   */
+  getAudioConstraints() {
+    return {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true
+    };
+  },
+
+  /**
+   * Request microphone stream with constraint fallbacks & permission/hardware detection
+   */
+  async requestMicrophoneStream() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      this.micPermissionState = "unavailable";
+      this.micAvailable = false;
+      console.warn("[SafeAudioEngine] getUserMedia API not supported in browser environment.");
+      return null;
+    }
+
+    try {
+      // Try acquiring stream with high-quality constraints first
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: this.getAudioConstraints()
+      });
+      this.micPermissionState = "granted";
+      this.micAvailable = true;
+      this.measureInputVolume(stream);
+      return stream;
+    } catch (err) {
+      console.warn("[SafeAudioEngine] Primary microphone constraint stream request failed:", err.name || err);
+
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        this.micPermissionState = "denied";
+        this.micAvailable = false;
+        this.updateMicStatusBadge(false, "Microphone Access Blocked");
+        return null;
+      }
+
+      if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        this.micPermissionState = "unavailable";
+        this.micAvailable = false;
+        this.updateMicStatusBadge(false, "No Microphone Found");
+        return null;
+      }
+
+      // Fallback attempt: basic audio request without explicit constraints
+      try {
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this.micPermissionState = "granted";
+        this.micAvailable = true;
+        this.measureInputVolume(fallbackStream);
+        return fallbackStream;
+      } catch (fallbackErr) {
+        console.warn("[SafeAudioEngine] Fallback microphone acquisition failed:", fallbackErr);
+        if (fallbackErr.name === "NotAllowedError" || fallbackErr.name === "PermissionDeniedError") {
+          this.micPermissionState = "denied";
+        } else {
+          this.micPermissionState = "unavailable";
+        }
+        this.micAvailable = false;
+        return null;
+      }
+    }
+  },
+
+  /**
+   * Measure input volume and detect weak microphone signal
+   */
+  measureInputVolume(stream) {
+    if (!stream || typeof window === "undefined") return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+
+      const audioCtx = new AudioCtx();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      let sampleCount = 0;
+      let totalVolume = 0;
+
+      const checkVolume = () => {
+        if (sampleCount >= 20) {
+          const avgVolume = totalVolume / sampleCount;
+          this.currentVolume = avgVolume;
+          this.isWeakMic = avgVolume < 5; // Low sensitivity flag
+          if (this.isWeakMic) {
+            console.info("[SafeAudioEngine] ℹ️ Weak microphone input volume detected (Avg RMS:", avgVolume.toFixed(1), "). SafeGain active.");
+          }
+          try { audioCtx.close(); } catch (e) {}
+          return;
+        }
+
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
+        }
+        totalVolume += sum / dataArray.length;
+        sampleCount++;
+        setTimeout(checkVolume, 100);
+      };
+
+      checkVolume();
+    } catch (e) {
+      console.warn("[SafeAudioEngine] Input volume measurement notice:", e);
+    }
+  },
 
   /**
    * Initialize Web Speech API continuous recognition if supported by browser
@@ -167,7 +290,11 @@ const SafeAudioEngine = {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await this.requestMicrophoneStream();
+      if (!stream) {
+        this.createSynthesizedEvidenceBuffer();
+        return;
+      }
       this.mediaRecorder = new MediaRecorder(stream);
       this.isRecordingEvidence = true;
 
