@@ -797,6 +797,7 @@ const SafeAudioEngine = {
   },
 
   updateMicStatusBadge(isActive, text, isAuto = false) {
+    if (typeof document === "undefined") return;
     const badgeEl = document.getElementById("mic-status-badge");
     const indicatorEl = document.getElementById("mic-live-dot");
     const toggleEl = document.getElementById("btn-toggle-mic-listen");
