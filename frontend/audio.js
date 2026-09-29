@@ -1158,6 +1158,7 @@ const SafeAudioEngine = {
 
   /**
    * Render in-app audio playback player in Emergency Screen & modals
+   * Custom theme-adaptive Ponytail player (replaces default browser white pill)
    */
   renderAudioEvidenceWidget(audioUrl) {
     if (typeof document === "undefined") return;
@@ -1166,14 +1167,135 @@ const SafeAudioEngine = {
 
     container.innerHTML = `
       <div class="audio-evidence-player">
-        <div class="player-meta">
-          <span class="player-tag">🎙️ Audio Evidence Available (30s Capture)</span>
-          <span class="player-status">Ready for Playback • CAD / Guardian Dispatch</span>
+        <div class="player-header-row">
+          <div class="player-meta">
+            <div class="player-tag-row">
+              <span class="evidence-ready-pill">
+                <span class="ready-dot"></span>
+                <span class="ready-label">RECORDED</span>
+              </span>
+              <span class="player-tag">🎙️ Audio Evidence Available</span>
+              <span class="player-duration-pill">30s Capture</span>
+            </div>
+            <span class="player-status">Ready for Playback • CAD / Guardian Dispatch</span>
+          </div>
+          <a href="${audioUrl}" download="SafeSteps_Evidence_Capture_30s.wav" class="btn-audio-download" title="Download Audio Evidence (WAV)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </a>
         </div>
-        <audio controls src="${audioUrl}" class="evidence-audio-ctrl" style="width: 100%; margin-top: 8px; border-radius: 8px; outline: none;"></audio>
+
+        <div class="custom-audio-player" id="custom-audio-player">
+          <audio id="evidence-native-audio" src="${audioUrl}" preload="metadata"></audio>
+          
+          <button class="btn-play-pause" id="btn-audio-play-pause" type="button" aria-label="Play audio evidence">
+            <svg class="icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+            <svg class="icon-pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: none;"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          </button>
+
+          <div class="custom-track-wrapper">
+            <div class="track-progress-bar" id="audio-track-progress" role="slider" aria-label="Audio scrubber">
+              <div class="track-progress-fill" id="audio-fill-bar" style="width: 0%;"></div>
+              <div class="track-progress-thumb" id="audio-thumb" style="left: 0%;"></div>
+            </div>
+            <div class="track-time-row">
+              <span class="audio-current-time" id="audio-cur-time">0:00</span>
+              <span class="audio-total-time" id="audio-dur-time">0:30</span>
+            </div>
+          </div>
+
+          <button class="btn-volume-toggle" id="btn-audio-mute" type="button" aria-label="Toggle mute">
+            <svg class="icon-vol-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            <svg class="icon-vol-mute" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          </button>
+        </div>
       </div>
     `;
     container.style.display = "block";
+
+    // Bind custom native audio player events
+    this.initCustomAudioPlayerEvents();
+  },
+
+  /**
+   * Initialize event handlers for custom audio player
+   */
+  initCustomAudioPlayerEvents() {
+    const audioEl = document.getElementById("evidence-native-audio");
+    const playBtn = document.getElementById("btn-audio-play-pause");
+    const iconPlay = playBtn?.querySelector(".icon-play");
+    const iconPause = playBtn?.querySelector(".icon-pause");
+    const fillBar = document.getElementById("audio-fill-bar");
+    const thumb = document.getElementById("audio-thumb");
+    const curTimeEl = document.getElementById("audio-cur-time");
+    const durTimeEl = document.getElementById("audio-dur-time");
+    const progressBar = document.getElementById("audio-track-progress");
+    const muteBtn = document.getElementById("btn-audio-mute");
+    const iconVolOn = muteBtn?.querySelector(".icon-vol-on");
+    const iconVolMute = muteBtn?.querySelector(".icon-vol-mute");
+
+    if (!audioEl || !playBtn) return;
+
+    const formatTime = (secs) => {
+      const s = Math.floor(secs || 0);
+      const m = Math.floor(s / 60);
+      const remS = s % 60;
+      return `${m}:${remS < 10 ? '0' : ''}${remS}`;
+    };
+
+    // Toggle Play / Pause
+    playBtn.addEventListener("click", () => {
+      if (audioEl.paused || audioEl.ended) {
+        audioEl.play().then(() => {
+          if (iconPlay) iconPlay.style.display = "none";
+          if (iconPause) iconPause.style.display = "block";
+        }).catch((err) => console.warn("Audio play blocked:", err));
+      } else {
+        audioEl.pause();
+        if (iconPlay) iconPlay.style.display = "block";
+        if (iconPause) iconPause.style.display = "none";
+      }
+    });
+
+    // Time update event
+    audioEl.addEventListener("timeupdate", () => {
+      const dur = audioEl.duration || 30;
+      const cur = audioEl.currentTime || 0;
+      const pct = Math.min(100, Math.max(0, (cur / dur) * 100));
+      if (fillBar) fillBar.style.width = `${pct}%`;
+      if (thumb) thumb.style.left = `${pct}%`;
+      if (curTimeEl) curTimeEl.textContent = formatTime(cur);
+      if (durTimeEl && audioEl.duration) durTimeEl.textContent = formatTime(audioEl.duration);
+    });
+
+    // Metadata loaded
+    audioEl.addEventListener("loadedmetadata", () => {
+      if (durTimeEl && audioEl.duration) durTimeEl.textContent = formatTime(audioEl.duration);
+    });
+
+    // Playback ended
+    audioEl.addEventListener("ended", () => {
+      if (iconPlay) iconPlay.style.display = "block";
+      if (iconPause) iconPause.style.display = "none";
+      if (fillBar) fillBar.style.width = "0%";
+      if (thumb) thumb.style.left = "0%";
+      if (curTimeEl) curTimeEl.textContent = "0:00";
+    });
+
+    // Seek on progress bar click
+    progressBar?.addEventListener("click", (e) => {
+      const rect = progressBar.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const pct = Math.min(1, Math.max(0, clickX / rect.width));
+      const dur = audioEl.duration || 30;
+      audioEl.currentTime = pct * dur;
+    });
+
+    // Mute toggle
+    muteBtn?.addEventListener("click", () => {
+      audioEl.muted = !audioEl.muted;
+      if (iconVolOn) iconVolOn.style.display = audioEl.muted ? "none" : "block";
+      if (iconVolMute) iconVolMute.style.display = audioEl.muted ? "block" : "none";
+    });
   },
 
   /**
