@@ -1076,30 +1076,59 @@ const SafeAudioEngine = {
 
     const rem = Math.max(0, remainingSeconds !== undefined ? remainingSeconds : 30);
     const tot = totalSeconds || 30;
-    const percent = Math.min(100, Math.max(4, Math.round(((tot - rem) / tot) * 100)));
+    const elapsed = Math.max(0, tot - rem);
+    const percent = Math.min(100, Math.max(4, Math.round((elapsed / tot) * 100)));
 
     container.innerHTML = `
       <div class="audio-evidence-loader" id="emg-audio-loader-card">
         <div class="loader-header-row">
           <div class="loader-meta">
-            <span class="loader-tag"><span class="rec-dot pulsing-red"></span>🎙️ Ambient Audio Evidence (${tot}s Buffer)</span>
+            <div class="loader-tag-row">
+              <span class="live-rec-badge">
+                <span class="rec-dot pulsing-red"></span>
+                <span class="rec-label">REC</span>
+              </span>
+              <span class="loader-tag">🎙️ Ambient Audio Evidence</span>
+              <span class="loader-pill-buffer">${tot}s Buffer</span>
+            </div>
             <span class="loader-status">Live ambient recording for 112 CAD & Guardian dispatch</span>
           </div>
-          <div class="loader-timer-badge" id="emg-audio-cd-badge">${rem}s left</div>
+          <div class="loader-timer-badge" id="emg-audio-cd-badge">
+            <svg class="timer-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span id="emg-audio-cd-text">${rem}s left</span>
+          </div>
         </div>
-        <div class="audio-skeleton-track">
-          <div class="audio-skeleton-bar" id="emg-audio-progress-bar" style="width: ${percent}%;"></div>
+
+        <div class="audio-progress-section">
+          <div class="audio-skeleton-track">
+            <div class="audio-skeleton-bar" id="emg-audio-progress-bar" style="width: ${percent}%;"></div>
+          </div>
+          <div class="progress-sub-info">
+            <span class="progress-elapsed" id="emg-audio-elapsed-txt">${elapsed}s of ${tot}s</span>
+            <span class="progress-pct" id="emg-audio-pct-txt">${percent}%</span>
+          </div>
         </div>
-        <div class="audio-skeleton-wave">
-          <span class="wave-bar wb-1"></span>
-          <span class="wave-bar wb-2"></span>
-          <span class="wave-bar wb-3"></span>
-          <span class="wave-bar wb-4"></span>
-          <span class="wave-bar wb-5"></span>
-          <span class="wave-bar wb-6"></span>
-          <span class="wave-bar wb-7"></span>
-          <span class="wave-bar wb-8"></span>
-          <span class="wave-caption">Recording audio evidence snippet in background...</span>
+
+        <div class="audio-visualizer-container">
+          <div class="audio-skeleton-wave">
+            <span class="wave-bar wb-1"></span>
+            <span class="wave-bar wb-2"></span>
+            <span class="wave-bar wb-3"></span>
+            <span class="wave-bar wb-4"></span>
+            <span class="wave-bar wb-5"></span>
+            <span class="wave-bar wb-6"></span>
+            <span class="wave-bar wb-7"></span>
+            <span class="wave-bar wb-8"></span>
+            <span class="wave-bar wb-9"></span>
+            <span class="wave-bar wb-10"></span>
+            <span class="wave-bar wb-11"></span>
+            <span class="wave-bar wb-12"></span>
+            <span class="wave-bar wb-13"></span>
+            <span class="wave-bar wb-14"></span>
+          </div>
+          <div class="wave-status-box">
+            <span class="wave-caption">Recording audio evidence snippet in background...</span>
+          </div>
         </div>
       </div>
     `;
@@ -1111,15 +1140,20 @@ const SafeAudioEngine = {
    */
   updateEvidenceLoaderProgress() {
     if (typeof document === "undefined") return;
-    const badge = document.getElementById("emg-audio-cd-badge");
+    const badgeText = document.getElementById("emg-audio-cd-text");
     const bar = document.getElementById("emg-audio-progress-bar");
-    if (badge && bar) {
-      const rem = Math.max(0, this.evidenceRemainingSeconds !== undefined ? this.evidenceRemainingSeconds : 0);
-      const tot = this.evidenceDurationSeconds || 30;
-      const percent = Math.min(100, Math.max(4, Math.round(((tot - rem) / tot) * 100)));
-      badge.textContent = `${rem}s left`;
-      bar.style.width = `${percent}%`;
-    }
+    const elapsedTxt = document.getElementById("emg-audio-elapsed-txt");
+    const pctTxt = document.getElementById("emg-audio-pct-txt");
+
+    const rem = Math.max(0, this.evidenceRemainingSeconds !== undefined ? this.evidenceRemainingSeconds : 0);
+    const tot = this.evidenceDurationSeconds || 30;
+    const elapsed = Math.max(0, tot - rem);
+    const percent = Math.min(100, Math.max(4, Math.round((elapsed / tot) * 100)));
+
+    if (badgeText) badgeText.textContent = `${rem}s left`;
+    if (bar) bar.style.width = `${percent}%`;
+    if (elapsedTxt) elapsedTxt.textContent = `${elapsed}s of ${tot}s`;
+    if (pctTxt) pctTxt.textContent = `${percent}%`;
   },
 
   /**

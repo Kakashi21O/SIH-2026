@@ -3536,74 +3536,150 @@ body.light-theme .incident-badge-panel .breakdown-pill.active {
   font-weight: 500;
 }
 
+/* ================= AUDIO EVIDENCE PANEL & LIVE LOADER (BEAUTIFUL UI) ================= */
 .audio-player-panel {
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(6, 182, 212, 0.35);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.88) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.28);
   border-radius: var(--radius-md);
-  padding: 12px;
+  padding: 14px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .audio-evidence-player .player-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
-.player-tag { font-size: 0.8rem; font-weight: 700; color: var(--accent-primary); }
-.player-status { font-size: 0.7rem; color: var(--text-muted); }
+.player-tag {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #38bdf8;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 
-/* Audio Evidence Live Loader & Skeleton Countdown */
+.player-status {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Live Evidence Recording Loader */
 .audio-evidence-loader {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .loader-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
 }
 
 .loader-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  min-width: 0;
+}
+
+.loader-tag-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.live-rec-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.live-rec-badge .rec-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+}
+
+.live-rec-badge .rec-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #fca5a5;
+  letter-spacing: 0.05em;
+  line-height: 1;
 }
 
 .loader-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   font-size: 0.82rem;
   font-weight: 700;
-  color: #38bdf8;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
 }
 
-.loader-tag .rec-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ef4444;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+.loader-pill-buffer {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  border-radius: 4px;
+  font-family: var(--font-mono);
 }
 
 .loader-status {
   font-size: 0.72rem;
   color: var(--text-muted);
+  line-height: 1.3;
 }
 
 .loader-timer-badge {
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
   font-weight: 700;
   font-family: var(--font-mono);
-  padding: 3px 8px;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 4px 9px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(220, 38, 38, 0.1));
+  border: 1px solid rgba(239, 68, 68, 0.45);
   color: #fca5a5;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.loader-timer-badge .timer-icon {
+  color: #ef4444;
+  animation: timerRotate 4s linear infinite;
+}
+
+@keyframes timerRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Progress Section */
+.audio-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .audio-skeleton-track {
@@ -3617,58 +3693,125 @@ body.light-theme .incident-badge-panel .breakdown-pill.active {
 
 .audio-skeleton-bar {
   height: 100%;
-  background: linear-gradient(90deg, #38bdf8, #06b6d4, #ef4444);
+  background: linear-gradient(90deg, #38bdf8 0%, #06b6d4 50%, #ef4444 100%);
   border-radius: 999px;
-  transition: width 0.4s ease-out;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+  position: relative;
+}
+
+.audio-skeleton-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+  animation: barShimmer 1.8s infinite;
+}
+
+@keyframes barShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.progress-sub-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  padding: 0 2px;
+}
+
+/* Audio Visualizer Wave */
+.audio-visualizer-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
 }
 
 .audio-skeleton-wave {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 0;
+  gap: 3px;
+  height: 20px;
 }
 
 .wave-bar {
-  width: 3px;
-  height: 14px;
-  background: #38bdf8;
+  width: 2.5px;
+  background: linear-gradient(180deg, #38bdf8 0%, #06b6d4 100%);
   border-radius: 2px;
   animation: audioWavePulse 1.2s infinite ease-in-out;
 }
 
-.wave-bar.wb-1 { animation-delay: 0.0s; height: 10px; }
-.wave-bar.wb-2 { animation-delay: 0.2s; height: 18px; }
-.wave-bar.wb-3 { animation-delay: 0.4s; height: 12px; }
-.wave-bar.wb-4 { animation-delay: 0.1s; height: 22px; }
-.wave-bar.wb-5 { animation-delay: 0.3s; height: 16px; }
-.wave-bar.wb-6 { animation-delay: 0.5s; height: 8px; }
-.wave-bar.wb-7 { animation-delay: 0.25s; height: 14px; }
-.wave-bar.wb-8 { animation-delay: 0.15s; height: 11px; }
+.wave-bar.wb-1 { animation-delay: 0.00s; height: 8px; }
+.wave-bar.wb-2 { animation-delay: 0.15s; height: 14px; }
+.wave-bar.wb-3 { animation-delay: 0.30s; height: 18px; }
+.wave-bar.wb-4 { animation-delay: 0.10s; height: 10px; }
+.wave-bar.wb-5 { animation-delay: 0.45s; height: 16px; }
+.wave-bar.wb-6 { animation-delay: 0.20s; height: 12px; }
+.wave-bar.wb-7 { animation-delay: 0.35s; height: 20px; }
+.wave-bar.wb-8 { animation-delay: 0.05s; height: 15px; }
+.wave-bar.wb-9 { animation-delay: 0.25s; height: 9px; }
+.wave-bar.wb-10 { animation-delay: 0.40s; height: 17px; }
+.wave-bar.wb-11 { animation-delay: 0.12s; height: 13px; }
+.wave-bar.wb-12 { animation-delay: 0.50s; height: 7px; }
+.wave-bar.wb-13 { animation-delay: 0.22s; height: 16px; }
+.wave-bar.wb-14 { animation-delay: 0.08s; height: 11px; }
 
 @keyframes audioWavePulse {
   0%, 100% {
-    transform: scaleY(0.4);
+    transform: scaleY(0.35);
     opacity: 0.4;
   }
   50% {
-    transform: scaleY(1.0);
+    transform: scaleY(1.15);
     opacity: 1.0;
   }
 }
 
-.wave-caption {
-  margin-left: 6px;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  font-style: italic;
+.wave-status-box {
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 
+.wave-caption {
+  font-size: 0.70rem;
+  color: #94a3b8;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Light Theme Support */
+body.light-theme .audio-player-panel {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+  border-color: rgba(2, 132, 199, 0.35);
+  box-shadow: 0 8px 20px -4px rgba(2, 132, 199, 0.15);
+}
+body.light-theme .loader-tag {
+  color: #0f172a;
+}
 body.light-theme .audio-skeleton-track {
   background: rgba(0, 0, 0, 0.08);
 }
-body.light-theme .loader-tag {
-  color: #0284c7;
+body.light-theme .audio-visualizer-container {
+  background: rgba(2, 132, 199, 0.05);
+  border-color: rgba(2, 132, 199, 0.15);
+}
+body.light-theme .wave-caption {
+  color: #475569;
 }
 
 .inc-head-row {
