@@ -92,7 +92,7 @@ class EmergencyTriggerRequest(BaseModel):
     distress_keyword: Optional[str] = None
 
 class EmergencyTriggerResponse(BaseModel):
-    countdown_seconds: int = 10
+    countdown_seconds: int = 30
     verification_token: str
     message: str
     status: str

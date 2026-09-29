@@ -178,6 +178,52 @@ runTest("Engine does not crash when getUserMedia or SpeechRecognition is missing
   });
 });
 
+// ---------------------------------------------------------------------------
+// 6. 30-Second Audio Evidence Lifecycle & PIN Cancellation Tests
+// ---------------------------------------------------------------------------
+console.log("\n6. 30-Second Audio Evidence Lifecycle & PIN Cancellation Tests:");
+
+runTest("Duplicate recording requests are ignored when already recording", async () => {
+  SafeAudioEngine.isRecordingEvidence = true;
+  let startedAgain = false;
+  const originalRequest = SafeAudioEngine.requestMicrophoneStream;
+  SafeAudioEngine.requestMicrophoneStream = async () => { startedAgain = true; return null; };
+
+  await SafeAudioEngine.startEvidenceRecording();
+  assert.strictEqual(startedAgain, false, "Duplicate startEvidenceRecording should have been ignored");
+  SafeAudioEngine.requestMicrophoneStream = originalRequest;
+  SafeAudioEngine.isRecordingEvidence = false;
+});
+
+runTest("Stop recording resolves immediately with audio evidence payload", async () => {
+  SafeAudioEngine.isRecordingEvidence = false;
+  SafeAudioEngine.recordedAudioBlobUrl = "blob:http://localhost:8000/demo-30s-audio";
+  SafeAudioEngine.recordedAudioBase64 = "data:audio/webm;base64,GkXfo59ChoEBQveBAU...";
+
+  const evidence = await SafeAudioEngine.stopEvidenceRecording();
+  assert(evidence && evidence.blobUrl, "Expected resolved evidence with blobUrl");
+  assert.strictEqual(evidence.blobUrl, "blob:http://localhost:8000/demo-30s-audio");
+});
+
+runTest("PIN Cancellation discards all audio evidence and revokes temporary Blob URL", () => {
+  SafeAudioEngine.isRecordingEvidence = true;
+  SafeAudioEngine.audioChunks = [new Uint8Array([1, 2, 3])];
+  SafeAudioEngine.recordedAudioBlobUrl = "blob:http://localhost:8000/temp-to-revoke";
+  SafeAudioEngine.recordedAudioBase64 = "data:audio/webm;base64,temp...";
+
+  SafeAudioEngine.discardEvidenceRecording();
+  assert.strictEqual(SafeAudioEngine.isRecordingEvidence, false, "Recording should be inactive");
+  assert.strictEqual(SafeAudioEngine.audioChunks.length, 0, "audioChunks should be cleared");
+  assert.strictEqual(SafeAudioEngine.recordedAudioBlobUrl, null, "Blob URL should be null");
+  assert.strictEqual(SafeAudioEngine.recordedAudioBase64, null, "Base64 should be null");
+});
+
+runTest("Audio player widget renders native audio element without external libraries", () => {
+  assert.doesNotThrow(() => {
+    SafeAudioEngine.renderAudioEvidenceWidget("blob:http://localhost:8000/test-play");
+  });
+});
+
 console.log("\n=================================================");
 console.log(`📊 Summary: ${passedTests}/${totalTests} tests passed.`);
 console.log("=================================================\n");

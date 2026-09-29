@@ -23,7 +23,7 @@ const state = {
     isVerifying: false,
     lastTriggerTime: 0,
     countdownInterval: null,
-    countdownSeconds: 10,
+    countdownSeconds: 30,
     verificationToken: null,
     incidentId: null,
     triggerSource: "manual_sos",
@@ -1584,18 +1584,20 @@ async function triggerEmergencyWorkflow(source = "manual_sos", keyword = null) {
   state.emergencyState.lastTriggerTime = now;
   state.emergencyState.isVerifying = true;
   state.emergencyState.active = true;
-  state.emergencyState.countdownSeconds = 10;
+  state.emergencyState.countdownSeconds = 30;
   state.emergencyState.triggerSource = source;
   state.emergencyState.distressKeyword = keyword;
 
-  // Start ambient audio evidence buffer capture immediately
+  // Start ambient audio evidence buffer capture immediately (records for full 30s window)
   if (window.SafeAudioEngine) {
     window.SafeAudioEngine.startEvidenceRecording();
   }
 
-  // Update verification UI details
+  // Update verification UI details (State 1: EMERGENCY DETECTED)
   const triggerTag = document.getElementById("verify-trigger-tag");
   const leadText = document.getElementById("verify-lead-text");
+  const recIndicator = document.getElementById("verify-rec-indicator");
+
   if (triggerTag) {
     if (source === "keyword_distress") {
       triggerTag.textContent = `Voice Trigger: "${keyword || 'Distress Word'}"`;
@@ -1605,10 +1607,13 @@ async function triggerEmergencyWorkflow(source = "manual_sos", keyword = null) {
       triggerTag.textContent = "Trigger: Manual SOS";
     }
   }
+
   if (leadText) {
-    leadText.textContent = source === "keyword_distress"
-      ? `Distress phrase "${keyword}" recognized by audio engine. Are you safe?`
-      : "Emergency SOS activated. Are you safe?";
+    leadText.textContent = "EMERGENCY DETECTED • Recording audio evidence...";
+  }
+
+  if (recIndicator) {
+    recIndicator.innerHTML = '<span class="rec-dot pulsing-red"></span><span>Recording audio evidence...</span>';
   }
 
   try {
@@ -1635,6 +1640,12 @@ async function triggerEmergencyWorkflow(source = "manual_sos", keyword = null) {
   clearInterval(state.emergencyState.countdownInterval);
   state.emergencyState.countdownInterval = setInterval(() => {
     state.emergencyState.countdownSeconds -= 1;
+
+    // State 2: EMERGENCY VERIFICATION
+    if (leadText) {
+      leadText.textContent = "EMERGENCY VERIFICATION • Recording audio evidence";
+    }
+
     updateCountdownUI();
 
     if (state.emergencyState.countdownSeconds <= 0) {
@@ -1649,11 +1660,14 @@ async function triggerEmergencyWorkflow(source = "manual_sos", keyword = null) {
 function updateCountdownUI() {
   const timerEl = document.getElementById("verify-countdown");
   const sheetTimerEl = document.getElementById("pin-sheet-timer");
+  const count = state.emergencyState.countdownSeconds;
+  const countStr = count < 10 ? `0${count}` : `${count}`;
+
   if (timerEl) {
-    timerEl.textContent = state.emergencyState.countdownSeconds;
+    timerEl.textContent = countStr;
   }
   if (sheetTimerEl) {
-    sheetTimerEl.textContent = `${state.emergencyState.countdownSeconds}s`;
+    sheetTimerEl.textContent = `${countStr}s`;
   }
 }
 
@@ -1665,18 +1679,16 @@ function cancelEmergencyCountdown(reason) {
   state.emergencyState.repeatedSignal = false;
   state.emergencyState.tapCount = 0;
 
-  // Stop evidence recording without escalating
+  // State 4: Cancelled by PIN — discard audio evidence immediately
   if (window.SafeAudioEngine) {
-    window.SafeAudioEngine.stopEvidenceRecording();
-    
-    // Turn off Distress Keyword Listener if alarm was triggered mistakenly and cancelled by valid PIN
+    window.SafeAudioEngine.discardEvidenceRecording();
     window.SafeAudioEngine.stopSpeechListening();
   }
 
   closePinModal();
   showScreen("screen-home");
   updateStatusPill("Protected", "safe");
-  showToastAlert("✅ Alarm Cancelled by PIN: Distress Listener & Recording Deactivated", "safe");
+  showToastAlert("✅ EMERGENCY CANCELLED: Audio evidence discarded", "safe");
 }
 
 async function escalateToActiveEmergency(source) {
@@ -1685,15 +1697,15 @@ async function escalateToActiveEmergency(source) {
   state.emergencyState.isVerifying = false;
   closePinModal();
 
-  // Stop recording to finalize audio chunks & blob
+  // State 3: Countdown finished — stop recording & create playable audio Blob immediately
+  let audioPayload = null;
   if (window.SafeAudioEngine) {
-    window.SafeAudioEngine.stopEvidenceRecording();
+    const evidence = await window.SafeAudioEngine.stopEvidenceRecording();
+    audioPayload = evidence ? evidence.base64 : (window.SafeAudioEngine.recordedAudioBase64 || null);
+    if (evidence && evidence.blobUrl) {
+      window.SafeAudioEngine.renderAudioEvidenceWidget(evidence.blobUrl);
+    }
   }
-
-  // Small delay to allow MediaRecorder onstop to produce base64
-  await new Promise(r => setTimeout(r, 200));
-
-  const audioPayload = window.SafeAudioEngine ? window.SafeAudioEngine.recordedAudioBase64 : null;
 
   try {
     const res = await fetch("/api/emergency/escalate", {
@@ -1709,7 +1721,7 @@ async function escalateToActiveEmergency(source) {
         timed_out_without_pin: true,
         user_id: state.currentUser.id,
         audio_base64: audioPayload,
-        audio_duration_seconds: 10.0
+        audio_duration_seconds: 30.0
       })
     });
     const data = await res.json();
@@ -1736,7 +1748,7 @@ async function escalateToActiveEmergency(source) {
     const audioStatusEl = document.getElementById("emg-audio-status");
     if (audioStatusEl) {
       audioStatusEl.textContent = data.audio_captured
-        ? "Encrypted ambient audio evidence captured (10s)"
+        ? "Encrypted ambient audio evidence captured (30s)"
         : "Audio evidence stream buffered";
     }
 

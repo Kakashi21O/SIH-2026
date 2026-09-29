@@ -16,7 +16,7 @@ active_verifications = {}
 @router.post("/trigger", response_model=EmergencyTriggerResponse)
 def trigger_emergency(payload: EmergencyTriggerRequest):
     """
-    Trigger emergency detection: Starts the 10-second client-side & server-side verification countdown.
+    Trigger emergency detection: Starts the 30-second client-side & server-side verification countdown.
     """
     verification_token = f"tok_{uuid.uuid4().hex[:12]}"
     active_verifications[verification_token] = {
@@ -28,9 +28,9 @@ def trigger_emergency(payload: EmergencyTriggerRequest):
     }
 
     return EmergencyTriggerResponse(
-        countdown_seconds=10,
+        countdown_seconds=30,
         verification_token=verification_token,
-        message="Distress detected. 10-second verification countdown active. Enter PIN to abort.",
+        message="Distress detected. 30-second verification countdown active. Enter PIN to abort.",
         status="COUNTDOWN_ACTIVE"
     )
 

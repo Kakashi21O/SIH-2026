@@ -55,7 +55,7 @@ def test_emergency_trigger_and_escalate(client):
     })
     assert res_trigger.status_code == 200
     trigger_data = res_trigger.json()
-    assert trigger_data["countdown_seconds"] == 10
+    assert trigger_data["countdown_seconds"] == 30
     verification_token = trigger_data["verification_token"]
     assert "tok_" in verification_token
 

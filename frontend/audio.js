@@ -847,11 +847,22 @@ const SafeAudioEngine = {
 
   /**
    * Start MediaRecorder to capture ambient audio evidence during emergency verification/escalation
+   * Starts immediately when SOS is triggered and records for the full 30-second window.
    */
   async startEvidenceRecording() {
+    // Prevent duplicate recording instances for the same emergency event
+    if (this.isRecordingEvidence) {
+      console.info("[SafeAudioEngine] Evidence recording already active; ignoring duplicate start request.");
+      return;
+    }
+
+    // Cleanup previous evidence if any
+    if (this.recordedAudioBlobUrl) {
+      try { URL.revokeObjectURL(this.recordedAudioBlobUrl); } catch (e) {}
+      this.recordedAudioBlobUrl = null;
+    }
     this.audioChunks = [];
     this.recordedAudioBase64 = null;
-    this.recordedAudioBlobUrl = null;
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       console.warn("[SafeAudioEngine] MediaDevices API not available. Creating synthesized sample audio.");
@@ -886,15 +897,15 @@ const SafeAudioEngine = {
           const finalMime = mimeType || (this.audioChunks[0] && this.audioChunks[0].type) || "audio/webm";
           const audioBlob = new Blob(this.audioChunks, { type: finalMime });
           this.recordedAudioBlobUrl = URL.createObjectURL(audioBlob);
-          this.recordedAudioBase64 = await this.blobToBase64(audioBlob);
           this.renderAudioEvidenceWidget(this.recordedAudioBlobUrl);
+          this.recordedAudioBase64 = await this.blobToBase64(audioBlob);
         } else {
           this.createSynthesizedEvidenceBuffer();
         }
       };
 
       this.mediaRecorder.start(1000); // Collect data every 1s
-      console.info(`[SafeAudioEngine] 🎙️ Emergency ambient evidence recording active (Format: ${mimeType || 'browser default'}).`);
+      console.info(`[SafeAudioEngine] 🎙️ Emergency ambient evidence recording active (30s window, Format: ${mimeType || 'browser default'}).`);
     } catch (err) {
       console.warn("[SafeAudioEngine] Microphone stream permission denied or unavailable:", err);
       // Seamless graceful fallback: synthesize audio evidence buffer for demo verification
@@ -903,16 +914,59 @@ const SafeAudioEngine = {
   },
 
   /**
-   * Stop MediaRecorder and finalize evidence buffer
+   * Stop MediaRecorder and finalize evidence buffer.
+   * Returns a Promise that resolves when audio Blob URL is generated.
    */
   stopEvidenceRecording() {
+    return new Promise((resolve) => {
+      if (this.mediaRecorder && this.isRecordingEvidence) {
+        const originalOnStop = this.mediaRecorder.onstop;
+        this.mediaRecorder.onstop = async (e) => {
+          if (typeof originalOnStop === "function") {
+            await originalOnStop(e);
+          }
+          resolve({ blobUrl: this.recordedAudioBlobUrl, base64: this.recordedAudioBase64 });
+        };
+        try {
+          this.mediaRecorder.stop();
+        } catch (e) {
+          console.warn("[SafeAudioEngine] Error stopping MediaRecorder:", e);
+          resolve({ blobUrl: this.recordedAudioBlobUrl, base64: this.recordedAudioBase64 });
+        }
+      } else {
+        resolve({ blobUrl: this.recordedAudioBlobUrl, base64: this.recordedAudioBase64 });
+      }
+    });
+  },
+
+  /**
+   * Discard recorded evidence upon PIN cancellation.
+   * Stops recording, drops all chunks, revokes Blob URL, and leaves no traces.
+   */
+  discardEvidenceRecording() {
     if (this.mediaRecorder && this.isRecordingEvidence) {
       try {
+        this.mediaRecorder.onstop = null; // Detach normal processing
         this.mediaRecorder.stop();
-      } catch (e) {
-        console.warn("[SafeAudioEngine] Error stopping MediaRecorder:", e);
-      }
+        if (this.mediaRecorder.stream) {
+          this.mediaRecorder.stream.getTracks().forEach((t) => t.stop());
+        }
+      } catch (e) {}
     }
+    this.isRecordingEvidence = false;
+    this.audioChunks = [];
+    if (this.recordedAudioBlobUrl) {
+      try { URL.revokeObjectURL(this.recordedAudioBlobUrl); } catch (e) {}
+    }
+    this.recordedAudioBlobUrl = null;
+    this.recordedAudioBase64 = null;
+
+    const container = typeof document !== "undefined" ? document.getElementById("emg-audio-player-container") : null;
+    if (container) {
+      container.innerHTML = "";
+      container.style.display = "none";
+    }
+    console.info("[SafeAudioEngine] 🛡️ Emergency audio evidence discarded upon PIN cancellation.");
   },
 
   /**
@@ -962,14 +1016,15 @@ const SafeAudioEngine = {
    * Render in-app audio playback player in Emergency Screen & modals
    */
   renderAudioEvidenceWidget(audioUrl) {
+    if (typeof document === "undefined") return;
     const container = document.getElementById("emg-audio-player-container");
     if (!container) return;
 
     container.innerHTML = `
       <div class="audio-evidence-player">
         <div class="player-meta">
-          <span class="player-tag">🎙️ Ambient Evidence Capture (Encrypted)</span>
-          <span class="player-status">Ready for CAD / Guardian Dispatch</span>
+          <span class="player-tag">🎙️ Audio Evidence Available (30s Capture)</span>
+          <span class="player-status">Ready for Playback • CAD / Guardian Dispatch</span>
         </div>
         <audio controls src="${audioUrl}" class="evidence-audio-ctrl" style="width: 100%; margin-top: 8px; border-radius: 8px; outline: none;"></audio>
       </div>
