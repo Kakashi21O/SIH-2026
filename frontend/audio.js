@@ -939,11 +939,12 @@ const SafeAudioEngine = {
         }
       }, durationSeconds * 1000);
 
-      // Track live evidence countdown
+      // Track live evidence countdown and update UI progress
       this.evidenceProgressInterval = setInterval(() => {
         if (this.evidenceRemainingSeconds > 0) {
           this.evidenceRemainingSeconds -= 1;
         }
+        this.updateEvidenceLoaderProgress();
       }, 1000);
 
     } catch (err) {
@@ -1062,6 +1063,62 @@ const SafeAudioEngine = {
       });
     } catch (e) {
       console.warn("[SafeAudioEngine] Synth fallback note:", e);
+    }
+  },
+
+  /**
+   * Render active recording loader & countdown skeleton in Emergency Screen & modals
+   */
+  renderEvidenceLoader(remainingSeconds = this.evidenceRemainingSeconds, totalSeconds = this.evidenceDurationSeconds) {
+    if (typeof document === "undefined") return;
+    const container = document.getElementById("emg-audio-player-container");
+    if (!container) return;
+
+    const rem = Math.max(0, remainingSeconds !== undefined ? remainingSeconds : 30);
+    const tot = totalSeconds || 30;
+    const percent = Math.min(100, Math.max(4, Math.round(((tot - rem) / tot) * 100)));
+
+    container.innerHTML = `
+      <div class="audio-evidence-loader" id="emg-audio-loader-card">
+        <div class="loader-header-row">
+          <div class="loader-meta">
+            <span class="loader-tag"><span class="rec-dot pulsing-red"></span>🎙️ Ambient Audio Evidence (${tot}s Buffer)</span>
+            <span class="loader-status">Live ambient recording for 112 CAD & Guardian dispatch</span>
+          </div>
+          <div class="loader-timer-badge" id="emg-audio-cd-badge">${rem}s left</div>
+        </div>
+        <div class="audio-skeleton-track">
+          <div class="audio-skeleton-bar" id="emg-audio-progress-bar" style="width: ${percent}%;"></div>
+        </div>
+        <div class="audio-skeleton-wave">
+          <span class="wave-bar wb-1"></span>
+          <span class="wave-bar wb-2"></span>
+          <span class="wave-bar wb-3"></span>
+          <span class="wave-bar wb-4"></span>
+          <span class="wave-bar wb-5"></span>
+          <span class="wave-bar wb-6"></span>
+          <span class="wave-bar wb-7"></span>
+          <span class="wave-bar wb-8"></span>
+          <span class="wave-caption">Recording audio evidence snippet in background...</span>
+        </div>
+      </div>
+    `;
+    container.style.display = "block";
+  },
+
+  /**
+   * Update existing loader countdown and progress bar without re-rendering DOM
+   */
+  updateEvidenceLoaderProgress() {
+    if (typeof document === "undefined") return;
+    const badge = document.getElementById("emg-audio-cd-badge");
+    const bar = document.getElementById("emg-audio-progress-bar");
+    if (badge && bar) {
+      const rem = Math.max(0, this.evidenceRemainingSeconds !== undefined ? this.evidenceRemainingSeconds : 0);
+      const tot = this.evidenceDurationSeconds || 30;
+      const percent = Math.min(100, Math.max(4, Math.round(((tot - rem) / tot) * 100)));
+      badge.textContent = `${rem}s left`;
+      bar.style.width = `${percent}%`;
     }
   },
 

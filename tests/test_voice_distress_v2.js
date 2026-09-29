@@ -259,6 +259,13 @@ runTest("onEvidenceReady fires callback with duration and audio payload", (done)
   assert.strictEqual(callbackFired, true, "Expected onEvidenceReady to fire");
 });
 
+runTest("Audio evidence loader and skeleton progress bar render without errors", () => {
+  assert.doesNotThrow(() => {
+    SafeAudioEngine.renderEvidenceLoader(20, 30);
+    SafeAudioEngine.updateEvidenceLoaderProgress();
+  });
+});
+
 console.log("\n=================================================");
 console.log(`📊 Summary: ${passedTests}/${totalTests} tests passed.`);
 console.log("=================================================\n");

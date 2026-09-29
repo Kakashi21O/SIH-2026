@@ -1724,8 +1724,12 @@ async function escalateToActiveEmergency(source) {
   const isRecording = window.SafeAudioEngine ? window.SafeAudioEngine.isRecordingEvidence : false;
   const audioPayload = window.SafeAudioEngine ? window.SafeAudioEngine.recordedAudioBase64 : null;
 
-  if (window.SafeAudioEngine && window.SafeAudioEngine.recordedAudioBlobUrl) {
-    window.SafeAudioEngine.renderAudioEvidenceWidget(window.SafeAudioEngine.recordedAudioBlobUrl);
+  if (window.SafeAudioEngine) {
+    if (window.SafeAudioEngine.recordedAudioBlobUrl) {
+      window.SafeAudioEngine.renderAudioEvidenceWidget(window.SafeAudioEngine.recordedAudioBlobUrl);
+    } else if (isRecording) {
+      window.SafeAudioEngine.renderEvidenceLoader();
+    }
   }
 
   try {

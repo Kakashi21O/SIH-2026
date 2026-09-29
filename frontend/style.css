@@ -3552,6 +3552,125 @@ body.light-theme .incident-badge-panel .breakdown-pill.active {
 .player-tag { font-size: 0.8rem; font-weight: 700; color: var(--accent-primary); }
 .player-status { font-size: 0.7rem; color: var(--text-muted); }
 
+/* Audio Evidence Live Loader & Skeleton Countdown */
+.audio-evidence-loader {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.loader-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.loader-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.loader-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.loader-tag .rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+}
+
+.loader-status {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.loader-timer-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  padding: 3px 8px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.audio-skeleton-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.audio-skeleton-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #06b6d4, #ef4444);
+  border-radius: 999px;
+  transition: width 0.4s ease-out;
+}
+
+.audio-skeleton-wave {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.wave-bar {
+  width: 3px;
+  height: 14px;
+  background: #38bdf8;
+  border-radius: 2px;
+  animation: audioWavePulse 1.2s infinite ease-in-out;
+}
+
+.wave-bar.wb-1 { animation-delay: 0.0s; height: 10px; }
+.wave-bar.wb-2 { animation-delay: 0.2s; height: 18px; }
+.wave-bar.wb-3 { animation-delay: 0.4s; height: 12px; }
+.wave-bar.wb-4 { animation-delay: 0.1s; height: 22px; }
+.wave-bar.wb-5 { animation-delay: 0.3s; height: 16px; }
+.wave-bar.wb-6 { animation-delay: 0.5s; height: 8px; }
+.wave-bar.wb-7 { animation-delay: 0.25s; height: 14px; }
+.wave-bar.wb-8 { animation-delay: 0.15s; height: 11px; }
+
+@keyframes audioWavePulse {
+  0%, 100% {
+    transform: scaleY(0.4);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scaleY(1.0);
+    opacity: 1.0;
+  }
+}
+
+.wave-caption {
+  margin-left: 6px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+body.light-theme .audio-skeleton-track {
+  background: rgba(0, 0, 0, 0.08);
+}
+body.light-theme .loader-tag {
+  color: #0284c7;
+}
+
 .inc-head-row {
   display: flex;
   justify-content: space-between;
