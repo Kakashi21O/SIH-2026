@@ -2,7 +2,8 @@ import uuid
 from fastapi import APIRouter, HTTPException
 from backend.models.schemas import (
     EmergencyTriggerRequest, EmergencyTriggerResponse,
-    EmergencyEscalationRequest, IncidentReportResponse
+    EmergencyEscalationRequest, IncidentReportResponse,
+    EmergencyAudioAttachRequest, EmergencyAudioAttachResponse
 )
 from backend.services.emergency_engine import EmergencyOrchestrator
 from backend.services.risk_engine import evaluate_location_risk
@@ -16,7 +17,7 @@ active_verifications = {}
 @router.post("/trigger", response_model=EmergencyTriggerResponse)
 def trigger_emergency(payload: EmergencyTriggerRequest):
     """
-    Trigger emergency detection: Starts the 30-second client-side & server-side verification countdown.
+    Trigger emergency detection: Starts the 10-second client-side & server-side verification countdown.
     """
     verification_token = f"tok_{uuid.uuid4().hex[:12]}"
     active_verifications[verification_token] = {
@@ -28,9 +29,9 @@ def trigger_emergency(payload: EmergencyTriggerRequest):
     }
 
     return EmergencyTriggerResponse(
-        countdown_seconds=30,
+        countdown_seconds=10,
         verification_token=verification_token,
-        message="Distress detected. 30-second verification countdown active. Enter PIN to abort.",
+        message="Distress detected. 10-second verification countdown active. Enter PIN to abort.",
         status="COUNTDOWN_ACTIVE"
     )
 
@@ -56,6 +57,33 @@ def escalate_emergency(payload: EmergencyEscalationRequest):
     )
 
     return IncidentReportResponse(**incident)
+
+@router.post("/incidents/{incident_id}/audio", response_model=EmergencyAudioAttachResponse)
+def attach_incident_audio(incident_id: str, payload: EmergencyAudioAttachRequest):
+    """
+    Attach full 30-second ambient audio evidence buffer to an active or historical incident.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM incidents WHERE id = ?", (incident_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Incident not found")
+    
+    cursor.execute(
+        "UPDATE incidents SET audio_captured = 1, audio_data = ? WHERE id = ?",
+        (payload.audio_base64, incident_id)
+    )
+    conn.commit()
+    conn.close()
+
+    return EmergencyAudioAttachResponse(
+        ok=True,
+        incident_id=incident_id,
+        message="Audio evidence attached successfully (30s capture).",
+        audio_captured=True
+    )
 
 @router.get("/incidents", response_model=list[IncidentReportResponse])
 def list_incidents():

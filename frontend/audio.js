@@ -845,11 +845,17 @@ const SafeAudioEngine = {
     return "";
   },
 
+  evidenceAutoStopTimer: null,
+  evidenceProgressInterval: null,
+  evidenceDurationSeconds: 30,
+  evidenceRemainingSeconds: 30,
+  onEvidenceReady: null,
+
   /**
    * Start MediaRecorder to capture ambient audio evidence during emergency verification/escalation
    * Starts immediately when SOS is triggered and records for the full 30-second window.
    */
-  async startEvidenceRecording() {
+  async startEvidenceRecording(durationSeconds = 30) {
     // Prevent duplicate recording instances for the same emergency event
     if (this.isRecordingEvidence) {
       console.info("[SafeAudioEngine] Evidence recording already active; ignoring duplicate start request.");
@@ -863,6 +869,23 @@ const SafeAudioEngine = {
     }
     this.audioChunks = [];
     this.recordedAudioBase64 = null;
+    this.evidenceDurationSeconds = durationSeconds;
+    this.evidenceRemainingSeconds = durationSeconds;
+
+    const finalizeBufferAndNotify = async (blob, base64) => {
+      this.recordedAudioBlobUrl = blob ? URL.createObjectURL(blob) : null;
+      this.recordedAudioBase64 = base64;
+      if (this.recordedAudioBlobUrl) {
+        this.renderAudioEvidenceWidget(this.recordedAudioBlobUrl);
+      }
+      if (typeof this.onEvidenceReady === "function") {
+        try {
+          this.onEvidenceReady({ blobUrl: this.recordedAudioBlobUrl, base64: this.recordedAudioBase64, duration: this.evidenceDurationSeconds });
+        } catch (e) {
+          console.warn("[SafeAudioEngine] onEvidenceReady callback error:", e);
+        }
+      }
+    };
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       console.warn("[SafeAudioEngine] MediaDevices API not available. Creating synthesized sample audio.");
@@ -890,26 +913,54 @@ const SafeAudioEngine = {
 
       this.mediaRecorder.onstop = async () => {
         this.isRecordingEvidence = false;
+        this.clearEvidenceTimers();
         // Stop all tracks to release hardware immediately
         stream.getTracks().forEach((track) => track.stop());
 
         if (this.audioChunks.length > 0) {
           const finalMime = mimeType || (this.audioChunks[0] && this.audioChunks[0].type) || "audio/webm";
           const audioBlob = new Blob(this.audioChunks, { type: finalMime });
-          this.recordedAudioBlobUrl = URL.createObjectURL(audioBlob);
-          this.renderAudioEvidenceWidget(this.recordedAudioBlobUrl);
-          this.recordedAudioBase64 = await this.blobToBase64(audioBlob);
+          const b64 = await this.blobToBase64(audioBlob);
+          await finalizeBufferAndNotify(audioBlob, b64);
         } else {
           this.createSynthesizedEvidenceBuffer();
         }
       };
 
       this.mediaRecorder.start(1000); // Collect data every 1s
-      console.info(`[SafeAudioEngine] 🎙️ Emergency ambient evidence recording active (30s window, Format: ${mimeType || 'browser default'}).`);
+      console.info(`[SafeAudioEngine] 🎙️ Emergency ambient evidence recording active (${durationSeconds}s window, Format: ${mimeType || 'browser default'}).`);
+
+      // 30-second evidence auto-stop timer
+      this.clearEvidenceTimers();
+      this.evidenceAutoStopTimer = setTimeout(() => {
+        if (this.isRecordingEvidence) {
+          console.info(`[SafeAudioEngine] 🎙️ ${durationSeconds}s evidence capture complete. Finalizing audio stream.`);
+          this.stopEvidenceRecording();
+        }
+      }, durationSeconds * 1000);
+
+      // Track live evidence countdown
+      this.evidenceProgressInterval = setInterval(() => {
+        if (this.evidenceRemainingSeconds > 0) {
+          this.evidenceRemainingSeconds -= 1;
+        }
+      }, 1000);
+
     } catch (err) {
       console.warn("[SafeAudioEngine] Microphone stream permission denied or unavailable:", err);
       // Seamless graceful fallback: synthesize audio evidence buffer for demo verification
       this.createSynthesizedEvidenceBuffer();
+    }
+  },
+
+  clearEvidenceTimers() {
+    if (this.evidenceAutoStopTimer) {
+      clearTimeout(this.evidenceAutoStopTimer);
+      this.evidenceAutoStopTimer = null;
+    }
+    if (this.evidenceProgressInterval) {
+      clearInterval(this.evidenceProgressInterval);
+      this.evidenceProgressInterval = null;
     }
   },
 
@@ -918,6 +969,7 @@ const SafeAudioEngine = {
    * Returns a Promise that resolves when audio Blob URL is generated.
    */
   stopEvidenceRecording() {
+    this.clearEvidenceTimers();
     return new Promise((resolve) => {
       if (this.mediaRecorder && this.isRecordingEvidence) {
         const originalOnStop = this.mediaRecorder.onstop;
@@ -944,6 +996,7 @@ const SafeAudioEngine = {
    * Stops recording, drops all chunks, revokes Blob URL, and leaves no traces.
    */
   discardEvidenceRecording() {
+    this.clearEvidenceTimers();
     if (this.mediaRecorder && this.isRecordingEvidence) {
       try {
         this.mediaRecorder.onstop = null; // Detach normal processing

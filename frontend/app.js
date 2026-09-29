@@ -23,7 +23,7 @@ const state = {
     isVerifying: false,
     lastTriggerTime: 0,
     countdownInterval: null,
-    countdownSeconds: 30,
+    countdownSeconds: 10,
     verificationToken: null,
     incidentId: null,
     triggerSource: "manual_sos",
@@ -1584,13 +1584,35 @@ async function triggerEmergencyWorkflow(source = "manual_sos", keyword = null) {
   state.emergencyState.lastTriggerTime = now;
   state.emergencyState.isVerifying = true;
   state.emergencyState.active = true;
-  state.emergencyState.countdownSeconds = 30;
+  state.emergencyState.countdownSeconds = 10;
   state.emergencyState.triggerSource = source;
   state.emergencyState.distressKeyword = keyword;
 
-  // Start ambient audio evidence buffer capture immediately (records for full 30s window)
+  // Start ambient audio evidence capture immediately (continuous background recording for 30s)
   if (window.SafeAudioEngine) {
-    window.SafeAudioEngine.startEvidenceRecording();
+    window.SafeAudioEngine.onEvidenceReady = async (evidence) => {
+      const audioStatusEl = document.getElementById("emg-audio-status");
+      if (audioStatusEl) {
+        audioStatusEl.textContent = "Encrypted ambient audio evidence captured (30s)";
+      }
+      // If incident is already active on backend, attach 30s audio evidence buffer
+      if (state.emergencyState.incidentId && evidence && evidence.base64) {
+        try {
+          await fetch(`/api/emergency/incidents/${encodeURIComponent(state.emergencyState.incidentId)}/audio`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              audio_base64: evidence.base64,
+              audio_duration_seconds: 30.0
+            })
+          });
+          console.info("[SafeSteps Emergency] 30s ambient audio evidence successfully attached to incident record.");
+        } catch (e) {
+          console.warn("[SafeSteps Emergency] Failed to attach audio evidence to incident:", e);
+        }
+      }
+    };
+    window.SafeAudioEngine.startEvidenceRecording(30);
   }
 
   // Update verification UI details (State 1: EMERGENCY DETECTED)
@@ -1609,11 +1631,11 @@ async function triggerEmergencyWorkflow(source = "manual_sos", keyword = null) {
   }
 
   if (leadText) {
-    leadText.textContent = "EMERGENCY DETECTED • Recording audio evidence...";
+    leadText.textContent = "EMERGENCY DETECTED • 10s Verification Check...";
   }
 
   if (recIndicator) {
-    recIndicator.innerHTML = '<span class="rec-dot pulsing-red"></span><span>Recording audio evidence...</span>';
+    recIndicator.innerHTML = '<span class="rec-dot pulsing-red"></span><span>Recording 30s audio evidence in background...</span>';
   }
 
   try {
@@ -1643,7 +1665,7 @@ async function triggerEmergencyWorkflow(source = "manual_sos", keyword = null) {
 
     // State 2: EMERGENCY VERIFICATION
     if (leadText) {
-      leadText.textContent = "EMERGENCY VERIFICATION • Recording audio evidence";
+      leadText.textContent = "EMERGENCY VERIFICATION • Recording audio evidence (30s)";
     }
 
     updateCountdownUI();
@@ -1697,14 +1719,13 @@ async function escalateToActiveEmergency(source) {
   state.emergencyState.isVerifying = false;
   closePinModal();
 
-  // State 3: Countdown finished — stop recording & create playable audio Blob immediately
-  let audioPayload = null;
-  if (window.SafeAudioEngine) {
-    const evidence = await window.SafeAudioEngine.stopEvidenceRecording();
-    audioPayload = evidence ? evidence.base64 : (window.SafeAudioEngine.recordedAudioBase64 || null);
-    if (evidence && evidence.blobUrl) {
-      window.SafeAudioEngine.renderAudioEvidenceWidget(evidence.blobUrl);
-    }
+  // Fast dispatch at 10s mark: police & guardians alerted immediately.
+  // Ambient audio recording continues in background for full 30s.
+  const isRecording = window.SafeAudioEngine ? window.SafeAudioEngine.isRecordingEvidence : false;
+  const audioPayload = window.SafeAudioEngine ? window.SafeAudioEngine.recordedAudioBase64 : null;
+
+  if (window.SafeAudioEngine && window.SafeAudioEngine.recordedAudioBlobUrl) {
+    window.SafeAudioEngine.renderAudioEvidenceWidget(window.SafeAudioEngine.recordedAudioBlobUrl);
   }
 
   try {
@@ -1744,12 +1765,16 @@ async function escalateToActiveEmergency(source) {
       `;
     }
 
-    // Audio status update
+    // Audio status update: show recording in progress or completed
     const audioStatusEl = document.getElementById("emg-audio-status");
     if (audioStatusEl) {
-      audioStatusEl.textContent = data.audio_captured
-        ? "Encrypted ambient audio evidence captured (30s)"
-        : "Audio evidence stream buffered";
+      if (data.audio_captured || audioPayload) {
+        audioStatusEl.textContent = "Encrypted ambient audio evidence captured (30s)";
+      } else if (isRecording) {
+        audioStatusEl.textContent = "Recording ambient audio evidence in background (30s capture)...";
+      } else {
+        audioStatusEl.textContent = "Audio evidence stream buffered";
+      }
     }
 
   } catch (err) {

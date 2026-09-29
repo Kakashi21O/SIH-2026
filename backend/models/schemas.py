@@ -92,7 +92,7 @@ class EmergencyTriggerRequest(BaseModel):
     distress_keyword: Optional[str] = None
 
 class EmergencyTriggerResponse(BaseModel):
-    countdown_seconds: int = 30
+    countdown_seconds: int = 10
     verification_token: str
     message: str
     status: str
@@ -108,6 +108,16 @@ class EmergencyEscalationRequest(BaseModel):
     timed_out_without_pin: bool = True
     audio_base64: Optional[str] = None
     audio_duration_seconds: Optional[float] = None
+
+class EmergencyAudioAttachRequest(BaseModel):
+    audio_base64: str
+    audio_duration_seconds: Optional[float] = 30.0
+
+class EmergencyAudioAttachResponse(BaseModel):
+    ok: bool = True
+    incident_id: str
+    message: str = "Audio evidence attached successfully."
+    audio_captured: bool = True
 
 class IncidentReportResponse(BaseModel):
     id: str

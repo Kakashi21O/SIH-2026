@@ -55,11 +55,11 @@ def test_emergency_trigger_and_escalate(client):
     })
     assert res_trigger.status_code == 200
     trigger_data = res_trigger.json()
-    assert trigger_data["countdown_seconds"] == 30
+    assert trigger_data["countdown_seconds"] == 10
     verification_token = trigger_data["verification_token"]
     assert "tok_" in verification_token
 
-    # 2. Escalate emergency after verification timeout
+    # 2. Escalate emergency after verification timeout (immediate 10s dispatch)
     res_escalate = client.post("/api/emergency/escalate", json={
         "user_id": "usr_demo",
         "verification_token": verification_token,
@@ -73,8 +73,20 @@ def test_emergency_trigger_and_escalate(client):
     assert res_escalate.status_code == 200
     escalate_data = res_escalate.json()
     assert "id" in escalate_data
+    incident_id = escalate_data["id"]
     assert escalate_data["severity_score"] >= 50
     assert "CRITICAL" in escalate_data["severity_level"] or "HIGH" in escalate_data["severity_level"]
+
+    # 3. Attach 30-second ambient audio evidence buffer when recording finishes
+    res_audio = client.post(f"/api/emergency/incidents/{incident_id}/audio", json={
+        "audio_base64": "data:audio/webm;base64,GkXfo59ChoEBQveBAU...",
+        "audio_duration_seconds": 30.0
+    })
+    assert res_audio.status_code == 200
+    audio_resp = res_audio.json()
+    assert audio_resp["ok"] is True
+    assert audio_resp["audio_captured"] is True
+    assert audio_resp["incident_id"] == incident_id
 
 def test_complaints_and_clustering(client):
     """Verify complaint submission, NLP classification, and hotspot clustering."""
